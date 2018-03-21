@@ -1,6 +1,5 @@
 package plv.colorado.edu.quantmchecker
 
-import java.util
 import javax.lang.model.element.AnnotationMirror
 
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
@@ -8,6 +7,7 @@ import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
 import plv.colorado.edu.quantmchecker.qual.{InvBot, ListInv}
+import plv.colorado.edu.quantmchecker.utils.AnnoTypeUtils
 
 /**
   * @author Tianhan Lu
@@ -25,22 +25,14 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     // getTypeHierarchy();
   }
 
-  override // Learned from KeyForAnnotatedTypeFactory.java
-  def createQualifierHierarchy(factory: MultiGraphQualifierHierarchy.MultiGraphFactory): QualifierHierarchy = new QuantmQualifierHierarchy(factory)
+  // Learned from KeyForAnnotatedTypeFactory.java
+  override def createQualifierHierarchy(factory: MultiGraphQualifierHierarchy.MultiGraphFactory): QualifierHierarchy = new QuantmQualifierHierarchy(factory)
 
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {
-    private def extractValues(anno: AnnotationMirror): util.List[String] = {
-      val valMap = anno.getElementValues
-      var res: util.List[String] = null
-      if (valMap.isEmpty) res = new util.ArrayList[String]
-      else res = AnnotationUtils.getElementValueArray(anno, "value", classOf[String], true)
-      res
-    }
-
     override def isSubtype(subAnno: AnnotationMirror, superAnno: AnnotationMirror): Boolean = {
       if (AnnotationUtils.areSameIgnoringValues(superAnno, LISTINV) && AnnotationUtils.areSameIgnoringValues(subAnno, LISTINV)) {
-        val lhsValues: util.List[String] = extractValues(superAnno)
-        val rhsValues: util.List[String] = extractValues(subAnno)
+        val lhsValues = AnnoTypeUtils.extractValues(superAnno)
+        val rhsValues = AnnoTypeUtils.extractValues(subAnno)
         // return rhsValues.containsAll(lhsValues);
         return false
       }
