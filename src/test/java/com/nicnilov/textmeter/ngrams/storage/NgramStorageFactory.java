@@ -1,6 +1,5 @@
 package com.nicnilov.textmeter.ngrams.storage;
 
-import applechecker.qual.Invariant;
 import com.nicnilov.textmeter.NotImplementedException;
 import com.nicnilov.textmeter.ngrams.NgramType;
 

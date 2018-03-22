@@ -1,12 +1,12 @@
 package plv.colorado.edu.quantmchecker.invlang
 
-import scala.util.parsing.combinator.Parsers
+import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.{NoPosition, Reader}
 
 /**
   * @author Tianhan Lu
   */
-object InvLangParser extends Parsers {
+object InvLangParser extends PackratParsers {
   override type Elem = InvLangToken
 
   class InvLangReader(tokens: Seq[InvLangToken]) extends Reader[InvLangToken] {
@@ -73,6 +73,9 @@ object InvLangParser extends Parsers {
     val invRight2 = limit ~ ADD ~ EXTRA ^^ {
       case limit ~ _ ~ _ => InvRight2(limit, ExtraAST)
     }
+    /*val invRight3 = LEFTPARENTHESIS ~ invRight ~ RIGHTPARENTHESIS ^^ {
+      case _ ~ invright ~ _ =>invright
+    }*/
     invRight1 | invRight2
   }
 

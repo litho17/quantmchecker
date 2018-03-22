@@ -14,7 +14,7 @@ import java.io.InputStream;
 public class NgramBuilder {
 
     public static Ngram build(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
-        @ListInv({"<self>.ngramStorage.storage?"}) Ngram ngram = new  Ngram(ngramType, ngramStorageStrategy, sizeHint);
+        Ngram ngram = new @ListInv("<self>.ngramStorage.storage+rem(inputStream)=?") Ngram(ngramType, ngramStorageStrategy, sizeHint);
         ngram.load(inputStream);
         return ngram;
     }

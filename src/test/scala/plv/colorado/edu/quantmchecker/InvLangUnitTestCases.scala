@@ -19,7 +19,9 @@ object InvLangUnitTestCases {
   )
 
   val parserTests = List(
-    "REM(x1)*500+LIST(y1)<=LIMIT(z1)",
-    "REM(x1)*500+LIST(y1)<=LIMIT(z1)+_extra"
+    "REM(x1)*500+LIST(y1)=LIMIT(z1)",
+    "REM(x1)*500+LIST(y1)<=LIMIT(z1)+_extra",
+    "REM(x1)*500*LIMIT(w1)+LIST(y1)<=LIMIT(z1)+_extra",
+    "REM(x1)*500*(LIMIT(w1)+_extra)+LIST(y1)<=LIMIT(z1)+_extra"
   )
 }

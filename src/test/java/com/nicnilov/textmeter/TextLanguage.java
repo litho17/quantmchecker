@@ -1,16 +1,16 @@
 package com.nicnilov.textmeter;
 
-import applechecker.qual.Invariant;
 import com.nicnilov.textmeter.ngrams.Ngram;
 import com.nicnilov.textmeter.ngrams.NgramBuilder;
 import com.nicnilov.textmeter.ngrams.NgramType;
 import com.nicnilov.textmeter.ngrams.TextScore;
 import com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class TextLanguage {
 
-    private EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
+    private EnumMap<NgramType, Ngram> ngrams = new @ListInv("<self>=?") EnumMap(NgramType.class);
 
     private final String language;
 
@@ -41,7 +41,7 @@ public class TextLanguage {
     }
 
     public TextScore score(final String text) {
-        TextScore textScore = new  TextScore();
+        TextScore textScore = new @ListInv("<self>.ngramScores+rem(this.ngrams)=?") TextScore();
         Ngram ngram;
         for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {

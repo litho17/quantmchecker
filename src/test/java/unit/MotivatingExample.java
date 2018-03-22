@@ -19,7 +19,7 @@ class Message {
 }
 
 public class MotivatingExample {
-    List<Message> msgHist = new @ListInv("input1+<self>=LIMIT") ArrayList<>();
+    List<Message> msgHist = new @ListInv("rem(input1)*1+<self>=LIMIT") ArrayList<>();
 
     void driver(List<Message> input1, List<Message> input2) {
         while (true) {
@@ -42,7 +42,7 @@ public class MotivatingExample {
     }
 
     void showMsgHistory() {
-        List<Message> toShow = new @ListInv("<self>+it=LIMIT+_extra") ArrayList<>();
+        List<Message> toShow = new @ListInv("rem(it)*1+<self>=LIMIT+_extra") ArrayList<>();
         toShow.add(new Message("Message history begins:".toCharArray()));
         Iterator<Message> it = msgHist.iterator();
         while (it.hasNext()) {

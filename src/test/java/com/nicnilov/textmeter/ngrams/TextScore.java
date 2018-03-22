@@ -1,6 +1,5 @@
 package com.nicnilov.textmeter.ngrams;
 
-import com.nicnilov.textmeter.ngrams.storage.NgramStorage;
 import java.util.EnumMap;
 import java.util.Map;
 

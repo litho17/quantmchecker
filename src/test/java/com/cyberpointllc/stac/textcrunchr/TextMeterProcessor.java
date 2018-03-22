@@ -5,9 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
-import java.util.Scanner;
+
 import org.apache.commons.io.IOUtils;
-import com.cyberpointllc.stac.textcrunchr.Processor;
 import com.nicnilov.textmeter.TextMeter;
 import com.nicnilov.textmeter.TextLanguage;
 import com.nicnilov.textmeter.TestUtils;

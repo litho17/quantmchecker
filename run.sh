@@ -8,6 +8,8 @@ scala_lib='/Users/lumber/.sbt/preloaded/org.scala-lang/scala-library/2.12.1/jars
 class_files_location='target/scala-2.12/classes'
 fully_qualified_name='plv.colorado.edu.quantmchecker.QuantmChecker'
 
+# MAKE SURE THAT JAVAC WITHOUT -PROCESSOR WON'T ISSUE ERRORS
+
 pwd=`pwd`
 cd $class_files_location
 javac -cp .:$scala_lib -AprintErrorStack -processor $fully_qualified_name $pwd/$1
