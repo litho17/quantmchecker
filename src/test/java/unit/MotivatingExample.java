@@ -42,7 +42,7 @@ public class MotivatingExample {
     }
 
     void showMsgHistory() {
-        List<Message> toShow = new @ListInv("<self>+it=LIMIT+1") ArrayList<>();
+        List<Message> toShow = new @ListInv("<self>+it=LIMIT+_extra") ArrayList<>();
         toShow.add(new Message("Message history begins:".toCharArray()));
         Iterator<Message> it = msgHist.iterator();
         while (it.hasNext()) {
