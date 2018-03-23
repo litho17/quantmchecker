@@ -1,4 +1,4 @@
-package plv.colorado.edu.quantmchecker.qual;
+package plv.colorado.edu.listaddchecker.qual;
 
 import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 import org.checkerframework.framework.qual.InvisibleQualifier;
@@ -15,4 +15,4 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-public @interface InvTop {}
+public @interface ListaddTop {}
