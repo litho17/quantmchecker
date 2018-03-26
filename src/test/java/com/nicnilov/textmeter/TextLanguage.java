@@ -7,6 +7,7 @@ import com.nicnilov.textmeter.ngrams.TextScore;
 import com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +20,7 @@ import java.util.Map;
  */
 public class TextLanguage {
 
-    private EnumMap<NgramType, Ngram> ngrams = new @ListInv("<self>=?") EnumMap(NgramType.class);
+    private EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
 
     private final String language;
 
@@ -41,7 +42,7 @@ public class TextLanguage {
     }
 
     public TextScore score(final String text) {
-        TextScore textScore = new @ListInv("<self>.ngramScores+rem(this.ngrams)=?") TextScore();
+        @ListInv("<self>.ngramScores+rem(this.ngrams)=c50-c46") TextScore textScore = new TextScore();
         Ngram ngram;
         for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {

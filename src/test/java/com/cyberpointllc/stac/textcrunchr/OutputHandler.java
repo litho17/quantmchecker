@@ -1,17 +1,21 @@
 package com.cyberpointllc.stac.textcrunchr;
 
-import com.cyberpointllc.stac.hashmap.HashMap;
+// import com.cyberpointllc.stac.hashmap.HashMap;
 import com.cyberpointllc.stac.sort.DefaultComparator;
 import com.cyberpointllc.stac.sort.Sorter;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 //
 public abstract class OutputHandler {
 
-    protected Map<String, List<TCResult>> results = new  HashMap<String, List<TCResult>>();
+    protected Map<String, List<TCResult>> results = new HashMap<String, List<TCResult>>();
 
     protected String outputForm;
 

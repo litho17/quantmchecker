@@ -1,7 +1,6 @@
 package com.nicnilov.textmeter.ngrams.storage;
 
 import com.nicnilov.textmeter.ngrams.NgramType;
-import plv.colorado.edu.quantmchecker.qual.ListInv;
 
 import java.util.TreeMap;
 
@@ -18,6 +17,6 @@ final class TreeMapStorage extends NgramStorage {
 
     public TreeMapStorage(NgramType ngramType) {
         super(ngramType);
-        this.storage = new @ListInv({"?"}) TreeMap();
+        this.storage = new  TreeMap();
     }
 }

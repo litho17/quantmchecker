@@ -1,5 +1,7 @@
 package com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.ArrayList;
 
 public class TCResult {

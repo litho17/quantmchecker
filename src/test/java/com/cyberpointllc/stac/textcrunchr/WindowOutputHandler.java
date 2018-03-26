@@ -1,5 +1,7 @@
 package com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
@@ -44,7 +46,7 @@ public class WindowOutputHandler extends OutputHandler {
 
             public void mouseClicked(MouseEvent e) {
                 String selected = (String) fileList.getSelectedValue();
-                StringBuilder outputString = new  StringBuilder();
+                @ListInv("<self>+rem(sampleResults)=c53-c52") StringBuilder outputString = new  StringBuilder();
                 String path = namesToPaths.get(selected);
                 List<TCResult> sampleResults = results.get(path);
                 for (TCResult result : sampleResults) {

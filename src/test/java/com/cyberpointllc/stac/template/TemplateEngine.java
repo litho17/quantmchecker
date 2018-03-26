@@ -7,6 +7,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 /**
  * This engine takes a template in the form of a string and possibly a start tag

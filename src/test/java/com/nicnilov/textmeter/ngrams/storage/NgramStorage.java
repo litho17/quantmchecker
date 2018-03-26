@@ -1,6 +1,9 @@
 package com.nicnilov.textmeter.ngrams.storage;
 
 import com.nicnilov.textmeter.ngrams.NgramType;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.io.*;
 import java.util.AbstractMap;
 import java.util.Iterator;

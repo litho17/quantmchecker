@@ -1,5 +1,8 @@
 package com.nicnilov.textmeter.ngrams;
 
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -17,7 +20,7 @@ public class TextScore {
 
     @Override
     public String toString() {
-        StringBuilder sb = new  StringBuilder();
+        @ListInv("<self>+rem(entrySet)=c26-c24") StringBuilder sb = new  StringBuilder();
         for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
             if (entry.getValue() != null) {
                 toStringHelper(entry, sb);

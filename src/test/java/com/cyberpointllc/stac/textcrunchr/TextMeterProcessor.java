@@ -14,6 +14,7 @@ import com.nicnilov.textmeter.ngrams.NgramType;
 import com.nicnilov.textmeter.ngrams.TextScore;
 import com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
 
 class TextMeterProcessor extends Processor {
 
@@ -22,7 +23,7 @@ class TextMeterProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        StringBuilder sb = new  StringBuilder();
+        @ListInv("<self>+rem(br)=-c28+c31-c32") StringBuilder sb = new  StringBuilder();
         BufferedReader br = new  BufferedReader(is);
         String read = br.readLine();
         while (read != null) {
@@ -34,7 +35,7 @@ class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new  TextMeter();
         textMeter.createTextLanguage("en");
-        TextLanguage en = textMeter.get("en");
+        @ListInv("en.ngrams=c42") TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {

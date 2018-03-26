@@ -1,5 +1,8 @@
 package com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,7 +11,7 @@ import java.util.List;
 
 public class TextFileHandler {
 
-    List<Processor> processors;
+    @ListInv("<self>=c18+...+c26") List<Processor> processors;
 
     public TextFileHandler() throws IOException {
         // todo - fill processors with list of processors

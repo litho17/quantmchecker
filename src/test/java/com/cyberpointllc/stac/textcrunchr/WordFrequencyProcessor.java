@@ -2,13 +2,16 @@ package com.cyberpointllc.stac.textcrunchr;
 
 import com.cyberpointllc.stac.sort.DefaultComparator;
 import com.cyberpointllc.stac.sort.Sorter;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import com.cyberpointllc.stac.hashmap.HashMap;
+// import com.cyberpointllc.stac.hashmap.HashMap;
 
 public class WordFrequencyProcessor extends Processor {
 
@@ -24,7 +27,7 @@ public class WordFrequencyProcessor extends Processor {
         // sort results by most frequent
         Sorter<WordCount> sorter = new  Sorter<WordCount>(new  DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
-        TCResult result = new  TCResult("Word frequencies");
+        @ListInv("<self>.results+rem(sortedWCs)=c32-c31") TCResult result = new  TCResult("Word frequencies");
         for (WordCount wc : sortedWCs) {
             result.addResult(wc.getWord(), wc.getCount());
         }
@@ -42,8 +45,8 @@ public class WordFrequencyProcessor extends Processor {
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
-        List<WordCount> freqs = new  ArrayList<WordCount>();
-        HashMap<String, WordCount> freqsCounter = new  HashMap<String, WordCount>();
+        @ListInv({"<self>+rem(words)=c60-c50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
+        HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
         for (String word : words) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
             String w = word;
@@ -82,7 +85,7 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        StringBuilder sb = new  StringBuilder();
+        @ListInv("<self>+rem(br)=-c89+c91-c92") StringBuilder sb = new  StringBuilder();
         String read = br.readLine();
         while (read != null) {
             sb.append(read);

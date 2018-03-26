@@ -1,6 +1,8 @@
 package com.nicnilov.textmeter;
 
-import com.cyberpointllc.stac.hashmap.HashMap;
+// import com.cyberpointllc.stac.hashmap.HashMap;
+
+import java.util.HashMap;
 
 public class TextMeter {
 

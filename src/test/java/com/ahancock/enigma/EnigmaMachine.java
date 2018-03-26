@@ -1,5 +1,7 @@
 package com.ahancock.enigma;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 public class EnigmaMachine {
 
     private Rotor r1;

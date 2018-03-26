@@ -1,5 +1,7 @@
 package com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,7 +18,7 @@ public class WordStatsProcessor extends Processor {
         // count number of sentences
         String input = readInput(inps);
         String words[] = tokenize(input);
-        TCResult result = new  TCResult("Word stats");
+        @ListInv("<self>.results=c22+c23+c24+c25") TCResult result = new  TCResult("Word stats");
         result.addResult("Word count", words.length);
         result.addResult("Average word length", meanLen(words));
         result.addResult("Variance in word length", varLen(words));
@@ -90,7 +92,7 @@ public class WordStatsProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        StringBuilder sb = new  StringBuilder();
+        @ListInv("<self>+rem(br)=-c96+c98-c99") StringBuilder sb = new  StringBuilder();
         String read = br.readLine();
         while (read != null) {
             sb.append(read);
