@@ -6,8 +6,8 @@ import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeC
 import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
+import plv.colorado.edu.AnnoTypeUtils
 import plv.colorado.edu.quantmchecker.qual.{InvBot, ListInv}
-import plv.colorado.edu.quantmchecker.utils.AnnoTypeUtils
 
 /**
   * @author Tianhan Lu
