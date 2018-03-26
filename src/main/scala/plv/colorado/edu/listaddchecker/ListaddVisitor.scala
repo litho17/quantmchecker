@@ -8,7 +8,7 @@ import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeC
   */
 class ListaddVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[BaseAnnotatedTypeFactory](checker) {
   override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
-    println(node.getArguments)
+    // println(root.getSourceFile)
     super.visitMethodInvocation(node, p)
   }
 }

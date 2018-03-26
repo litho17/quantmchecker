@@ -14,14 +14,15 @@ LISTADDCHECKER="listaddchecker.ListaddChecker"
 
 pwd=`pwd`
 cd $class_files_location
-set -x
 if [ $1 == '1' ]
 then
+#	set -x
 	javac -cp .:$scala_lib -AprintErrorStack -processor $fully_qualified_name$QUANTMCHECKER $pwd/$2
 elif [ $1 == '2' ]
 then
+#	set -x
 	javac -cp .:$scala_lib -AprintErrorStack -processor $fully_qualified_name$LISTADDCHECKER $pwd/$2
 else
-	echo "?"
+	echo "Which checker to run? Please choose 1 or 2"
 fi
 #-AignoreRawTypeArguments
