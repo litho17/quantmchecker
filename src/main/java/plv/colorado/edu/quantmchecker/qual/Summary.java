@@ -9,7 +9,7 @@ import java.lang.annotation.*;
  */
 @SubtypeOf({SumTop.class})
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 @Documented
 public @interface Summary {
     String[] value();

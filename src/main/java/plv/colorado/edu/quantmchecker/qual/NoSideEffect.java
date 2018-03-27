@@ -10,10 +10,9 @@ import java.lang.annotation.Target;
  * @author Tianhan Lu
  */
 @InvisibleQualifier
-@SubtypeOf({Summary.class})
+@SubtypeOf({SideEffect.class})
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
-@ImplicitFor(literals= LiteralKind.NULL)
 @Documented
 @DefaultQualifierInHierarchy
-public @interface SideEffect {
+public @interface NoSideEffect {
 }
