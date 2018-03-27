@@ -1,5 +1,6 @@
 package com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
@@ -55,19 +56,19 @@ public class TCResult {
         return value;
     }
 
-    public void addResult(String key, int val) {
+    @Summary("?") @SideEffect public void addResult(String key, int val) {
         addResultHelper(val, key);
     }
 
-    public void addResult(String key, double val) {
+    @Summary("?") @SideEffect public void addResult(String key, double val) {
         results.add(new  Component(key, Double.toString(val)));
     }
 
-    public void addResult(String key, String val) {
+    @Summary("?") @SideEffect public void addResult(String key, String val) {
         results.add(new  Component(key, val));
     }
 
-    private void addResultHelper(int val, String key) {
+    @Summary("?") @SideEffect private void addResultHelper(int val, String key) {
         results.add(new  Component(key, Integer.toString(val)));
     }
 }

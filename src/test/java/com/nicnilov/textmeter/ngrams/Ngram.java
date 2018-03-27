@@ -5,6 +5,8 @@ import com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorage;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageFactory;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -28,7 +30,7 @@ public class Ngram {
         this.ngramStorage = NgramStorageFactory.get(ngramType, ngramStorageStrategy, sizeHint);
     }
 
-    protected Ngram load(InputStream inputStream) throws IOException, LineFormatException {
+    @SideEffect protected Ngram load(InputStream inputStream) throws IOException, LineFormatException {
         if (ngramStorage == null) {
             throw new  NotInitializedException();
         }

@@ -4,6 +4,7 @@ package com.cyberpointllc.stac.textcrunchr;
 import com.cyberpointllc.stac.sort.DefaultComparator;
 import com.cyberpointllc.stac.sort.Sorter;
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.nio.file.Paths;
@@ -25,17 +26,17 @@ public abstract class OutputHandler {
 
     protected List<String> sortedFiles;
 
-    public void addResult(String filename, TCResult tcr) {
+    @Summary("?") @SideEffect public void addResult(String filename, TCResult tcr) {
         addResultHelper(tcr, filename);
     }
 
-    public void conclude() throws OutputHandlerException {
+    @SideEffect public void conclude() throws OutputHandlerException {
         concludeHelper();
     }
 
     protected abstract void do_conclude() throws OutputHandlerException;
 
-    private void addResultHelper(TCResult tcr, String filename) {
+    @SideEffect private void addResultHelper(TCResult tcr, String filename) {
         if (results.containsKey(filename)) {
             results.get(filename).add(tcr);
         } else {
@@ -45,7 +46,7 @@ public abstract class OutputHandler {
         }
     }
 
-    private void concludeHelper() throws OutputHandlerException {
+    @Summary("?") @SideEffect private void concludeHelper() throws OutputHandlerException {
         for (String file : results.keySet()) {
             namesToPaths.put(Paths.get(file).getFileName().toString(), file);
         }

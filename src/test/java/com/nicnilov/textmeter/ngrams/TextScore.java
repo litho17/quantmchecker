@@ -1,6 +1,7 @@
 package com.nicnilov.textmeter.ngrams;
 
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.EnumMap;
@@ -18,7 +19,6 @@ public class TextScore {
         return ngramScores;
     }
 
-    @Override
     public String toString() {
         @ListInv("<self>+rem(entrySet)=c26-c24") StringBuilder sb = new  StringBuilder();
         for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
@@ -29,7 +29,7 @@ public class TextScore {
         return sb.toString();
     }
 
-    private void toStringHelper(Map.Entry<NgramType, Ngram.ScoreStats> entry, StringBuilder sb) {
+    @Summary("?") @SideEffect private void toStringHelper(Map.Entry<NgramType, Ngram.ScoreStats> entry, StringBuilder sb) {
         sb.append(String.format("%s: %.5f (min: %.5f total: %.0f found: %.0f)", entry.getKey(), entry.getValue().getScore(), entry.getValue().getMinScore(), entry.getValue().getNgramsTotal(), entry.getValue().getNgramsFound()));
     }
 }

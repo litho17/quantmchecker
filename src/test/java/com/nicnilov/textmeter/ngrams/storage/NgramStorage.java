@@ -2,6 +2,7 @@ package com.nicnilov.textmeter.ngrams.storage;
 
 import com.nicnilov.textmeter.ngrams.NgramType;
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.*;
@@ -29,7 +30,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
         this.ngramType = ngramType;
     }
 
-    public long load(InputStream inputStream) throws LineFormatException, IOException {
+    @SideEffect public long load(InputStream inputStream) throws LineFormatException, IOException {
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inputStream));
         count = 0;
         storage.clear();

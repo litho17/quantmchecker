@@ -1,5 +1,6 @@
 package com.ahancock.enigma;
 
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 public class EnigmaMachine {
@@ -40,7 +41,7 @@ public class EnigmaMachine {
     private StringBuilder sb = new  StringBuilder();
 
     // Encode the input string and return the result
-    public String encodeLine(String s) {
+    @Summary("?") @SideEffect public String encodeLine(String s) {
         // Reuse the same StringBuilder.
         sb.setLength(0);
         for (int i = 0; i < s.length(); i++) {

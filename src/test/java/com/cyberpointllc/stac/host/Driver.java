@@ -13,7 +13,7 @@ import java.io.File;
 public class Driver {
     public static void main(String[] args) throws Exception {
         while(true) {
-            @ListInv({"<self>.results+rem(???)=-TextFileHandler.c32+OutputHandler.c41/c44", "<self>.namesToPaths+rem(results)=OutputHandler.c50-OutputHandler.c49"}) OutputHandler outputHandler = new WindowOutputHandler();
+            @ListInv({"<self>.results+rem(???)=-TextFileHandler.c32+OutputHandler.c47", "<self>.namesToPaths+rem(results)=OutputHandler.c50-OutputHandler.c49"}) OutputHandler outputHandler = new WindowOutputHandler();
             TextFileHandler tfHandler = new  TextFileHandler();
             tfHandler.processFile("filename", outputHandler, args);
             outputHandler.conclude();

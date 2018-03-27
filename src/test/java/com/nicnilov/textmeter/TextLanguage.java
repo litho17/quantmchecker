@@ -7,6 +7,7 @@ import com.nicnilov.textmeter.ngrams.TextScore;
 import com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class TextLanguage {
         throw new  NotInitializedException(String.format("Ngrams of type %s have not been loaded", ngramType));
     }
 
-    public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
+    @Summary("?") @SideEffect public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
         Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
         ngrams.put(ngramType, ngram);
         return ngram;

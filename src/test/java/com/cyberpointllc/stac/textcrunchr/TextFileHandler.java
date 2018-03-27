@@ -1,6 +1,7 @@
 package com.cyberpointllc.stac.textcrunchr;
 
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.SideEffect;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.FileInputStream;
@@ -13,7 +14,7 @@ public class TextFileHandler {
 
     @ListInv("<self>=c18+...+c26") List<Processor> processors;
 
-    public TextFileHandler() throws IOException {
+    @Summary("?") @SideEffect public TextFileHandler() throws IOException {
         // todo - fill processors with list of processors
         processors = new  ArrayList<Processor>();
         processors.add(new  CharacterCountProcessor());
@@ -27,14 +28,14 @@ public class TextFileHandler {
         processors.add(new  WordFrequencyProcessor());
     }
 
-    public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {
+    @Summary("?") @SideEffect public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {
         List<String> argsList = new  ArrayList<String>(Arrays.asList(args));
         for (Processor processor : processors) {
             processFileHelper(outph, argsList, filename, processor);
         }
     }
 
-    private void processFileHelper(OutputHandler outph, List<String> argsList, String filename, Processor processor) throws IOException {
+    @SideEffect private void processFileHelper(OutputHandler outph, List<String> argsList, String filename, Processor processor) throws IOException {
         if (argsList.isEmpty() || argsList.contains(processor.getName())) {
             TCResult tcr = processor.process(new  FileInputStream(filename));
             outph.addResult(filename, tcr);
