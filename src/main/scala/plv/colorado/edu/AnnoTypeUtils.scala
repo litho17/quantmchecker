@@ -14,10 +14,12 @@ import scala.collection.JavaConverters._
 object AnnoTypeUtils {
   def extractValues(anno: AnnotationMirror): List[String] = {
     val valMap = anno.getElementValues
-    if (valMap.isEmpty)
+    if (valMap.isEmpty) {
       List()
-    else
+    } else {
+      // TODO: hardcoded "value"
       AnnotationUtils.getElementValueArray(anno, "value", classOf[String], true).asScala.toList
+    }
   }
 
   def getLineNumber(node: Tree, positions: SourcePositions, root: CompilationUnitTree): Long = {
