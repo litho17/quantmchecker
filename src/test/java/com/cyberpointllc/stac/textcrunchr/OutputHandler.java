@@ -26,17 +26,17 @@ public abstract class OutputHandler {
 
     protected List<String> sortedFiles;
 
-    @Summary("?") @SideEffect public void addResult(String filename, TCResult tcr) {
+    @Summary("results: 1") public void addResult(String filename, TCResult tcr) {
         addResultHelper(tcr, filename);
     }
 
-    @SideEffect public void conclude() throws OutputHandlerException {
+    @Summary("namesToPaths: results") public void conclude() throws OutputHandlerException {
         concludeHelper();
     }
 
     protected abstract void do_conclude() throws OutputHandlerException;
 
-    @SideEffect private void addResultHelper(TCResult tcr, String filename) {
+    private void addResultHelper(TCResult tcr, String filename) {
         if (results.containsKey(filename)) {
             results.get(filename).add(tcr);
         } else {
@@ -46,7 +46,7 @@ public abstract class OutputHandler {
         }
     }
 
-    @Summary("?") @SideEffect private void concludeHelper() throws OutputHandlerException {
+    private void concludeHelper() throws OutputHandlerException {
         for (String file : results.keySet()) {
             namesToPaths.put(Paths.get(file).getFileName().toString(), file);
         }

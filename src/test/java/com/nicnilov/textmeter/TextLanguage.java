@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public class TextLanguage {
 
-    private EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
+    private @ListInv("<self>=c42") EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
 
     private final String language;
 
@@ -36,14 +36,14 @@ public class TextLanguage {
         throw new  NotInitializedException(String.format("Ngrams of type %s have not been loaded", ngramType));
     }
 
-    @Summary("?") @SideEffect public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
+    public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
         Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
         ngrams.put(ngramType, ngram);
         return ngram;
     }
 
     public TextScore score(final String text) {
-        @ListInv("<self>.ngramScores+rem(this.ngrams)=c50-c46") TextScore textScore = new TextScore();
+        @ListInv("ngrams+<self>.ngramScores=c50-c46") TextScore textScore = new TextScore();
         Ngram ngram;
         for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {

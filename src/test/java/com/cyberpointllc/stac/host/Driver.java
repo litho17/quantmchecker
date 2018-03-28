@@ -1,11 +1,10 @@
 package com.cyberpointllc.stac.host;
 
-import com.cyberpointllc.stac.textcrunchr.OutputHandler;
-import com.cyberpointllc.stac.textcrunchr.TextFileHandler;
-import com.cyberpointllc.stac.textcrunchr.WindowOutputHandler;
+import com.cyberpointllc.stac.textcrunchr.*;
 import plv.colorado.edu.quantmchecker.qual.ListInv;
 
-import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 
 /**
  * @author Tianhan Lu
@@ -13,10 +12,23 @@ import java.io.File;
 public class Driver {
     public static void main(String[] args) throws Exception {
         while(true) {
-            @ListInv({"<self>.results+rem(???)=-TextFileHandler.c32+OutputHandler.c47", "<self>.namesToPaths+rem(results)=OutputHandler.c50-OutputHandler.c49"}) OutputHandler outputHandler = new WindowOutputHandler();
-            TextFileHandler tfHandler = new  TextFileHandler();
-            tfHandler.processFile("filename", outputHandler, args);
-            outputHandler.conclude();
+            int INPUTINPUT = 10000;
+            INPUTINPUT = INPUTINPUT - 100;
+            @ListInv({"INPUTINPUT+<self>.results=22+24+26+28+30-16"}) OutputHandler outputHandler = new WindowOutputHandler();
+            String fileName = "";
+            InputStream ips = new FileInputStream(fileName);
+            TCResult res;
+            res = new CharacterCountProcessor().process(ips);
+            outputHandler.addResult(fileName, res);
+            res = new TextMeterProcessor().process(ips);
+            outputHandler.addResult(fileName, res);
+            res = new EnigmaProcessor().process(ips);
+            outputHandler.addResult(fileName, res);
+            res = new WordStatsProcessor().process(ips);
+            outputHandler.addResult(fileName, res);
+            res = new WordFrequencyProcessor().process(ips);
+            outputHandler.addResult(fileName, res);
+            // outputHandler.conclude();
         }
     }
 }

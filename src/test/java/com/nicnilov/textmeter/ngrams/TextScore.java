@@ -20,7 +20,7 @@ public class TextScore {
     }
 
     public String toString() {
-        @ListInv("<self>+rem(entrySet)=c26-c24") StringBuilder sb = new  StringBuilder();
+        @ListInv("entrySet+<self>=c26-c24") StringBuilder sb = new  StringBuilder();
         for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
             if (entry.getValue() != null) {
                 toStringHelper(entry, sb);
@@ -29,7 +29,7 @@ public class TextScore {
         return sb.toString();
     }
 
-    @Summary("?") @SideEffect private void toStringHelper(Map.Entry<NgramType, Ngram.ScoreStats> entry, StringBuilder sb) {
+    @Summary("sb: 1") @SideEffect private void toStringHelper(Map.Entry<NgramType, Ngram.ScoreStats> entry, StringBuilder sb) {
         sb.append(String.format("%s: %.5f (min: %.5f total: %.0f found: %.0f)", entry.getKey(), entry.getValue().getScore(), entry.getValue().getMinScore(), entry.getValue().getNgramsTotal(), entry.getValue().getNgramsFound()));
     }
 }

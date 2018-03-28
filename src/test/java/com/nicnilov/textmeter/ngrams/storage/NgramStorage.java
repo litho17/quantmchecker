@@ -22,7 +22,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
 
     private long count = 0;
 
-    protected AbstractMap<String, Float> storage;
+    protected @ListInv("load.inputStream+<self>=c49-c43") AbstractMap<String, Float> storage;
 
     public abstract NgramStorageStrategy getStorageStrategy();
 
@@ -30,7 +30,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
         this.ngramType = ngramType;
     }
 
-    @SideEffect public long load(InputStream inputStream) throws LineFormatException, IOException {
+    public long load(InputStream inputStream) throws LineFormatException, IOException {
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inputStream));
         count = 0;
         storage.clear();

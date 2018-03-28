@@ -16,14 +16,14 @@ import com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
 import plv.colorado.edu.quantmchecker.qual.ListInv;
 
-class TextMeterProcessor extends Processor {
+public class TextMeterProcessor extends Processor {
 
     private static final String NAME = "languageAnalysis";
 
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        @ListInv("<self>+rem(br)=-c28+c31-c32") StringBuilder sb = new  StringBuilder();
+        @ListInv("br+<self>=-c28+c31-c32") StringBuilder sb = new  StringBuilder();
         BufferedReader br = new  BufferedReader(is);
         String read = br.readLine();
         while (read != null) {
@@ -35,7 +35,7 @@ class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new  TextMeter();
         textMeter.createTextLanguage("en");
-        @ListInv("en.ngrams=c42") TextLanguage en = textMeter.get("en");
+        TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {
