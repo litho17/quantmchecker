@@ -22,7 +22,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
 
     private long count = 0;
 
-    protected @ListInv("load.inputStream+<self>=+49-43") AbstractMap<String, Float> storage;
+    protected @ListInv("inputStream+<self>=+49-43") AbstractMap<String, Float> storage;
 
     public abstract NgramStorageStrategy getStorageStrategy();
 

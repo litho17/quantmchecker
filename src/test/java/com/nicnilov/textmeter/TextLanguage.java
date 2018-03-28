@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public class TextLanguage {
 
-    private @ListInv("<self>=c42") EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
+    private @ListInv("+<self>=+41") EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
 
     private final String language;
 
