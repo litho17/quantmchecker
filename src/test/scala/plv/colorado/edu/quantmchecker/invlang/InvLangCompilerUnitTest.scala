@@ -1,7 +1,6 @@
-package plv.colorado.edu.quantmchecker
+package plv.colorado.edu.quantmchecker.invlang
 
 import org.scalatest.{FlatSpec, Matchers}
-import plv.colorado.edu.quantmchecker.invlang.InvLangCompiler
 
 /**
   * @author Tianhan Lu

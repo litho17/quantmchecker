@@ -11,72 +11,50 @@ object InvLangParser extends PackratParsers {
 
   class InvLangReader(tokens: Seq[InvLangToken]) extends Reader[InvLangToken] {
     override def first: InvLangToken = tokens.head
+
     override def atEnd: Boolean = tokens.isEmpty
+
     override def pos = NoPosition
+
     override def rest: Reader[InvLangToken] = new InvLangReader(tokens.tail)
   }
 
   private def identifier: Parser[IDENTIFIER] = {
-    accept("identifier", { case id @ IDENTIFIER(name) => id })
+    accept("identifier", { case id@IDENTIFIER(name) => id })
   }
 
-  private def coefficient: Parser[COEFFICIENT] = {
-    accept("coefficient", { case coeff @ COEFFICIENT(num) => coeff })
-  }
-
-  def invariant: Parser[InvLangAST] = {
-    val le = invLeft ~ LE ~ invRight ^^ {
-      case left ~ _ ~ right => Inv(left, LeAST, right)
-    }
-    val eq = invLeft ~ EQ ~ invRight ^^ {
-      case left ~ _ ~ right => Inv(left, EqAST, right)
-    }
-    le | eq
+  private def number: Parser[NUMBER] = {
+    accept("number", { case coeff@NUMBER(num) => coeff })
   }
 
   def remainder: Parser[RemainderAST] = {
-    (REMAINDER ~ LEFTPARENTHESIS ~ identifier ~ RIGHTPARENTHESIS ~ MUL ~ coefficient) ^^ {
-      case _ ~ _ ~ IDENTIFIER(id) ~ _ ~ _ ~ COEFFICIENT(coeff) => RemainderAST(id, coeff)
+    identifier ^^ {
+      case IDENTIFIER(variable) => RemainderAST(variable)
     }
   }
 
-  def list: Parser[ListAST] = {
-    (LIST ~ LEFTPARENTHESIS ~ identifier ~ RIGHTPARENTHESIS) ^^ {
-      case _ ~ _ ~ IDENTIFIER(id) ~ _ => ListAST(id)
+  def linecounter: Parser[LinecounterAST] = {
+    number ^^ {
+      case NUMBER(number) => LinecounterAST(number)
     }
   }
 
-  def limit: Parser[LimitAST] = {
-    (LIMIT ~ LEFTPARENTHESIS ~ identifier ~ RIGHTPARENTHESIS) ^^ {
-      case _ ~ _ ~ IDENTIFIER(id) ~ _ => LimitAST(id)
+  def self: Parser[SelfAST] = {
+    SELF ~ rep(DOT ~ identifier) ^^ {
+      case _ ~ fields => SelfAST(fields.map {
+        x => x._2.variable
+      })
     }
   }
 
-  /*private def invleft: Parser[InvLeft] = {
-    accept("invleft", { case invleft @ InvLeft1(remainder, invRight, invLeft) => coeff })
-  }*/
-
-  def invLeft: Parser[InvLangAST] = {
-    val invLeft1 = remainder ~ MUL ~ invRight ~ ADD ~ invLeft ^^ {
-      case remainder ~ _ ~ invRight ~ _ ~ invLeft => InvLeft1(remainder, invRight, invLeft)
+  def invariant: Parser[InvLangAST] = {
+    opt(remainder) ~ ADD ~ self ~ EQ ~ rep(ADD ~ linecounter) ~ rep(SUB ~ linecounter) ^^ {
+      case remainder ~ self ~ _ ~ posLine ~ negLine =>
+        remainder._1 match {
+          case Some(remainderAST) => Inv(remainderAST.variable, self.id, posLine.map { x => x._2.number }, negLine.map { x => x._2.number })
+          case None => InvNoRem(self.id, posLine.map { x => x._2.number }, negLine.map { x => x._2.number })
+        }
     }
-    val invLeft2 = remainder ~ ADD ~ list ^^ {
-      case remainder ~ _ ~ list => InvLeft2(remainder, list)
-    }
-    invLeft1 | invLeft2
-  }
-
-  def invRight: Parser[InvRight] = {
-    val invRight1 = limit ^^ {
-      case limit => InvRight1(limit)
-    }
-    val invRight2 = limit ~ ADD ~ EXTRA ^^ {
-      case limit ~ _ ~ _ => InvRight2(limit, ExtraAST)
-    }
-    /*val invRight3 = LEFTPARENTHESIS ~ invRight ~ RIGHTPARENTHESIS ^^ {
-      case _ ~ invright ~ _ =>invright
-    }*/
-    invRight1 | invRight2
   }
 
   def apply(tokens: Seq[InvLangToken]): Either[InvLangParserError, InvLangAST] = {

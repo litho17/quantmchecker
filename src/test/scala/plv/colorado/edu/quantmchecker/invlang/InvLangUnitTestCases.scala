@@ -1,4 +1,4 @@
-package plv.colorado.edu.quantmchecker
+package plv.colorado.edu.quantmchecker.invlang
 
 /**
   * @author Tianhan Lu
@@ -6,22 +6,13 @@ package plv.colorado.edu.quantmchecker
 object InvLangUnitTestCases {
   val lexerTests = List(
     "500",
-    "<=",
     "=",
     "+",
-    "*",
-    "REM(x1)",
-    "REM(x1)*500",
-    "REM(x1)500",
-    "REM(x1)*500+LIST(y1)",
-    "REM(x1)*500+LIST(y1)<=LIMIT(z1)",
-    "REM(x1)*500+LIST(y1)<=LIMIT(z1)+_extra"
+    "x+<self>.e.f=+10+29+41-11"
   )
 
   val parserTests = List(
-    "REM(x1)*500+LIST(y1)=LIMIT(z1)",
-    "REM(x1)*500+LIST(y1)<=LIMIT(z1)+_extra",
-    "REM(x1)*500*LIMIT(w1)+LIST(y1)<=LIMIT(z1)+_extra",
-    "REM(x1)*500*(LIMIT(w1)+_extra)+LIST(y1)<=LIMIT(z1)+_extra"
+    "x+<self>.e.f=+10+29+41-11",
+    "+<self>.e.f=+10+29+41-11"
   )
 }
