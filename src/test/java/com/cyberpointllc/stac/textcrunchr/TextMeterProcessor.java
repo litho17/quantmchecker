@@ -23,7 +23,7 @@ public class TextMeterProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        @ListInv("br+<self>=-c28+c31-c32") StringBuilder sb = new  StringBuilder();
+        @ListInv("br+<self>=-28+31-32") StringBuilder sb = new  StringBuilder();
         BufferedReader br = new  BufferedReader(is);
         String read = br.readLine();
         while (read != null) {

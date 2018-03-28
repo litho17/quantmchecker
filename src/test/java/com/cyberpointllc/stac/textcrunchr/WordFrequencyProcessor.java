@@ -27,7 +27,7 @@ public class WordFrequencyProcessor extends Processor {
         // sort results by most frequent
         Sorter<WordCount> sorter = new  Sorter<WordCount>(new  DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
-        @ListInv("sortedWCs+<self>.results=c32-c31") TCResult result = new  TCResult("Word frequencies");
+        @ListInv("sortedWCs+<self>.results=+32-31") TCResult result = new  TCResult("Word frequencies");
         for (WordCount wc : sortedWCs) {
             result.addResult(wc.getWord(), wc.getCount());
         }
@@ -45,7 +45,7 @@ public class WordFrequencyProcessor extends Processor {
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
-        @ListInv({"words+<self>=c60-c50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
+        @ListInv({"words+<self>=+60-50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
         HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
         for (String word : words) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
@@ -85,7 +85,7 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @ListInv("br+<self>=-c89+c91-c92") StringBuilder sb = new  StringBuilder();
+        @ListInv("br+<self>=-89+91-92") StringBuilder sb = new  StringBuilder();
         String read = br.readLine();
         while (read != null) {
             sb.append(read);

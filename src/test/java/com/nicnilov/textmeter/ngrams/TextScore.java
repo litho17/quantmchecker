@@ -20,7 +20,7 @@ public class TextScore {
     }
 
     public String toString() {
-        @ListInv("entrySet+<self>=c26-c24") StringBuilder sb = new  StringBuilder();
+        @ListInv("entrySet+<self>=+26-24") StringBuilder sb = new  StringBuilder();
         for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
             if (entry.getValue() != null) {
                 toStringHelper(entry, sb);

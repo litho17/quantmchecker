@@ -46,7 +46,7 @@ public class WindowOutputHandler extends OutputHandler {
 
             public void mouseClicked(MouseEvent e) {
                 String selected = (String) fileList.getSelectedValue();
-                @ListInv("sampleResults+<self>=c53-c52") StringBuilder outputString = new  StringBuilder();
+                @ListInv("sampleResults+<self>=+53-52") StringBuilder outputString = new  StringBuilder();
                 String path = namesToPaths.get(selected);
                 List<TCResult> sampleResults = results.get(path);
                 for (TCResult result : sampleResults) {

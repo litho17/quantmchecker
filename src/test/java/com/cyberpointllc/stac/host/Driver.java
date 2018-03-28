@@ -14,7 +14,7 @@ public class Driver {
         while(true) {
             int INPUTINPUT = 10000;
             INPUTINPUT = INPUTINPUT - 100;
-            @ListInv({"INPUTINPUT+<self>.results=22+24+26+28+30-16"}) OutputHandler outputHandler = new WindowOutputHandler();
+            @ListInv({"INPUTINPUT+<self>.results=+22+24+26+28+30-16"}) OutputHandler outputHandler = new WindowOutputHandler();
             String fileName = "";
             InputStream ips = new FileInputStream(fileName);
             TCResult res;
