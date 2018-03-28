@@ -18,7 +18,7 @@ public class WordStatsProcessor extends Processor {
         // count number of sentences
         String input = readInput(inps);
         String words[] = tokenize(input);
-        @ListInv("<self>.results=+22+23+24+25") TCResult result = new  TCResult("Word stats");
+        @ListInv("+<self>.results=+22+23+24+25") TCResult result = new  TCResult("Word stats");
         result.addResult("Word count", words.length);
         result.addResult("Average word length", meanLen(words));
         result.addResult("Variance in word length", varLen(words));
