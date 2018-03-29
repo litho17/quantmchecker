@@ -36,18 +36,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     z <- findAll((z: Val[Int]) => z * x === 3 * y * y))
     yield (x, y, z)
 
-  @deprecated
-  override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
-    // val invokedMethod = atypeFactory.methodFromUse(node).first
-    // val typeargs = atypeFactory.methodFromUse(node).second
-    // TreeUtils.elementFromTree(node)
-
-    // val enclosingMethod: MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
-    // println(elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(enclosingMethod)))
-
-    super.visitMethodInvocation(node, p)
-  }
-
   /**
     *
     * @param classTree a class definition
@@ -56,15 +44,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     *                  to know what the invariants are before type checking every statement
     */
   override def processClassTree(classTree: ClassTree): Unit = {
-    val classFieldInvariants = gatherClassFieldInvariants(classTree)
-    if (DEBUG_FINDINV && classFieldInvariants.nonEmpty) println(classFieldInvariants)
+    val fieldInvariants: HashMap[Int, InvLangAST] = gatherClassFieldInvariants(classTree)
+    if (DEBUG_FINDINV && fieldInvariants.nonEmpty) println(fieldInvariants)
 
     classTree.getMembers.asScala.foreach {
       case member: MethodTree =>
         // if (DEBUG) println("Visting method: ", root.getSourceFile.getName, classTree.getSimpleName, member.getName)
-        val localInvariants = gatherLocalInvariants(member)
+        val localInvariants: HashMap[Int, InvLangAST] = gatherLocalInvariants(member)
         if (DEBUG_FINDINV && localInvariants.nonEmpty) println(localInvariants)
-        isInvariantPreserved(member)
+        isInvariantPreservedInMethod(member, fieldInvariants, localInvariants)
       case member: VariableTree => // Handled by gatherClassFieldInvariants()
       case member: ClassTree => // Ignore inner classes for the moment
       case x@_ => println("Unhandled Tree kind in processClassTree(): ", x, x.getKind)
@@ -102,7 +90,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def gatherLocalInvariants(node: MethodTree): HashMap[Int, InvLangAST] = {
     if (node.getBody != null) {
       val stmts = node.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
-        (acc, stmt) => acc ++ flattenStatement(stmt)
+        (acc, stmt) => acc ++ flattenStmt(stmt)
       }
       stmts.foldLeft(new HashMap[Int, InvLangAST]) {
         (acc, stmt) =>
@@ -123,16 +111,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param node a method
+    * @param node     a method
+    * @param fieldInv class field invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
+    * @param localInv local variable invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
     * @return if the method violates any invariant
     */
-  private def isInvariantPreserved(node: MethodTree): Boolean = {
+  private def isInvariantPreservedInMethod(node: MethodTree,
+                                           fieldInv: HashMap[Int, InvLangAST],
+                                           localInv: HashMap[Int, InvLangAST]): Boolean = {
     if (node.getBody != null) {
       /**
         * 1. Collect all invariants (from method bodies as well as from class fields)
-        * 2. For every statement, check if any related invariant is preserved
-        * 3. For every loop, check if any related invariant is preserved throughout the loop body
-        * 4. For every branch, check if any related invariant is preserved throughout the branch body
+        * 2. Collect all method summaries
+        * 3. For every statement, check if any related invariant is preserved
+        * 4. For every loop, check if any related invariant is preserved throughout the loop body
+        * 5. For every branch, check if any related invariant is preserved throughout the branch body
         *
         * TODO
         * 1. Override the methods that currently report type failures --- which is isSubType()
@@ -142,7 +137,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         * 5. Annotate class fields
         */
       val methodAnnotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
-      node.getBody.getStatements.asScala.forall { stmt => isInvariantPreserved(stmt) }
+      node.getBody.getStatements.asScala.forall { stmt => isInvariantPreservedInStmt(stmt, fieldInv, localInv) }
     } else {
       true
     }
@@ -150,44 +145,90 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param node a statement
+    * @param node     a statement
+    * @param fieldInv class field invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
+    * @param localInv local variable invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
     * @return if the statement violates any invariant
     */
-  private def isInvariantPreserved(node: StatementTree): Boolean = {
+  private def isInvariantPreservedInStmt(node: StatementTree,
+                                         fieldInv: HashMap[Int, InvLangAST],
+                                         localInv: HashMap[Int, InvLangAST]): Boolean = {
     node match {
-      case stmt: BlockTree => stmt.getStatements.asScala.forall(s => isInvariantPreserved(s))
-      case stmt: DoWhileLoopTree => isInvariantPreserved(stmt.getStatement)
-      case stmt: EnhancedForLoopTree => isInvariantPreserved(stmt.getStatement)
-      case stmt: ForLoopTree => isInvariantPreserved(stmt.getStatement)
-      case stmt: LabeledStatementTree => isInvariantPreserved(stmt.getStatement)
+      case stmt: BlockTree => stmt.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv))
+      case stmt: DoWhileLoopTree =>
+        val head = isInvariantPreservedInExpr(stmt.getCondition, fieldInv, localInv)
+        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
+        head && body
+      case stmt: EnhancedForLoopTree =>
+        val head = isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
+        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
+        head && body
+      case stmt: ForLoopTree =>
+        val head = stmt.getUpdate.asScala.forall(s => isInvariantPreservedInExpr(s.getExpression, fieldInv, localInv))
+        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
+        head && body
+      case stmt: LabeledStatementTree => isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
       case stmt: IfTree =>
-        val thenBranch = isInvariantPreserved(stmt.getThenStatement)
-        val elseBranch = isInvariantPreserved(stmt.getElseStatement)
+        val thenBranch = isInvariantPreservedInStmt(stmt.getThenStatement, fieldInv, localInv)
+        val elseBranch = isInvariantPreservedInStmt(stmt.getElseStatement, fieldInv, localInv)
         thenBranch && elseBranch
-      case stmt: ExpressionStatementTree => isInvariantPreserved(stmt.getExpression) // Base case
-      case stmt: VariableTree => true // Variable declaration won't change invariant
-      case stmt: ReturnTree => isInvariantPreserved(stmt.getExpression) // Base case
+      case stmt: ExpressionStatementTree => // Base case
+        isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
+      case stmt: VariableTree => true // Variable declaration shouldn't change invariants
+      case stmt: ReturnTree => // Base case
+        isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
       case stmt: SwitchTree =>
-        stmt.getCases.asScala.forall(caseTree => caseTree.getStatements.asScala.forall(s => isInvariantPreserved(s)))
-      case stmt: WhileLoopTree => isInvariantPreserved(stmt.getStatement)
+        stmt.getCases.asScala.forall(caseTree => caseTree.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv)))
+      case stmt: WhileLoopTree =>
+        val head = isInvariantPreservedInExpr(stmt.getCondition, fieldInv, localInv)
+        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
+        head && body
       case _ => true // Any other statement won't change invariant
     }
   }
 
-  private def isInvariantPreserved(node: ExpressionTree): Boolean = {
+  /**
+    *
+    * @param node     a statement
+    * @param fieldInv class field invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
+    * @param localInv local variable invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
+    * @return if the statement is in either of the maps, i.e. if the statement might change any invariant
+    */
+  private def mayChangeInvariant(node: Tree,
+                                 fieldInv: HashMap[Int, InvLangAST],
+                                 localInv: HashMap[Int, InvLangAST]): Boolean = {
     val line_long = AnnoTypeUtils.getLineNumber(node, positions, root)
     assert(line_long <= Integer.MAX_VALUE, "line number overflows")
     val line = line_long.toInt
+    if (!fieldInv.contains(line) && !localInv.contains(line)) {
+      // If this expression does not touch the invariant at all
+      return true
+    }
+    PrintStuff.printRedString(line, node)
+    false
+  }
+
+  private def isInvariantPreservedInExpr(node: ExpressionTree,
+                                         fieldInv: HashMap[Int, InvLangAST],
+                                         localInv: HashMap[Int, InvLangAST]): Boolean = {
+    if (mayChangeInvariant(node, fieldInv, localInv)) return true
     node match {
-      case stmt: AssignmentTree =>
+      case expr: AssignmentTree =>
         // println(stmt.getVariable, stmt.getVariable.getClass)
-        ???
-      case stmt: BinaryTree => ???
-      case stmt: CompoundAssignmentTree => ???
-      case stmt: ConditionalExpressionTree => ???
-      case stmt: MemberSelectTree => ???
-      case stmt: MethodInvocationTree => ???
-      case _ => ???
+        true
+      case expr: BinaryTree => true
+      case expr: CompoundAssignmentTree => true
+      case expr: ConditionalExpressionTree => true
+      case expr: MemberSelectTree => true
+      case expr: MethodInvocationTree => true
+      case expr: IdentifierTree => true
+      case expr: ParenthesizedTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
+      case expr: UnaryTree => true
+      case _ => PrintStuff.printBlueString("Expr not handled", node, node.getClass); true
     }
   }
 
@@ -197,18 +238,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return collect a set of all leave statements
     *         Note: Some StatementTrees are ignored (e.g. try-catch, synchronized)
     */
-  private def flattenStatement(node: StatementTree): HashSet[StatementTree] = {
+  private def flattenStmt(node: StatementTree): HashSet[StatementTree] = {
     node match {
-      case stmt: BlockTree => stmt.getStatements.asScala.foldLeft(new HashSet[StatementTree])((acc, s) => flattenStatement(s))
-      case stmt: DoWhileLoopTree => flattenStatement(stmt.getStatement)
-      case stmt: EnhancedForLoopTree => flattenStatement(stmt.getStatement)
-      case stmt: ForLoopTree => flattenStatement(stmt.getStatement)
-      case stmt: WhileLoopTree => flattenStatement(stmt.getStatement)
-      case stmt: LabeledStatementTree => flattenStatement(stmt.getStatement)
-      case stmt: IfTree => flattenStatement(stmt.getThenStatement) ++ flattenStatement(stmt.getElseStatement)
+      case stmt: BlockTree => stmt.getStatements.asScala.foldLeft(new HashSet[StatementTree])((acc, s) => flattenStmt(s))
+      case stmt: DoWhileLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: EnhancedForLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: ForLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: WhileLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: LabeledStatementTree => flattenStmt(stmt.getStatement)
+      case stmt: IfTree => flattenStmt(stmt.getThenStatement) ++ flattenStmt(stmt.getElseStatement)
       case stmt: SwitchTree =>
         stmt.getCases.asScala.foldLeft(new HashSet[StatementTree]) {
-          (acc, caseTree) => caseTree.getStatements.asScala.foldLeft(acc)((acc2, s) => acc2 ++ flattenStatement(s))
+          (acc, caseTree) => caseTree.getStatements.asScala.foldLeft(acc)((acc2, s) => acc2 ++ flattenStmt(s))
         }
       case stmt: ExpressionStatementTree => HashSet[StatementTree](stmt)
       case stmt: ReturnTree => HashSet[StatementTree](stmt)
@@ -268,4 +309,16 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   @deprecated
   private def getAnnotationMirror(node: Tree): HashSet[AnnotationMirror] = new HashSet ++ atypeFactory.getAnnotatedType(node).getAnnotations.asScala
+
+  @deprecated
+  override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
+    // val invokedMethod = atypeFactory.methodFromUse(node).first
+    // val typeargs = atypeFactory.methodFromUse(node).second
+    // TreeUtils.elementFromTree(node)
+
+    // val enclosingMethod: MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
+    // println(elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(enclosingMethod)))
+
+    super.visitMethodInvocation(node, p)
+  }
 }
