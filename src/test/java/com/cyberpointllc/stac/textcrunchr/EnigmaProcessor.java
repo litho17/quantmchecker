@@ -1,13 +1,13 @@
 package com.cyberpointllc.stac.textcrunchr;
 
+import com.ahancock.enigma.EnigmaFactory;
+import com.ahancock.enigma.EnigmaMachine;
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import com.ahancock.enigma.EnigmaFactory;
-import com.ahancock.enigma.EnigmaMachine;
-import plv.colorado.edu.quantmchecker.qual.ListInv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
 
 public class EnigmaProcessor extends Processor {
 
@@ -15,9 +15,9 @@ public class EnigmaProcessor extends Processor {
 
     public TCResult process(InputStream inps) throws IOException {
         // read to string
-        InputStreamReader is = new  InputStreamReader(inps);
-        @ListInv("br+<self>=-20+22-23") StringBuilder sb = new  StringBuilder();
-        BufferedReader br = new  BufferedReader(is);
+        InputStreamReader is = new InputStreamReader(inps);
+        @ListInv("br+<self>=-21+23-24") StringBuilder sb = new StringBuilder();
+        BufferedReader br = new BufferedReader(is);
         String read = br.readLine();
         while (read != null) {
             sb.append(read);
@@ -31,7 +31,7 @@ public class EnigmaProcessor extends Processor {
         String encodedString = machine.encodeLine(theString);
         String name = "Enigma transformation (5, 9, 14)";
         String value = encodedString;
-        return new  TCResult(name, value);
+        return new TCResult(name, value);
     }
 
     public String getName() {

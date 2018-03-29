@@ -37,7 +37,7 @@ public class EnigmaMachine {
     }
 
     // StringBuilder is used to build the result
-    private @ListInv("s+<self>=+52-46") StringBuilder sb = new  StringBuilder();
+    private @ListInv("i+<self>=+52-46") StringBuilder sb = new  StringBuilder();
 
     // Encode the input string and return the result
     public String encodeLine(String s) {

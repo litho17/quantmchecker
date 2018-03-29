@@ -43,7 +43,7 @@ public class TextLanguage {
     }
 
     public TextScore score(final String text) {
-        @ListInv("ngrams+<self>.ngramScores=+50-46") TextScore textScore = new TextScore();
+        @ListInv("ngrams+<self>.ngramScores=+50-48") TextScore textScore = new TextScore();
         Ngram ngram;
         for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {
