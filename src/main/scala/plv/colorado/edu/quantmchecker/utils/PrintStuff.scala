@@ -1,7 +1,7 @@
-package plv.colorado.edu.quantmchecker
+package plv.colorado.edu.quantmchecker.utils
 
 /**
- * Created by Lumber on 2/25/16.
+ * Created by Tianhan Lu on 2/25/16.
  */
 object PrintStuff {
     def printRedString(s: String): Unit = println(Console.RED + s + Console.BLACK)
