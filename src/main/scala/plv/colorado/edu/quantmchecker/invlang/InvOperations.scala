@@ -9,8 +9,17 @@ object InvOperations {
   val z3 = new Z3Context("MODEL" -> true)
   val solver = z3.mkSolver
 
+  /**
+    *
+    * @param inv       the invariant
+    * @param remainder the increment of remainder
+    * @param self      the increment of self
+    * @param line      the line number that is currently visiting
+    * @return if the invariant holds before visiting current line,
+    *         returns if the invariant still holds after executing current line
+    */
   def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, line: Int): Boolean = {
-    val DEBUG = true
+    val DEBUG = false
 
     trait OPERATOR
     object ADD extends OPERATOR
@@ -20,6 +29,11 @@ object InvOperations {
 
     def mkInt(i: Int): Z3AST = z3.mkInt(i, z3.mkIntSort())
 
+    /**
+      *
+      * @param constraint a constraint
+      * @return if the constraint is SAT
+      */
     def check(constraint: Z3AST): Boolean = {
       solver.assertCnstr(constraint)
       solver.check() match {
@@ -30,6 +44,12 @@ object InvOperations {
       }
     }
 
+    /**
+      *
+      * @param variables a list of Z3 ast nodes
+      * @param op the operator
+      * @return a linear constraint that connects all ast nodes with the specified operator
+      */
     def listToPred(variables: List[Z3AST], op: OPERATOR): Z3AST = {
       variables.foldLeft(mkInt(0): Z3AST) {
         (acc, variable) =>
