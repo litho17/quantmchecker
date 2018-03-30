@@ -72,7 +72,7 @@ public class Main {
             }
             // conclude and output
             try {
-                outph.conclude();
+                outph.conclude(); // This line should report error: invariant is changed but not captured
             } catch (OutputHandlerException ohe) {
                 System.out.println(ohe.toString());
             }

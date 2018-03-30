@@ -11,7 +11,6 @@ public class TextFileHandler {
     List<Processor> processors;
 
     public TextFileHandler() throws IOException {
-        // todo - fill processors with list of processors
         processors = new ArrayList<Processor>();
         processors.add(new CharacterCountProcessor());
         processors.add(new TextMeterProcessor());

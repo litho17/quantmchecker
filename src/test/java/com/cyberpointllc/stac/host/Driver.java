@@ -13,7 +13,7 @@ public class Driver {
     public static void main(String[] args) throws Exception {
         while(true) {
             int INPUTINPUT = 10000;
-            INPUTINPUT = INPUTINPUT - 100;
+            INPUTINPUT -= 1;
             @ListInv({"INPUTINPUT+<self>.results=+22+24+26+28+30-16"}) OutputHandler outputHandler = new WindowOutputHandler();
             String fileName = "";
             InputStream ips = new FileInputStream(fileName);
