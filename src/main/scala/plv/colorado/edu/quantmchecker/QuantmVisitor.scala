@@ -1,6 +1,6 @@
 package plv.colorado.edu.quantmchecker
 
-import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
@@ -8,7 +8,8 @@ import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.AnnoTypeUtils
 import plv.colorado.edu.quantmchecker.invlang._
-import plv.colorado.edu.quantmchecker.qual.ListInv
+import plv.colorado.edu.quantmchecker.qual.{ListInv, Summary}
+import plv.colorado.edu.quantmchecker.summarylang.{MethodSummary, MethodSummaryI, MethodSummaryV}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 
 import scala.collection.JavaConverters._
@@ -24,6 +25,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_WHICH_UNHANDLED_CASE = true
 
   protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[ListInv])
+  protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "Not supported"
 
@@ -280,40 +282,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
   }
 
-  private def issueWarning(node: Tree, msg: String): Unit = {
+  private def issueWarning(node: Object, msg: String): Unit = {
     // Debug only: I want to know which unhandled case issues the warning
     if (DEBUG_WHICH_UNHANDLED_CASE)
       PrintStuff.printYellowString(Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1))
     checker.report(Result.warning(msg), node)
   }
 
-  private def issueError(node: Tree, msg: String): Unit = checker.report(Result.failure(msg), node)
-
-  /**
-    *
-    * @param variable a variable
-    * @param node     a binary expression that uses the specified variable
-    * @return the amount of constant changes to the specified variable in this binary expression
-    *         Only support: 2 + i + 1 + 3
-    */
-  private def binaryDelta(variable: String, node: BinaryTree): Option[Integer] = {
-    def collect(node: BinaryTree): (HashSet[Tree.Kind], List[Int]) = {
-      val left = node.getLeftOperand
-      val right = node.getRightOperand
-      (left, right) match {
-        case (l: BinaryTree, r: BinaryTree) => (HashSet.empty, List.empty)
-        case _ => (HashSet.empty, List.empty)
-      }
-    }
-
-    val left = node.getLeftOperand
-    val right = node.getRightOperand
-    node.getKind match {
-      case Tree.Kind.PLUS => None
-      case Tree.Kind.MINUS => None
-      case _ => issueWarning(node, "[BinaryTree] " + NOT_SUPPORTED); None
-    }
-  }
+  private def issueError(node: Object, msg: String): Unit = checker.report(Result.failure(msg), node)
 
   private def isInvariantPreservedInExpr(node: ExpressionTree,
                                          fieldInv: HashMap[Int, InvLangAST],
@@ -330,7 +306,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             issueWarning(node, "[AnnotationTree] " + NOT_SUPPORTED)
             true // Not supported
           case expr: ArrayAccessTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
-          case expr: AssignmentTree =>
+          case expr: AssignmentTree => // Check if side effects will violate invariants
             val (remainder, self) = invariant match {
               case Inv(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
               case InvNoRem(self, posLine, negLine) => (None, Some(self))
@@ -357,10 +333,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 }
               case None => true
             }
-          case expr: BinaryTree =>
+          case expr: BinaryTree => // Every node of a binary tree should preserve the invariant
             val left = isInvariantPreservedInExpr(expr.getLeftOperand, fieldInv, localInv)
             val right = isInvariantPreservedInExpr(expr.getRightOperand, fieldInv, localInv)
-            // TODO: How to collect changes to remainder?
             left && right
           case expr: CompoundAssignmentTree =>
             // This expression could only change remainder
@@ -396,7 +371,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val f = isInvariantPreservedInExpr(expr.getFalseExpression, fieldInv, localInv)
             t && f
           case expr: ErroneousTree => true // Nothing happens
-          case expr: IdentifierTree => issueWarning(node, "[IdentifierTree] " + NOT_SUPPORTED); true // Not supported
+          case expr: IdentifierTree => true // Nothing happens
           case expr: InstanceOfTree => true // Nothing happens
           case expr: LambdaExpressionTree => // Not supported
             issueWarning(node, "[LambdaExpressionTree] " + NOT_SUPPORTED); true
@@ -405,8 +380,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             issueWarning(node, "[MemberReferenceTree] " + NOT_SUPPORTED); true
           case expr: MemberSelectTree => // Should not reach here
             issueWarning(node, "[MemberSelectTree] Should not reach this case"); true
-          case expr: MethodInvocationTree =>
+          case expr: MethodInvocationTree => // Check if side effects will violate invariants
             // TODO
+            println(gatherMethodSummaries(expr))
             expr.getMethodSelect match {
               case id: IdentifierTree => true
               case mst: MemberSelectTree => true
@@ -429,7 +405,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                          | Tree.Kind.PREFIX_INCREMENT
                          | Tree.Kind.POSTFIX_DECREMENT
                          | Tree.Kind.PREFIX_DECREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
-                    case _ => issueWarning(node, "[UnaryTree] Other operator is " + NOT_SUPPORTED); true
+                    case _ => issueWarning(node, "[UnaryTree] New unary operator is " + NOT_SUPPORTED); true
                   }
                 } else {
                   issueWarning(node, "[UnaryTree] LHS being not remainder is " + NOT_SUPPORTED)
@@ -445,6 +421,37 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       issueError(node, "")
     }
     success
+  }
+
+  /**
+    *
+    * @param node a method invocation tree
+    * @return the summary of the invoked method
+    */
+  private def gatherMethodSummaries(node: MethodInvocationTree): Option[MethodSummary] = {
+    // PrintStuff.printCyanString(node, invokedMethod.getKind, TreeUtils.elementFromUse(node))
+    val invokedMethod: ExecutableElement = atypeFactory.methodFromUse(node).first.getElement
+    val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
+    if (summaries.size == 1) {
+      val summaryList = AnnoTypeUtils.extractValues(summaries.head)
+      if (summaryList.size != 2) {
+        issueWarning(invokedMethod, "Method summary should have exactly 2 arguments")
+        None
+      } else {
+        if (summaryList(1).forall(c => c.isDigit)) {
+          Some(MethodSummaryI(summaryList.head, Integer.parseInt(summaryList(1))))
+        } else {
+          Some(MethodSummaryV(summaryList.head, summaryList(1)))
+        }
+      }
+    } else {
+      if (summaries.isEmpty)
+        None
+      else {
+        issueWarning(invokedMethod, "Method should have exactly 1 summary")
+        None
+      }
+    }
   }
 
   /**
@@ -539,13 +546,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   @deprecated
   override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
-    // val invokedMethod = atypeFactory.methodFromUse(node).first
-    // val typeargs = atypeFactory.methodFromUse(node).second
+    // atypeFactory.methodFromUse(node)
     // TreeUtils.elementFromTree(node)
-
     // val enclosingMethod: MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
-    // println(elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(enclosingMethod)))
-
     super.visitMethodInvocation(node, p)
   }
 }
