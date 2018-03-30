@@ -17,8 +17,7 @@ public class Driver {
             @ListInv({"INPUTINPUT+<self>.results=+22+24+26+28+30-16"}) OutputHandler outputHandler = new WindowOutputHandler();
             String fileName = "";
             InputStream ips = new FileInputStream(fileName);
-            TCResult res;
-            res = new CharacterCountProcessor().process(ips);
+            TCResult res = new CharacterCountProcessor().process(ips);
             outputHandler.addResult(fileName, res);
             res = new TextMeterProcessor().process(ips);
             outputHandler.addResult(fileName, res);

@@ -1,5 +1,7 @@
 package com.ahancock.enigma;
 
+import plv.colorado.edu.quantmchecker.qual.ListInv;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
@@ -17,7 +19,7 @@ public class FindRotorSettings {
         // Save the current time to compute total run time.
         long startTime = System.currentTimeMillis();
         // Read three lines from the source file
-        String cipherText = new  String();
+        @ListInv("i+<self>=+26-24") String cipherText = new  String();
         Scanner scanner = new  Scanner(new  File(args[0]));
         for (int i = 0; i < NUMBER_OF_LINES; i++) {
             // Preserve the newline from the source text
