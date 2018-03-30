@@ -121,7 +121,7 @@ object InvWithSolver {
     val result = check(forall)
     val estimatedTime = System.nanoTime - startTime
 
-    PrintStuff.printYellowString("Time elapsed for this query: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms")
+    PrintStuff.printYellowString("Time elapsed for the query " + inv + (" is %.2f" format estimatedTime.toDouble/1000000) + "ms")
     result
   }
 }
