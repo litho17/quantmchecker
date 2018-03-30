@@ -21,6 +21,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_PATHS = false
   private val DEBUG_COLLECT_INV = false
   private val DEBUG_MAY_CHANGE_INV = true
+  private val DEBUG_WHICH_UNHANDLED_CASE = true
 
   protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[ListInv])
 
@@ -277,7 +278,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
   }
 
-  private def issueWarning(node: Tree, msg: String): Unit = checker.report(Result.warning(msg), node)
+  private def issueWarning(node: Tree, msg: String): Unit = {
+    // Debug only: I want to know which unhandled case issues the warning
+    if (DEBUG_WHICH_UNHANDLED_CASE)
+      PrintStuff.printYellowString(Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1))
+    checker.report(Result.warning(msg), node)
+  }
 
   private def issueError(node: Tree, msg: String): Unit = checker.report(Result.failure(msg), node)
 
