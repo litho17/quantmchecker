@@ -1,5 +1,6 @@
 package plv.colorado.edu.quantmchecker.invlang
 
+import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import z3.scala.{Z3AST, Z3Context, Z3Symbol}
 
 /**
@@ -19,6 +20,7 @@ object InvWithSolver {
     *         returns if the invariant still holds after executing current line
     */
   def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, line: Int): Boolean = {
+    val startTime = System.nanoTime()
     val DEBUG = false
 
     trait OPERATOR
@@ -116,6 +118,10 @@ object InvWithSolver {
       println("Q: " + q)
       println(forall)
     }
-    check(forall)
+    val result = check(forall)
+    val estimatedTime = System.nanoTime - startTime
+
+    PrintStuff.printYellowString("Time elapsed for this query: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms")
+    result
   }
 }
