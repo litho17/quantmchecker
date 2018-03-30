@@ -158,6 +158,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def isInvariantPreservedInStmt(node: StatementTree,
                                          fieldInv: HashMap[Int, InvLangAST],
                                          localInv: HashMap[Int, InvLangAST]): Boolean = {
+    val lineNumber = getLineNumber(node)
     node match {
       case stmt: BlockTree => stmt.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv))
       case stmt: DoWhileLoopTree =>
@@ -165,7 +166,40 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
         head && body
       case stmt: EnhancedForLoopTree =>
-        val head = isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
+        val head = mayChangeInvariant(stmt.getExpression, fieldInv, localInv) match {
+          case Some(invariant) =>
+            invariant match {
+              case Inv(remainder, self, posLine, negLine) =>
+                stmt.getExpression match {
+                  case expr: IdentifierTree =>
+                    if (remainder == expr.getName.toString) {
+                      InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
+                    } else {
+                      issueWarning(node, NOT_SUPPORTED)
+                      true
+                    }
+                  case expr: MethodInvocationTree =>
+                    expr.getMethodSelect match {
+                      case mst: MemberSelectTree =>
+                        // Currently only support entrySet() in the header
+                        if (mst.getIdentifier.toString == "entrySet") {
+                          if (mst.getExpression.toString == remainder) {
+                            InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
+                          } else {
+                            issueWarning(node, NOT_SUPPORTED)
+                            true
+                          }
+                        } else {
+                          issueWarning(node, NOT_SUPPORTED); true
+                        }
+                      case _ => issueWarning(node, NOT_SUPPORTED); true
+                    }
+                  case _ => issueWarning(node, NOT_SUPPORTED); true
+                }
+              case _ => issueWarning(node, NOT_SUPPORTED); true
+            }
+          case None => true
+        }
         val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
         head && body
       case stmt: ForLoopTree =>
@@ -244,6 +278,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def issueWarning(node: Tree, msg: String): Unit = checker.report(Result.warning(msg), node)
+
   private def issueError(node: Tree, msg: String): Unit = checker.report(Result.failure(msg), node)
 
   private def isInvariantPreservedInExpr(node: ExpressionTree,
@@ -271,7 +306,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               case Tree.Kind.PLUS =>
               case Tree.Kind.MINUS =>
               case _ =>
-                // TODO: unsound when ignoring all binary operations
+              // TODO: unsound when ignoring all binary operations
             }
             true
           case expr: CompoundAssignmentTree =>
@@ -299,11 +334,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val f = isInvariantPreservedInExpr(expr.getFalseExpression, fieldInv, localInv)
             t && f
           case expr: ErroneousTree => true // Nothing happens
-          case expr: IdentifierTree =>
-            val forloops = atypeFactory.getPath(node).asScala.filter(t => t.isInstanceOf[EnhancedForLoopTree])
-            // ???
-            // InvWithSolver.isValidAfterUpdate(invariant, 1, 0, lineNumber)
-            true
+          case expr: IdentifierTree => issueWarning(node, NOT_SUPPORTED); true // Not supported
           case expr: InstanceOfTree => true // Nothing happens
           case expr: LambdaExpressionTree =>
             issueWarning(node, NOT_SUPPORTED)
@@ -332,9 +363,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     case Tree.Kind.PREFIX_INCREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
                     case Tree.Kind.POSTFIX_DECREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
                     case Tree.Kind.PREFIX_DECREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
-                    case _ => assert(false); true
+                    case _ => issueWarning(node, NOT_SUPPORTED); true
                   }
                 } else {
+                  issueWarning(node, NOT_SUPPORTED)
                   true
                 }
               case _ => PrintStuff.printBlueString("Unexpected UnaryTree"); true
@@ -401,7 +433,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param node a variable tree
+    * @param node  a variable tree
     * @param annot which annotation to collect
     * @return collect the specified type of annotations in the variable tree
     */
