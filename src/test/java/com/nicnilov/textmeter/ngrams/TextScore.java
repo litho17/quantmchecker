@@ -29,7 +29,7 @@ public class TextScore {
         return sb.toString();
     }
 
-    @Summary("sb: 1") @SideEffect private void toStringHelper(Map.Entry<NgramType, Ngram.ScoreStats> entry, StringBuilder sb) {
+    @Summary({"sb", "1"}) @SideEffect private void toStringHelper(Map.Entry<NgramType, Ngram.ScoreStats> entry, StringBuilder sb) {
         sb.append(String.format("%s: %.5f (min: %.5f total: %.0f found: %.0f)", entry.getKey(), entry.getValue().getScore(), entry.getValue().getMinScore(), entry.getValue().getNgramsTotal(), entry.getValue().getNgramsFound()));
     }
 }

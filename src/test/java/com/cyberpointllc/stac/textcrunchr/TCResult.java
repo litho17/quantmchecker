@@ -55,15 +55,15 @@ public class TCResult {
         return value;
     }
 
-    @Summary("results: 1") public void addResult(String key, int val) {
+    @Summary({"results", "1"}) public void addResult(String key, int val) {
         addResultHelper(val, key);
     }
 
-    @Summary("results: 1") public void addResult(String key, double val) {
+    @Summary({"results", "1"}) public void addResult(String key, double val) {
         results.add(new Component(key, Double.toString(val)));
     }
 
-    @Summary("results: 1") public void addResult(String key, String val) {
+    @Summary({"results", "1"}) public void addResult(String key, String val) {
         results.add(new Component(key, val));
     }
 

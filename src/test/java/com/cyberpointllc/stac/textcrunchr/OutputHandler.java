@@ -26,11 +26,11 @@ public abstract class OutputHandler {
 
     protected List<String> sortedFiles;
 
-    @Summary("results: 1") public void addResult(String filename, TCResult tcr) {
+    @Summary({"results", "1"}) public void addResult(String filename, TCResult tcr) {
         addResultHelper(tcr, filename);
     }
 
-    @Summary("namesToPaths: results") public void conclude() throws OutputHandlerException {
+    @Summary({"namesToPaths", "results"}) public void conclude() throws OutputHandlerException {
         concludeHelper();
     }
 
