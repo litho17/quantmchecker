@@ -301,17 +301,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               case Inv(remainder, self, posLine, negLine) =>
                 if (remainder == expr.getVariable.toString) {
                   expr.getExpression match {
-                    case expr: LiteralTree =>
-                      expr.getKind match {
+                    case rhs: LiteralTree =>
+                      rhs.getKind match {
                         case Tree.Kind.INT_LITERAL =>
-                          val increment = expr.getValue.asInstanceOf[Integer]
+                          val increment = rhs.getValue.asInstanceOf[Integer]
                           expr.getKind match {
-                            case Tree.Kind.PLUS_ASSIGNMENT =>
-                              InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, lineNumber)
-                            case Tree.Kind.MINUS_ASSIGNMENT =>
+                            case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
                               InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, lineNumber)
                             case _ =>
-                              issueWarning(node, "[CompoundAssignmentTree] Other operator is " + NOT_SUPPORTED)
+                              issueWarning(node, "[CompoundAssignmentTree] Operator " + expr.getKind + " is " + NOT_SUPPORTED)
                               true // All other compound assignments are not supported
                           }
                         case _ => issueWarning(node, "[CompoundAssignmentTree] Other literal kind is " + NOT_SUPPORTED); true
@@ -511,12 +509,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   private def issueWarning(node: Object, msg: String): Unit = {
     // Debug only: I want to know which unhandled case issues the warning
-    if (DEBUG_WHICH_UNHANDLED_CASE)
-      PrintStuff.printYellowString(Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1))
+    if (DEBUG_WHICH_UNHANDLED_CASE) {
+      val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
+      PrintStuff.printGreenString("[WARNING]" + trace.getFileName + ": " + trace.getLineNumber)
+    }
     checker.report(Result.warning(msg), node)
   }
 
-  private def issueError(node: Object, msg: String): Unit = checker.report(Result.failure(msg), node)
+  private def issueError(node: Object, msg: String): Unit = {
+    if (DEBUG_WHICH_UNHANDLED_CASE) {
+      val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
+      PrintStuff.printGreenString("[ERROR]" + trace.getFileName + ": " + trace.getLineNumber)
+    }
+    checker.report(Result.failure(msg), node)
+  }
 
   /**
     *
