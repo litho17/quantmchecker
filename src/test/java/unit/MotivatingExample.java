@@ -1,6 +1,7 @@
 package unit;
 
 import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,11 +20,11 @@ class Message {
 }
 
 public class MotivatingExample {
-    List<Message> msgHist = new @ListInv("rem(input1)*1+<self>=LIMIT") ArrayList<>();
+    @ListInv("input1+<self>=+30-29") List<Message> msgHist = new ArrayList<>();
 
     void driver(List<Message> input1, List<Message> input2) {
         while (true) {
-            switch ((int)(Math.random()*10)) {
+            switch ((int) (Math.random() * 10)) {
                 case 1:
                     Message msg = input1.remove(0);
                     addNewMsg(msg);
@@ -37,12 +38,12 @@ public class MotivatingExample {
         }
     }
 
-    void addNewMsg(Message msg) {
+    @Summary("this.msg++") void addNewMsg(Message msg) {
         msgHist.add(msg);
     }
 
     void showMsgHistory() {
-        List<Message> toShow = new @ListInv("rem(it)*1+<self>=LIMIT+_extra") ArrayList<>();
+        @ListInv("it+<self>=+51-50") List<Message> toShow = new ArrayList<>();
         toShow.add(new Message("Message history begins:".toCharArray()));
         Iterator<Message> it = msgHist.iterator();
         while (it.hasNext()) {
