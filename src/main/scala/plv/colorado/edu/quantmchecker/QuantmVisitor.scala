@@ -191,7 +191,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                             true
                           }
                         } else {
-                          issueWarning(node, "[EnhancedForLoopTree] Not invoking entrySet is not " + NOT_SUPPORTED); true
+                          issueWarning(node, "[EnhancedForLoopTree] Not invoking entrySet is not " + NOT_SUPPORTED)
+                          true
                         }
                       case _ => issueWarning(node, "[EnhancedForLoopTree] " + NOT_SUPPORTED); true
                     }
@@ -247,7 +248,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param node     a statement
+    * @param node     an expression
     * @param fieldInv class field invariants: a map from a line number to an invariant
     *                 that might be changed by that line
     * @param localInv local variable invariants: a map from a line number to an invariant
@@ -255,7 +256,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return if the statement is in either of the maps (i.e. if the statement might
     *         change any invariant), then return the related invariant
     */
-  private def mayChangeInvariant(node: Tree,
+  private def mayChangeInvariant(node: ExpressionTree,
                                  fieldInv: HashMap[Int, InvLangAST],
                                  localInv: HashMap[Int, InvLangAST]): Option[InvLangAST] = {
     val line = getLineNumber(node)
@@ -272,7 +273,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         if (DEBUG_MAY_CHANGE_INV) PrintStuff.printRedString(line, node)
         localInv.get(line)
       } else {
-        // If this expression does not touch the invariant at all
+        // If this expression is not supposed not touch the invariant at all
+        // TODO: What if this expression indeed touch the invariant?
         None
       }
     }
@@ -286,6 +288,32 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def issueError(node: Tree, msg: String): Unit = checker.report(Result.failure(msg), node)
+
+  /**
+    *
+    * @param variable a variable
+    * @param node     a binary expression that uses the specified variable
+    * @return the amount of constant changes to the specified variable in this binary expression
+    *         Only support: 2 + i + 1 + 3
+    */
+  private def binaryDelta(variable: String, node: BinaryTree): Option[Integer] = {
+    def collect(node: BinaryTree): (HashSet[Tree.Kind], List[Int]) = {
+      val left = node.getLeftOperand
+      val right = node.getRightOperand
+      (left, right) match {
+        case (l: BinaryTree, r: BinaryTree) => (HashSet.empty, List.empty)
+        case _ => (HashSet.empty, List.empty)
+      }
+    }
+
+    val left = node.getLeftOperand
+    val right = node.getRightOperand
+    node.getKind match {
+      case Tree.Kind.PLUS => None
+      case Tree.Kind.MINUS => None
+      case _ => issueWarning(node, "[BinaryTree] " + NOT_SUPPORTED); None
+    }
+  }
 
   private def isInvariantPreservedInExpr(node: ExpressionTree,
                                          fieldInv: HashMap[Int, InvLangAST],
@@ -303,18 +331,37 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             true // Not supported
           case expr: ArrayAccessTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
           case expr: AssignmentTree =>
-            // println(stmt.getVariable, stmt.getVariable.getClass)
-            expr.getExpression
-            true
-          case expr: BinaryTree =>
-            // This expression could only change remainder
-            expr.getKind match {
-              case Tree.Kind.PLUS =>
-              case Tree.Kind.MINUS =>
-              case _ =>
-              // TODO: unsound when ignoring all binary operations
+            val (remainder, self) = invariant match {
+              case Inv(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
+              case InvNoRem(self, posLine, negLine) => (None, Some(self))
+              case _ => issueWarning(node, "[AssignmentTree] " + NOT_SUPPORTED); (None, None)
             }
-            true
+            // TODO
+            self match {
+              case Some(self) =>
+                expr.getVariable match {
+                  case i: IdentifierTree =>
+                    if (i.getName.toString == self.head) {
+                      issueWarning(node, "[AssignmentTree] Reassigning <self> is " + NOT_SUPPORTED)
+                      true
+                    } else {
+                      // We assume LHS is side effect free
+                      if (i.getName.toString == remainder) {
+                        // We require that remainder is always defined in current method scope
+                        true
+                      } else {
+                        true
+                      }
+                    }
+                  case _ => true
+                }
+              case None => true
+            }
+          case expr: BinaryTree =>
+            val left = isInvariantPreservedInExpr(expr.getLeftOperand, fieldInv, localInv)
+            val right = isInvariantPreservedInExpr(expr.getRightOperand, fieldInv, localInv)
+            // TODO: How to collect changes to remainder?
+            left && right
           case expr: CompoundAssignmentTree =>
             // This expression could only change remainder
             invariant match {
@@ -331,18 +378,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                             case Tree.Kind.MINUS_ASSIGNMENT =>
                               InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, lineNumber)
                             case _ =>
-                              issueWarning(node, "[CompoundAssignment] Other operator is " + NOT_SUPPORTED)
+                              issueWarning(node, "[CompoundAssignmentTree] Other operator is " + NOT_SUPPORTED)
                               true // All other compound assignments are not supported
                           }
-                        case _ => issueWarning(node,"[CompoundAssignment] Other literal kind is " + NOT_SUPPORTED); true
+                        case _ => issueWarning(node, "[CompoundAssignmentTree] Other literal kind is " + NOT_SUPPORTED); true
                       }
-                    case _ => issueWarning(node, "[CompoundAssignment] Non-literal is " + NOT_SUPPORTED); true
+                    case _ => issueWarning(node, "[CompoundAssignmentTree] Non-literal is " + NOT_SUPPORTED); true
                   }
                 } else {
-                  issueWarning(node, "[CompoundAssignment] LHS being not remainder "+ NOT_SUPPORTED)
+                  issueWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
                   true
                 }
-              case _ => issueWarning(node, "[CompoundAssignment] Invariant with no remainder is " + NOT_SUPPORTED); true
+              case _ => issueWarning(node, "[CompoundAssignmentTree] Invariant with no remainder is " + NOT_SUPPORTED); true
             }
           case expr: ConditionalExpressionTree =>
             val t = isInvariantPreservedInExpr(expr.getTrueExpression, fieldInv, localInv)
@@ -351,20 +398,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           case expr: ErroneousTree => true // Nothing happens
           case expr: IdentifierTree => issueWarning(node, "[IdentifierTree] " + NOT_SUPPORTED); true // Not supported
           case expr: InstanceOfTree => true // Nothing happens
-          case expr: LambdaExpressionTree =>
-            issueWarning(node, "[LambdaExpressionTree] " + NOT_SUPPORTED)
-            true // Not supported
+          case expr: LambdaExpressionTree => // Not supported
+            issueWarning(node, "[LambdaExpressionTree] " + NOT_SUPPORTED); true
           case expr: LiteralTree => true // Nothing happens
-          case expr: MemberReferenceTree =>
-            issueWarning(node, "[MemberReferenceTree] " + NOT_SUPPORTED)
-            true // Not supported
-          case expr: MemberSelectTree => true
-          case expr: MethodInvocationTree => true
-          case expr: NewArrayTree =>
-            issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED)
-            true // Initializers are not supported
-          case expr: NewClassTree =>
-            // enclosingExpression is not supported
+          case expr: MemberReferenceTree => // Not supported
+            issueWarning(node, "[MemberReferenceTree] " + NOT_SUPPORTED); true
+          case expr: MemberSelectTree => // Should not reach here
+            issueWarning(node, "[MemberSelectTree] Should not reach this case"); true
+          case expr: MethodInvocationTree =>
+            // TODO
+            expr.getMethodSelect match {
+              case id: IdentifierTree => true
+              case mst: MemberSelectTree => true
+              case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
+            }
+          case expr: NewArrayTree => // Initializers are not supported
+            issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED); true
+          case expr: NewClassTree => // enclosingExpression is not supported
             issueWarning(node, "[NewClassTree] enclosingExpression is not " + NOT_SUPPORTED)
             expr.getArguments.asScala.forall(e => isInvariantPreservedInExpr(e, fieldInv, localInv))
           case expr: ParenthesizedTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
@@ -375,17 +425,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               case Inv(remainder, self, posLine, negLine) =>
                 if (remainder == expr.getExpression.toString) {
                   expr.getKind match {
-                    case Tree.Kind.POSTFIX_INCREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
-                    case Tree.Kind.PREFIX_INCREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
-                    case Tree.Kind.POSTFIX_DECREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
-                    case Tree.Kind.PREFIX_DECREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
+                    case Tree.Kind.POSTFIX_INCREMENT
+                         | Tree.Kind.PREFIX_INCREMENT
+                         | Tree.Kind.POSTFIX_DECREMENT
+                         | Tree.Kind.PREFIX_DECREMENT => InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
                     case _ => issueWarning(node, "[UnaryTree] Other operator is " + NOT_SUPPORTED); true
                   }
                 } else {
                   issueWarning(node, "[UnaryTree] LHS being not remainder is " + NOT_SUPPORTED)
                   true
                 }
-              case _ => PrintStuff.printBlueString("Unexpected UnaryTree"); true
+              case _ => issueWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
             }
           case _ => PrintStuff.printBlueString("Expr not handled", node, node.getClass); true
         }
@@ -466,9 +516,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       assert(invs.size == 1, "ListInv should only have 1 element")
       val inv = InvLangCompiler(invs.head)
       if (inv.isRight) {
-        Some(inv.right.get)
+        val name = node.getName.toString
+        inv.right.get match {
+          case Inv(remainder, self, posLine, negLine) => Some(Inv(remainder, name :: self, posLine, negLine))
+          case InvNoRem(self, posLine, negLine) => Some(InvNoRem(name :: self, posLine, negLine))
+          case _ => issueWarning(node, "Wrong annotation format"); None
+        }
       } else {
-        PrintStuff.printRedString("Wrong annotation format: " + invs.head)
+        issueWarning(node, "Wrong annotation format")
         None // parser error
       }
     } else {
