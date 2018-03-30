@@ -169,7 +169,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
         head && body
       case stmt: EnhancedForLoopTree =>
-        val head = mayChangeInvariant(stmt.getExpression, fieldInv, localInv) match {
+        val head = relatedInvariant(stmt.getExpression, fieldInv, localInv) match {
           case Some(invariant) =>
             invariant match {
               case Inv(remainder, self, posLine, negLine) =>
@@ -237,66 +237,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
   }
 
-  /**
-    *
-    * @param node a statement
-    * @return line number of the statement
-    */
-  private def getLineNumber(node: Tree): Int = {
-    val line_long = AnnoTypeUtils.getLineNumber(node, positions, root)
-    assert(line_long <= Integer.MAX_VALUE, "line number overflows")
-    line_long.toInt
-  }
-
-  /**
-    *
-    * @param node     an expression
-    * @param fieldInv class field invariants: a map from a line number to an invariant
-    *                 that might be changed by that line
-    * @param localInv local variable invariants: a map from a line number to an invariant
-    *                 that might be changed by that line
-    * @return if the statement is in either of the maps (i.e. if the statement might
-    *         change any invariant), then return the related invariant
-    */
-  private def mayChangeInvariant(node: ExpressionTree,
-                                 fieldInv: HashMap[Int, InvLangAST],
-                                 localInv: HashMap[Int, InvLangAST]): Option[InvLangAST] = {
-    val line = getLineNumber(node)
-    if (fieldInv.contains(line)) {
-      if (localInv.contains(line)) {
-        assert(false, "A line changes two invariants")
-        None
-      } else {
-        if (DEBUG_MAY_CHANGE_INV) PrintStuff.printRedString(line, node)
-        fieldInv.get(line)
-      }
-    } else {
-      if (localInv.contains(line)) {
-        if (DEBUG_MAY_CHANGE_INV) PrintStuff.printRedString(line, node)
-        localInv.get(line)
-      } else {
-        // If this expression is not supposed not touch the invariant at all
-        // TODO: What if this expression indeed touch the invariant?
-        None
-      }
-    }
-  }
-
-  private def issueWarning(node: Object, msg: String): Unit = {
-    // Debug only: I want to know which unhandled case issues the warning
-    if (DEBUG_WHICH_UNHANDLED_CASE)
-      PrintStuff.printYellowString(Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1))
-    checker.report(Result.warning(msg), node)
-  }
-
-  private def issueError(node: Object, msg: String): Unit = checker.report(Result.failure(msg), node)
-
   private def isInvariantPreservedInExpr(node: ExpressionTree,
                                          fieldInv: HashMap[Int, InvLangAST],
                                          localInv: HashMap[Int, InvLangAST]): Boolean = {
     // TODO: We assume that the change of remainder is always towards end
     val lineNumber = getLineNumber(node)
-    val success = mayChangeInvariant(node, fieldInv, localInv) match {
+    val success = relatedInvariant(node, fieldInv, localInv) match {
       case Some(invariant) =>
         node match {
           case expr: AnnotatedTypeTree =>
@@ -306,33 +252,45 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             issueWarning(node, "[AnnotationTree] " + NOT_SUPPORTED)
             true // Not supported
           case expr: ArrayAccessTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
-          case expr: AssignmentTree => // Check if side effects will violate invariants
+          case expr: AssignmentTree =>
+
+            /**
+              * TODO: Currently do not support change invariants (either remainder or <self>)
+              * via any form of assignment
+              */
+            val rhsPreserveInv = isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
             val (remainder, self) = invariant match {
               case Inv(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
               case InvNoRem(self, posLine, negLine) => (None, Some(self))
               case _ => issueWarning(node, "[AssignmentTree] " + NOT_SUPPORTED); (None, None)
             }
-            // TODO
-            self match {
+            val lhsPreserveInv = self match {
               case Some(self) =>
                 expr.getVariable match {
                   case i: IdentifierTree =>
+                    // Guarantee from getAnnotationFromVariableTree(): the head of self
+                    // is always the name of <self> under local context
                     if (i.getName.toString == self.head) {
-                      issueWarning(node, "[AssignmentTree] Reassigning <self> is " + NOT_SUPPORTED)
-                      true
+                      issueError(node, "[AssignmentTree] Reassigning <self> is " + NOT_SUPPORTED)
+                      false
                     } else {
-                      // We assume LHS is side effect free
-                      if (i.getName.toString == remainder) {
-                        // We require that remainder is always defined in current method scope
-                        true
-                      } else {
-                        true
+                      remainder match {
+                        case Some(remainder) =>
+                          if (i.getName.toString == remainder) {
+                            // We require that remainder is always defined in current method scope
+                            issueError(node, "[AssignmentTree] Reassigning remainder is " + NOT_SUPPORTED)
+                            false
+                          } else {
+                            true
+                          }
+                        case None => true
                       }
                     }
-                  case _ => true
+                  case _ => true // Otherwise, we assume LHS is side effect free
                 }
               case None => true
             }
+            lhsPreserveInv && rhsPreserveInv
           case expr: BinaryTree => // Every node of a binary tree should preserve the invariant
             val left = isInvariantPreservedInExpr(expr.getLeftOperand, fieldInv, localInv)
             val right = isInvariantPreservedInExpr(expr.getRightOperand, fieldInv, localInv)
@@ -381,12 +339,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           case expr: MemberSelectTree => // Should not reach here
             issueWarning(node, "[MemberSelectTree] Should not reach this case"); true
           case expr: MethodInvocationTree => // Check if side effects will violate invariants
-            // TODO
-            println(gatherMethodSummaries(expr))
-            expr.getMethodSelect match {
-              case id: IdentifierTree => true
-              case mst: MemberSelectTree => true
-              case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
+            gatherMethodSummaries(expr) match {
+              case Some(summary) =>
+                expr.getMethodSelect match {
+                  case id: IdentifierTree => true
+                  case mst: MemberSelectTree => true
+                  case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
+                }
+              case None => true
             }
           case expr: NewArrayTree => // Initializers are not supported
             issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED); true
@@ -503,6 +463,60 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case _ => acc
     }
   }
+
+  /**
+    *
+    * @param node a statement
+    * @return line number of the statement
+    */
+  private def getLineNumber(node: Tree): Int = {
+    val line_long = AnnoTypeUtils.getLineNumber(node, positions, root)
+    assert(line_long <= Integer.MAX_VALUE, "line number overflows")
+    line_long.toInt
+  }
+
+  /**
+    *
+    * @param node     an expression
+    * @param fieldInv class field invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
+    * @param localInv local variable invariants: a map from a line number to an invariant
+    *                 that might be changed by that line
+    * @return if the statement is in either of the maps (i.e. if the statement might
+    *         change any invariant), then return the related invariant
+    */
+  private def relatedInvariant(node: ExpressionTree,
+                               fieldInv: HashMap[Int, InvLangAST],
+                               localInv: HashMap[Int, InvLangAST]): Option[InvLangAST] = {
+    val line = getLineNumber(node)
+    if (fieldInv.contains(line)) {
+      if (localInv.contains(line)) {
+        assert(false, "A line changes two invariants")
+        None
+      } else {
+        if (DEBUG_MAY_CHANGE_INV) PrintStuff.printRedString(line, node)
+        fieldInv.get(line)
+      }
+    } else {
+      if (localInv.contains(line)) {
+        if (DEBUG_MAY_CHANGE_INV) PrintStuff.printRedString(line, node)
+        localInv.get(line)
+      } else {
+        // If this expression is not supposed not touch the invariant at all
+        // TODO: What if this expression indeed touch the invariant?
+        None
+      }
+    }
+  }
+
+  private def issueWarning(node: Object, msg: String): Unit = {
+    // Debug only: I want to know which unhandled case issues the warning
+    if (DEBUG_WHICH_UNHANDLED_CASE)
+      PrintStuff.printYellowString(Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1))
+    checker.report(Result.warning(msg), node)
+  }
+
+  private def issueError(node: Object, msg: String): Unit = checker.report(Result.failure(msg), node)
 
   /**
     *
