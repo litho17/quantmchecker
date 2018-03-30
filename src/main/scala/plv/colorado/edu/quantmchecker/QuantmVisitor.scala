@@ -1,15 +1,17 @@
 package plv.colorado.edu.quantmchecker
 
-import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
+import javax.lang.model.`type`.TypeMirror
+import javax.lang.model.element.{AnnotationMirror, ExecutableElement, VariableElement}
 
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
+import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
+import org.checkerframework.javacutil._
 import plv.colorado.edu.AnnoTypeUtils
 import plv.colorado.edu.quantmchecker.invlang._
 import plv.colorado.edu.quantmchecker.qual.{ListInv, Summary}
-import plv.colorado.edu.quantmchecker.summarylang.{MethodSummary, MethodSummaryI, MethodSummaryV}
+import plv.colorado.edu.quantmchecker.summarylang.{MethodSumUtils, MethodSummary, MethodSummaryI, MethodSummaryV}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 
 import scala.collection.JavaConverters._
@@ -255,7 +257,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           case expr: AssignmentTree =>
 
             /**
-              * TODO: Currently do not support change invariants (either remainder or <self>)
+              * TODO: Currently do not support change invariants (either <remainder> or <self>)
               * via any form of assignment
               */
             val rhsPreserveInv = isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
@@ -337,14 +339,54 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           case expr: MemberSelectTree => // Should not reach here
             issueWarning(node, "[MemberSelectTree] Should not reach this case"); true
           case expr: MethodInvocationTree => // Check if side effects will violate invariants
+            // TODO: o.f1().f2().f3()
+            val (remainder: String, self: List[String]) = invariant match {
+              case Inv(remainder, self, _, _) => (remainder, self)
+              case InvNoRem(self, _, _) => ("", self)
+              case _ => ("", List.empty)
+            }
+
             gatherMethodSummaries(expr) match {
               case Some(summary) =>
+
+                val increment: Integer = summary match {
+                  case MethodSummaryI(_, i) => i
+                  case _ => ???; 0
+                }
+
+                /**
+                  * Method summary could either change <remainder> or <self>
+                  */
+                val callee: ExecutableElement = getMethodElementFromInvocation(expr)
+                val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(expr)
+                // atypeFactory.declarationFromElement(callee)
+                val whichVar = MethodSumUtils.whichVar(summary, callee)
+                if (whichVar.isLeft) { // Local variable is changed, according to method summary
+                  val argIdx = whichVar.left.get
+                  expr.getArguments.get(argIdx) match {
+                    case arg: IdentifierTree => ???
+                    case _ => ???; issueWarning(node, "[MethodInvocationTree] Method argument is too complicated")
+                  }
+                } else { // Field is changed, according to method summary
+                  findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
+                    case Some(field) =>
+                      if (field.toString == self(1)) {
+                        InvWithSolver.isValidAfterUpdate(invariant, 0, increment, lineNumber)
+                      } else {
+                        ???
+                      }
+                    case None => ???
+                  }
+                }
                 expr.getMethodSelect match {
                   case id: IdentifierTree => true
                   case mst: MemberSelectTree => true
                   case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
                 }
-              case None => true
+              case None => // No method summaries found
+                // TODO: translate library methods (e.g. append, add) into changes
+                ???
+                true
             }
           case expr: NewArrayTree => // Initializers are not supported
             issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED); true
@@ -383,12 +425,31 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
+    * @param node a method invocation
+    * @return the element of the callee
+    */
+  private def getMethodElementFromInvocation(node: MethodInvocationTree): ExecutableElement = {
+    atypeFactory.methodFromUse(node).first.getElement
+  }
+
+  /**
+    *
+    * @param typ       a class type
+    * @param fieldName a field name
+    * @return find the field in the class
+    */
+  private def findFieldInClass(typ: TypeMirror, fieldName: String): Option[VariableElement] = {
+    Option(ElementUtils.findFieldInType(TypesUtils.getTypeElement(typ), fieldName))
+  }
+
+  /**
+    *
     * @param node a method invocation tree
     * @return the summary of the invoked method
     */
   private def gatherMethodSummaries(node: MethodInvocationTree): Option[MethodSummary] = {
     // PrintStuff.printCyanString(node, invokedMethod.getKind, TreeUtils.elementFromUse(node))
-    val invokedMethod: ExecutableElement = atypeFactory.methodFromUse(node).first.getElement
+    val invokedMethod: ExecutableElement = getMethodElementFromInvocation(node)
     val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
     if (summaries.size == 1) {
       val summaryList = AnnoTypeUtils.extractValues(summaries.head)
@@ -564,11 +625,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   @deprecated
   private def getAnnotationMirror(node: Tree): HashSet[AnnotationMirror] = new HashSet() ++ atypeFactory.getAnnotatedType(node).getAnnotations.asScala
 
-  @deprecated
-  override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
-    // atypeFactory.methodFromUse(node)
-    // TreeUtils.elementFromTree(node)
-    // val enclosingMethod: MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
-    super.visitMethodInvocation(node, p)
-  }
+  /** Places to look for:
+    * 1. TreeUtils.xxx
+    * TreeUtils.elementFromTree(node)
+    * val enclosingMethod: MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
+    * 2. this.checker.xxx
+    * 3. atypeFactory.xxx
+    * 4. elements.xxx
+    * 5. trees.xxx
+    * 6. types.xxx
+    */
 }
