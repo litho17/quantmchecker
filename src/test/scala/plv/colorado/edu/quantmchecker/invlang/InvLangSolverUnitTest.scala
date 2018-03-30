@@ -20,7 +20,7 @@ class InvLangSolverUnitTest extends FlatSpec with Matchers {
         else {
           // println(System.getProperty("java.library.path"))
           println(invariant)
-          assert(res == InvOperations.isValidAfterUpdate(compilerResults.right.get, rem, self, line))
+          assert(res == InvWithSolver.isValidAfterUpdate(compilerResults.right.get, rem, self, line))
         }
     }
   }

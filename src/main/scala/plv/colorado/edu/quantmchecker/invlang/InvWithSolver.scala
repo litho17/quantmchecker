@@ -5,7 +5,7 @@ import z3.scala.{Z3AST, Z3Context, Z3Symbol}
 /**
   * @author Tianhan Lu
   */
-object InvOperations {
+object InvWithSolver {
   val z3 = new Z3Context("MODEL" -> true)
   val solver = z3.mkSolver
 
