@@ -8,7 +8,7 @@ import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
-import plv.colorado.edu.AnnoTypeUtils
+import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.invlang._
 import plv.colorado.edu.quantmchecker.qual.{ListInv, Summary}
 import plv.colorado.edu.quantmchecker.summarylang.{MethodSumUtils, MethodSummary, MethodSummaryI, MethodSummaryV}
@@ -340,6 +340,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             issueWarning(node, "[MemberSelectTree] Should not reach this case"); true
           case expr: MethodInvocationTree => // Check if side effects will violate invariants
             // TODO: o.f1().f2().f3()
+            val callee: ExecutableElement = getMethodElementFromInvocation(expr)
+            val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(expr)
+            // atypeFactory.declarationFromElement(callee)
+
             val (remainder: String, self: List[String]) = invariant match {
               case Inv(remainder, self, _, _) => (remainder, self)
               case InvNoRem(self, _, _) => ("", self)
@@ -351,21 +355,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
                 val increment: Integer = summary match {
                   case MethodSummaryI(_, i) => i
-                  case _ => ???; 0
+                  case _ => 0 // TODO
                 }
 
                 /**
                   * Method summary could either change <remainder> or <self>
                   */
-                val callee: ExecutableElement = getMethodElementFromInvocation(expr)
-                val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(expr)
-                // atypeFactory.declarationFromElement(callee)
                 val whichVar = MethodSumUtils.whichVar(summary, callee)
                 if (whichVar.isLeft) { // Local variable is changed, according to method summary
                   val argIdx = whichVar.left.get
                   expr.getArguments.get(argIdx) match {
-                    case arg: IdentifierTree => ???
-                    case _ => ???; issueWarning(node, "[MethodInvocationTree] Method argument is too complicated")
+                    case arg: IdentifierTree => // TODO
+                    case _ =>
+                      // TODO
+                      issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
                   }
                 } else { // Field is changed, according to method summary
                   findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
@@ -373,9 +376,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       if (field.toString == self(1)) {
                         InvWithSolver.isValidAfterUpdate(invariant, 0, increment, lineNumber)
                       } else {
-                        ???
+                        // TODO
                       }
-                    case None => ???
+                    case None => // TODO
                   }
                 }
                 expr.getMethodSelect match {
@@ -385,7 +388,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 }
               case None => // No method summaries found
                 // TODO: translate library methods (e.g. append, add) into changes
-                ???
+                val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
+                // expr.getMethodSelect
                 true
             }
           case expr: NewArrayTree => // Initializers are not supported
@@ -448,11 +452,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return the summary of the invoked method
     */
   private def gatherMethodSummaries(node: MethodInvocationTree): Option[MethodSummary] = {
-    // PrintStuff.printCyanString(node, invokedMethod.getKind, TreeUtils.elementFromUse(node))
     val invokedMethod: ExecutableElement = getMethodElementFromInvocation(node)
     val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
     if (summaries.size == 1) {
-      val summaryList = AnnoTypeUtils.extractValues(summaries.head)
+      val summaryList = Utils.extractValues(summaries.head)
       if (summaryList.size != 2) {
         issueWarning(invokedMethod, "Method summary should have exactly 2 arguments")
         None
@@ -529,7 +532,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return line number of the statement
     */
   private def getLineNumber(node: Tree): Int = {
-    val line_long = AnnoTypeUtils.getLineNumber(node, positions, root)
+    val line_long = Utils.getLineNumber(node, positions, root)
     assert(line_long <= Integer.MAX_VALUE, "line number overflows")
     line_long.toInt
   }
@@ -600,7 +603,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     if (listInvAnnotations.nonEmpty) {
       if (DEBUG_COLLECT_INV) println(listInvAnnotations)
-      val invs = AnnoTypeUtils.extractValues(listInvAnnotations.head)
+      val invs = Utils.extractValues(listInvAnnotations.head)
       assert(invs.size == 1, "ListInv should only have 1 element")
       val inv = InvLangCompiler(invs.head)
       if (inv.isRight) {
@@ -625,7 +628,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   @deprecated
   private def getAnnotationMirror(node: Tree): HashSet[AnnotationMirror] = new HashSet() ++ atypeFactory.getAnnotatedType(node).getAnnotations.asScala
 
-  /** Places to look for:
+  /** Places to look for help:
     * 1. TreeUtils.xxx
     * TreeUtils.elementFromTree(node)
     * val enclosingMethod: MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))

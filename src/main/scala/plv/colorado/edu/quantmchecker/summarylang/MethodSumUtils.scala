@@ -16,7 +16,6 @@ object MethodSumUtils {
     *         or the class field that is described by the summary
     */
   def whichVar(summary: MethodSummary, invokedMethod: ExecutableElement): Either[Integer, String] = {
-    println(invokedMethod.getSimpleName, invokedMethod.getParameters)
     val formalArgs = invokedMethod.getParameters.asScala.map(v => v.getSimpleName.toString)
     val varName = summary match {
       case MethodSummaryI(v, _) => v

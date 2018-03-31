@@ -6,7 +6,7 @@ import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeC
 import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
-import plv.colorado.edu.AnnoTypeUtils
+import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual.{InvBot, ListInv}
 
 /**
@@ -31,8 +31,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {
     override def isSubtype(subAnno: AnnotationMirror, superAnno: AnnotationMirror): Boolean = {
       if (AnnotationUtils.areSameIgnoringValues(superAnno, LISTINV) && AnnotationUtils.areSameIgnoringValues(subAnno, LISTINV)) {
-        val lhsValues = AnnoTypeUtils.extractValues(superAnno)
-        val rhsValues = AnnoTypeUtils.extractValues(subAnno)
+        val lhsValues = Utils.extractValues(superAnno)
+        val rhsValues = Utils.extractValues(subAnno)
         // return rhsValues.containsAll(lhsValues);
         return false
       }
