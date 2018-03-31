@@ -30,6 +30,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "Not supported"
+  private val MISS_CHANGES = "Expression might change variables appearing in lhs" +
+    " of an invariant, but the changes are not described by any invariant"
 
   if (DEBUG_PATHS) {
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
@@ -255,7 +257,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             true // Not supported
           case expr: ArrayAccessTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
           case expr: AssignmentTree =>
-            // TODO: Currently do not support change invariants (either <remainder> or <self>) via any form of assignment
+            // TODO: Currently do not support changing invariants (either <remainder> or <self>) via any form of assignment
             val rhsPreserveInv = isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
             val (remainder, self) = invariant match {
               case Inv(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
@@ -321,9 +323,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               case _ => issueWarning(node, "[CompoundAssignmentTree] Invariant with no remainder is " + NOT_SUPPORTED); true
             }
           case expr: ConditionalExpressionTree =>
+            val cond = isInvariantPreservedInExpr(expr.getCondition, fieldInv, localInv)
             val t = isInvariantPreservedInExpr(expr.getTrueExpression, fieldInv, localInv)
             val f = isInvariantPreservedInExpr(expr.getFalseExpression, fieldInv, localInv)
-            t && f
+            cond && t && f
           case expr: ErroneousTree => true // Nothing happens
           case expr: IdentifierTree => true // Nothing happens
           case expr: InstanceOfTree => true // Nothing happens
@@ -367,7 +370,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       } else if (arg.toString == self.head) {
                         InvWithSolver.isValidAfterUpdate(invariant, 0, increment, lineNumber)
                       } else {
-                        issueWarning(node, "[MethodInvocationTree] Method summary applies changes to a local variable, but that local variable is neither remainder or self")
+                        issueWarning(node, "[MethodInvocationTree] Method summary applies changes " +
+                          "to a local variable, but that local variable is neither remainder or self")
                         true
                       }
                     case _ =>
@@ -380,7 +384,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       if (field.toString == self(1)) {
                         InvWithSolver.isValidAfterUpdate(invariant, 0, increment, lineNumber)
                       } else {
-                        issueWarning(node, "Summary specifies a change in a field that is not described by invariant. " + summary + "\t" + invariant)
+                        issueWarning(node, "Summary specifies a change in a field that is " +
+                          "not described by invariant. " + summary + "\t" + invariant)
                         true
                       }
                     case None =>
@@ -572,6 +577,47 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def relatedInvariant(node: ExpressionTree,
                                fieldInv: HashMap[Int, InvLangAST],
                                localInv: HashMap[Int, InvLangAST]): Option[InvLangAST] = {
+    val remainders = getRem(fieldInv) ++ getRem(localInv)
+    val selfs = getSelf(fieldInv) ++ getSelf(localInv)
+    val set = remainders ++ selfs
+
+    /**
+      *
+      * @param expr an expression
+      * @return if there exists a situation, where an expression might change variables appearing
+      *         in lhs of an invariant, but the changes are not described by any invariant
+      *         TODO: This is unsound, because it only performs a syntactic and intra-procedural check
+      */
+    def changeInvariants(expr: ExpressionTree): Boolean = {
+      expr match {
+        case expr: AnnotatedTypeTree => false
+        case expr: AnnotationTree => false
+        case expr: ArrayAccessTree => changeInvariants(expr.getExpression)
+        case expr: AssignmentTree =>
+          set.exists(s => s.contains(expr.getVariable)) || changeInvariants(expr.getExpression)
+        case expr: BinaryTree => changeInvariants(expr.getLeftOperand) || changeInvariants(expr.getRightOperand)
+        case expr: CompoundAssignmentTree =>
+          set.exists(s => s.contains(expr.getVariable) || changeInvariants(expr.getExpression))
+        case expr: ConditionalExpressionTree =>
+          changeInvariants(expr.getCondition) || changeInvariants(expr.getTrueExpression) || changeInvariants(expr.getFalseExpression)
+        case expr: ErroneousTree => false
+        case expr: IdentifierTree => false
+        case expr: InstanceOfTree => false
+        case expr: LambdaExpressionTree => false
+        case expr: LiteralTree => false
+        case expr: MemberReferenceTree => false
+        case expr: MemberSelectTree => false
+        case expr: MethodInvocationTree =>
+          expr.getArguments.asScala.exists(e => changeInvariants(e))
+        case expr: NewArrayTree => false
+        case expr: NewClassTree => expr.getArguments.asScala.exists(e => changeInvariants(e))
+        case expr: ParenthesizedTree => changeInvariants(expr.getExpression)
+        case expr: TypeCastTree => false
+        case expr: UnaryTree => set.exists(s => s.contains(expr.getExpression.toString))
+        case _ => false
+      }
+    }
+
     val line = getLineNumber(node)
     if (fieldInv.contains(line)) {
       if (localInv.contains(line)) {
@@ -587,7 +633,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         localInv.get(line)
       } else {
         // If this expression is not supposed not touch the invariant at all
-        // TODO: What if this expression indeed touch the invariant?
+        if (changeInvariants(node))
+          issueWarning(node, MISS_CHANGES)
         None
       }
     }
@@ -641,6 +688,35 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       }
     } else {
       None
+    }
+  }
+
+  /**
+    *
+    * @param map a map
+    * @return all remainders that appear in map
+    */
+  def getRem(map: HashMap[Int, InvLangAST]): HashSet[String] = {
+    map.values.foldLeft(new HashSet[String]) {
+      (acc, v) => v match {
+        case Inv(rem, _, _, _) => acc + rem
+        case _ => acc
+      }
+    }
+  }
+
+  /**
+    *
+    * @param map a map
+    * @return all self that appear in map
+    */
+  def getSelf(map: HashMap[Int, InvLangAST]): HashSet[String] = {
+    map.values.foldLeft(new HashSet[String]) {
+      (acc, v) => v match {
+        case Inv(_, self, _, _) => acc + self.head
+        case InvNoRem(self, _, _) => acc + self.head
+        case _ => acc
+      }
     }
   }
 
