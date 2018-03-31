@@ -244,7 +244,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                                          localInv: HashMap[Int, InvLangAST]): Boolean = {
     // TODO: We assume that the change of remainder is always towards end
     val lineNumber = getLineNumber(node)
-    val success = relatedInvariant(node, fieldInv, localInv) match {
+    val success: Boolean = relatedInvariant(node, fieldInv, localInv) match {
       case Some(invariant) =>
         node match {
           case expr: AnnotatedTypeTree =>
@@ -381,16 +381,30 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     case None => // TODO
                   }
                 }
-                expr.getMethodSelect match {
-                  case id: IdentifierTree => true
-                  case mst: MemberSelectTree => true
-                  case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
-                }
+                true // TODO
               case None => // No method summaries found
-                // TODO: translate library methods (e.g. append, add) into changes
+                // Translate library methods (e.g. append, add) into changes
                 val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
-                // expr.getMethodSelect
-                true
+                if (isColAdd) {
+                  expr.getMethodSelect match {
+                    case mst: MemberSelectTree =>
+                      val _self = self.tail.foldLeft(self.head)((acc, e) => acc+"."+e)
+                      val _selfCall = _self + "." + callee.getSimpleName
+                      if (mst.getExpression.toString == remainder) {
+                        InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
+                      } else if (mst.toString == _selfCall) {
+                        InvWithSolver.isValidAfterUpdate(invariant, 0, 1, lineNumber)
+                      } else {
+                        issueWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
+                        true
+                      }
+                    case mst: IdentifierTree =>
+                      true
+                    case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
+                  }
+                } else {
+                  true // This is the case where a member method is invoked, but it does not have a summary
+                }
             }
           case expr: NewArrayTree => // Initializers are not supported
             issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED); true
