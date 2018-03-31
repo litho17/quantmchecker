@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public class TextScore {
 
-    private EnumMap<NgramType, Ngram.ScoreStats> ngramScores = new  EnumMap(NgramType.class);
+    public EnumMap<NgramType, Ngram.ScoreStats> ngramScores = new  EnumMap(NgramType.class);
 
     public EnumMap<NgramType, Ngram.ScoreStats> getNgramScores() {
         return ngramScores;

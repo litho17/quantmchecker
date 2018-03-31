@@ -47,7 +47,7 @@ public class TextLanguage {
         Ngram ngram;
         for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {
-                textScore.getNgramScores().put(entry.getKey(), ngram.score(text));
+                textScore.ngramScores.put(entry.getKey(), ngram.score(text));
             }
         }
         return textScore;
