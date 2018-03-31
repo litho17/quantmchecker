@@ -255,11 +255,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             true // Not supported
           case expr: ArrayAccessTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
           case expr: AssignmentTree =>
-
-            /**
-              * TODO: Currently do not support change invariants (either <remainder> or <self>)
-              * via any form of assignment
-              */
+            // TODO: Currently do not support change invariants (either <remainder> or <self>) via any form of assignment
             val rhsPreserveInv = isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
             val (remainder, self) = invariant match {
               case Inv(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
@@ -355,7 +351,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
                 val increment: Integer = summary match {
                   case MethodSummaryI(_, i) => i
-                  case _ => 0 // TODO
+                  case _ => 0 // TODO: Not yet support describing changes through variable name
                 }
 
                 /**
@@ -365,10 +361,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 if (whichVar.isLeft) { // Local variable is changed, according to method summary
                   val argIdx = whichVar.left.get
                   expr.getArguments.get(argIdx) match {
-                    case arg: IdentifierTree => // TODO
+                    case arg: IdentifierTree =>
+                      if (arg.toString == remainder) {
+                        InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, lineNumber)
+                      } else if (arg.toString == self.head) {
+                        InvWithSolver.isValidAfterUpdate(invariant, 0, increment, lineNumber)
+                      } else {
+                        issueWarning(node, "[MethodInvocationTree] Method summary applies changes to a local variable, but that local variable is neither remainder or self")
+                        true
+                      }
                     case _ =>
-                      // TODO
                       issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
+                      true
                   }
                 } else { // Field is changed, according to method summary
                   findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
@@ -376,12 +380,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       if (field.toString == self(1)) {
                         InvWithSolver.isValidAfterUpdate(invariant, 0, increment, lineNumber)
                       } else {
-                        // TODO
+                        issueWarning(node, "Summary specifies a change in a field that is not described by invariant. " + summary + "\t" + invariant)
+                        true
                       }
-                    case None => // TODO
+                    case None =>
+                      issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
+                      true
                   }
                 }
-                true // TODO
               case None => // No method summaries found
                 // Translate library methods (e.g. append, add) into changes
                 val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
@@ -391,19 +397,21 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       val _self = self.tail.foldLeft(self.head)((acc, e) => acc+"."+e)
                       val _selfCall = _self + "." + callee.getSimpleName
                       if (mst.getExpression.toString == remainder) {
+                        // Remainder is changed [Although we don't expect this to happen]
                         InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber)
                       } else if (mst.toString == _selfCall) {
+                        // Self is changed
                         InvWithSolver.isValidAfterUpdate(invariant, 0, 1, lineNumber)
                       } else {
                         issueWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
                         true
                       }
                     case mst: IdentifierTree =>
-                      true
+                      true // A member method is invoked, but it does not have a summary
                     case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
                   }
                 } else {
-                  true // This is the case where a member method is invoked, but it does not have a summary
+                  true // A method is invoked, but it does not have a summary
                 }
             }
           case expr: NewArrayTree => // Initializers are not supported
@@ -589,7 +597,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // Debug only: I want to know which unhandled case issues the warning
     if (DEBUG_WHICH_UNHANDLED_CASE) {
       val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
-      PrintStuff.printGreenString("[WARNING]" + trace.getFileName + ": " + trace.getLineNumber)
+      PrintStuff.printGreenString("WARNING issued by" + trace.getFileName + ": " + trace.getLineNumber)
     }
     checker.report(Result.warning(msg), node)
   }
@@ -597,7 +605,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def issueError(node: Object, msg: String): Unit = {
     if (DEBUG_WHICH_UNHANDLED_CASE) {
       val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
-      PrintStuff.printGreenString("[ERROR]" + trace.getFileName + ": " + trace.getLineNumber)
+      PrintStuff.printGreenString("ERROR issued by" + trace.getFileName + ": " + trace.getLineNumber)
     }
     checker.report(Result.failure(msg), node)
   }

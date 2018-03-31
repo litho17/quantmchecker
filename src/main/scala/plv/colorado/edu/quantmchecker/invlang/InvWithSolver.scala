@@ -121,7 +121,7 @@ object InvWithSolver {
     val result = check(forall)
     val estimatedTime = System.nanoTime - startTime
 
-    PrintStuff.printYellowString("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [line:" + line + "]")
+    PrintStuff.printYellowString("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [line:" + line + "][" + inv + "]")
     result
   }
 }
