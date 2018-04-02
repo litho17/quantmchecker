@@ -1,5 +1,6 @@
 package plv.colorado.edu.quantmchecker.invlang
 
+import com.sun.source.tree.Tree
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import z3.scala.{Z3AST, Z3Context, Z3Symbol}
 
@@ -7,8 +8,17 @@ import z3.scala.{Z3AST, Z3Context, Z3Symbol}
   * @author Tianhan Lu
   */
 object InvWithSolver {
+  private val DEBUG = true
+
   val z3 = new Z3Context("MODEL" -> true)
   val solver = z3.mkSolver
+
+  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, line: Int, node: Tree): Boolean = {
+    val result = isValidAfterUpdate(inv, remainder, self, line)
+    if (DEBUG && !result)
+      PrintStuff.printRedString(line, node)
+    result
+  }
 
   /**
     *
