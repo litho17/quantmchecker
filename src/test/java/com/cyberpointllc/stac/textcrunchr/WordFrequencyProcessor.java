@@ -85,7 +85,7 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @ListInv("br+<self>=-89+91-92") StringBuilder sb = new  StringBuilder();
+        @ListInv("br+<self>=+91-89-92") StringBuilder sb = new  StringBuilder();
         String read = br.readLine();
         while (read != null) {
             sb.append(read);

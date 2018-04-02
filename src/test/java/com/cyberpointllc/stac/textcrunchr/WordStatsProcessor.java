@@ -92,7 +92,7 @@ public class WordStatsProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @ListInv("br+<self>=-96+98-99") StringBuilder sb = new  StringBuilder();
+        @ListInv("br+<self>=+98-96-99") StringBuilder sb = new  StringBuilder();
         String read = br.readLine();
         while (read != null) {
             sb.append(read);

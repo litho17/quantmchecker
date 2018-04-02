@@ -16,7 +16,7 @@ public class EnigmaProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new InputStreamReader(inps);
-        @ListInv("br+<self>=-21+23-24") StringBuilder sb = new StringBuilder();
+        @ListInv("br+<self>=+23-21-24") StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(is);
         String read = br.readLine();
         while (read != null) {

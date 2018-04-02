@@ -29,9 +29,9 @@ public class FindRotorSettings {
         EnigmaMachine machine = EnigmaFactory.buildEnigmaMachine();
         English english = new  English(ERRORS_ALLOWED, MULTIPLIER);
         // Loop through all possible combinations for a three Rotor machine
-        for (int i = 0; i < Symbol.MAX; i++) for (int j = 0; j < Symbol.MAX; j++) for (int k = 0; k < Symbol.MAX; k++) {
+        for (int _i = 0; _i < Symbol.MAX; _i++) for (int j = 0; j < Symbol.MAX; j++) for (int k = 0; k < Symbol.MAX; k++) {
             // Set the machine to the current Rotor positions
-            machine.setRotors(i, j, k);
+            machine.setRotors(_i, j, k);
             // Attempt to decode the ciphertext
             String plainText;
             plainText = machine.encodeLine(cipherText);
