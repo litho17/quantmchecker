@@ -14,6 +14,7 @@ object MethodSumUtils {
     * @param invokedMethod a method invocation
     * @return Either the index of formal argument that is described by the summary,
     *         or the class field that is described by the summary
+    *         Invariant: each summary describes at most one variable's change
     */
   def whichVar(summary: MethodSummary, invokedMethod: ExecutableElement): Either[Integer, String] = {
     val formalArgs = invokedMethod.getParameters.asScala.map(v => v.getSimpleName.toString)
