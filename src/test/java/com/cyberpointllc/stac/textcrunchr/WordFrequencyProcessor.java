@@ -39,14 +39,14 @@ public class WordFrequencyProcessor extends Processor {
     }
 
     /**
-     * 
+     *
      * @param words
      * @return List containing number of appearances of each word (words are
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
         @ListInv({"words+<self>=+60-50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
-        HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
+        @ListInv("words+<self>=+59-50") HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
         for (String word : words) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
             String w = word;
@@ -61,11 +61,12 @@ public class WordFrequencyProcessor extends Processor {
             }
             count.increment();
         }
+        // freqs = new ArrayList<WordCount>();
         return freqs;
     }
 
     /**
-     * 
+     *
      * @param input
      * @return array of words in input
      */
@@ -85,7 +86,7 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @ListInv("br+<self>=+91-89-92") StringBuilder sb = new  StringBuilder();
+        @ListInv("br+<self>=+92-90-91") StringBuilder sb = new  StringBuilder();
         String read = br.readLine();
         while (read != null) {
             sb.append(read);
