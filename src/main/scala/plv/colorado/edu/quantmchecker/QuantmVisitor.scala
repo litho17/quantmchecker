@@ -204,7 +204,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     }
                   case _ => issueWarning(node, "[EnhancedForLoopTree] " + NOT_SUPPORTED); true
                 }
-              case _ => issueWarning(node, "[EnhancedForLoopTree] Malformed invariant"); true
+              case InvNoRem(_, _, _) => true
+              case x@_ => issueWarning(node, "[EnhancedForLoopTree] Malformed invariant: " + x); true
             }
         }
         val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
@@ -455,7 +456,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                         // Self is changed, e.g. <self>.f.g.add(1)
                         InvWithSolver.isValidAfterUpdate(invariant, 0, 1, lineNumber, expr)
                       } else {
-                        issueWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
+                        // This update does not influence the current invariant
+                        // issueWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
                         true
                       }
                     case mst: IdentifierTree =>
