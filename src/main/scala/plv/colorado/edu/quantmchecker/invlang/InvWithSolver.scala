@@ -115,12 +115,12 @@ object InvWithSolver {
       case _ => (z3.mkTrue(), z3.mkTrue(), symbols)
     }
 
-    val imply = z3.mkImplies(p, q)
+    // val imply = z3.mkImplies(p, q)
     /**
       * TODO: It seems that, if we don't assert p and q also must hold,
       * then the solver will say SAT, because if p is false, then p=>q will always be SAT
       */
-    val constraints = z3.mkAnd(p, q, imply)
+    val constraints = z3.mkAnd(p, q) // z3.mkAnd(p, imply) is same as p /\ q
     val forall = z3.mkForall(0, Seq.empty, newSyms.map(sym => (sym, z3.mkIntSort())), constraints)
     // z3.benchmarkToSMTLIBString("name", "logic", "status", "attributes", List.empty, imply)
     if (DEBUG) {
@@ -131,7 +131,7 @@ object InvWithSolver {
     val result = check(forall)
     val estimatedTime = System.nanoTime - startTime
 
-    PrintStuff.printYellowString("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [line:" + line + "][" + inv + "]")
+    println("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [line:" + line + "][" + inv + "]")
     result
   }
 }
