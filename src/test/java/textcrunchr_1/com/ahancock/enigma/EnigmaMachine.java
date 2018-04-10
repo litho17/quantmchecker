@@ -43,13 +43,13 @@ public class EnigmaMachine {
     public String encodeLine(String s) {
         // Reuse the same StringBuilder.
         sb.setLength(0);
-        for (int i = 0; i < s.length(); i++) {
+        c46: for (int i = 0; i < s.length(); i++) {
             char currentChar = s.charAt(i);
             // Only encode symbols which are not ignored
             if (!Symbol.ignoreSymbol(currentChar))
                 currentChar = encodeChar(currentChar);
             // Append the symbol to the encoded line, even if it was "ignored"
-            sb.append(currentChar);
+            c52: sb.append(currentChar);
         }
         return sb.toString();
     }

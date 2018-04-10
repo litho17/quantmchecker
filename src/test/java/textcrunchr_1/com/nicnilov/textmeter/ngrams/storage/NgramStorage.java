@@ -38,13 +38,13 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
         String line;
         float ngramFrequency;
         long totalOccurences = 0;
-        while ((line = br.readLine()) != null) {
+        c43: while ((line = br.readLine()) != null) {
             lineNo++;
             if (!line.matches(lineRegex)) {
                 throw new  LineFormatException(String.format("Ngram resource line %d doesn't match pattern \"%s\"", lineNo, lineRegex));
             }
             ngramFrequency = Long.parseLong(line.substring(freqStart, line.length()));
-            storage.put(line.substring(0, this.getNgramType().length()), ngramFrequency);
+            c49: storage.put(line.substring(0, this.getNgramType().length()), ngramFrequency);
             totalOccurences += ngramFrequency;
         }
         count = lineNo;

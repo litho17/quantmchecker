@@ -13,10 +13,10 @@ object InvWithSolver {
   val z3 = new Z3Context("MODEL" -> true)
   val solver = z3.mkSolver
 
-  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, line: Int, node: Tree): Boolean = {
-    val result = isValidAfterUpdate(inv, remainder, self, line)
+  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: Int, node: Tree): Boolean = {
+    val result = isValidAfterUpdate(inv, remainder, self, label)
     if (DEBUG && !result)
-      PrintStuff.printRedString(line, node)
+      PrintStuff.printRedString("Invariant invalidated!", "label: " + label, "code: " + node)
     result
   }
 
@@ -25,11 +25,11 @@ object InvWithSolver {
     * @param inv       the invariant
     * @param remainder the increment of remainder
     * @param self      the increment of self
-    * @param line      the line number that is currently visiting
+    * @param label      the line number that is currently visiting
     * @return if the invariant holds before visiting current line,
     *         returns if the invariant still holds after executing current line
     */
-  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, line: Int): Boolean = {
+  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: Int): Boolean = {
     val startTime = System.nanoTime()
     val DEBUG = false
 
@@ -89,12 +89,12 @@ object InvWithSolver {
     val rhs: Z3AST = z3.simplifyAst(z3.mkAdd(listToPred(pos, ADD), listToPred(neg, SUB)))
 
     val newSelf: Z3AST = z3.mkAdd(oldSelf, mkInt(self))
-    val newPos: List[Z3AST] = if (posLine.contains(line)) {
-      val idx = posLine.indexOf(line)
+    val newPos: List[Z3AST] = if (posLine.contains(label)) {
+      val idx = posLine.indexOf(label)
       pos.updated(idx, z3.mkAdd(pos(idx), mkInt(1)))
     } else pos
-    val newNeg: List[Z3AST] = if (negLine.contains(line)) {
-      val idx = negLine.indexOf(line)
+    val newNeg: List[Z3AST] = if (negLine.contains(label)) {
+      val idx = negLine.indexOf(label)
       neg.updated(idx, z3.mkAdd(neg(idx), mkInt(1)))
     } else neg
     val newRhs: Z3AST = z3.simplifyAst(z3.mkAdd(listToPred(newPos, ADD), listToPred(newNeg, SUB)))
@@ -131,7 +131,7 @@ object InvWithSolver {
     val result = check(forall)
     val estimatedTime = System.nanoTime - startTime
 
-    println("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [line:" + line + "][" + inv + "]")
+    println("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [label:" + label + "][" + inv + "]")
     result
   }
 }

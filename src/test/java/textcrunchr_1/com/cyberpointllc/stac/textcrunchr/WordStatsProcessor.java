@@ -19,10 +19,10 @@ public class WordStatsProcessor extends Processor {
         String input = readInput(inps);
         String words[] = tokenize(input);
         @Inv("+<self>.results=+22+23+24+25") TCResult result = new  TCResult("Word stats");
-        result.addResult("Word count", words.length);
-        result.addResult("Average word length", meanLen(words));
-        result.addResult("Variance in word length", varLen(words));
-        result.addResult("Longest word: ", longest(words));
+        c22: result.addResult("Word count", words.length);
+        c23: result.addResult("Average word length", meanLen(words));
+        c24: result.addResult("Variance in word length", varLen(words));
+        c25: result.addResult("Longest word: ", longest(words));
         return result;
     }
 
@@ -93,10 +93,11 @@ public class WordStatsProcessor extends Processor {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
         @Inv("br+<self>=+98-96-99") StringBuilder sb = new  StringBuilder();
-        String read = br.readLine();
+        String read;
+        c96: read = br.readLine();
         while (read != null) {
-            sb.append(read);
-            read = br.readLine();
+            c98: sb.append(read);
+            c99: read = br.readLine();
         }
         String theString = sb.toString();
         return theString;

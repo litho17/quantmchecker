@@ -18,10 +18,11 @@ public class EnigmaProcessor extends Processor {
         InputStreamReader is = new InputStreamReader(inps);
         @Inv("br+<self>=+23-21-24") StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(is);
-        String read = br.readLine();
+        String read;
+        c21: read = br.readLine();
         while (read != null) {
-            sb.append(read);
-            read = br.readLine();
+            c23: sb.append(read);
+            c24: read = br.readLine();
         }
         String theString = sb.toString().toUpperCase();
         // Construct the machine

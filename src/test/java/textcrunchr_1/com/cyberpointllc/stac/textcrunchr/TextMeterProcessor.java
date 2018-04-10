@@ -24,11 +24,12 @@ public class TextMeterProcessor extends Processor {
         InputStreamReader is = new  InputStreamReader(inps);
         @Inv("br+<self>=+31-28-32") StringBuilder sb = new  StringBuilder();
         BufferedReader br = new  BufferedReader(is);
-        String read = br.readLine();
+        String read;
+        c28: read = br.readLine();
         while (read != null) {
             //System.out.println(read);
-            sb.append(read);
-            read = br.readLine();
+            c31: sb.append(read);
+            c32: read = br.readLine();
         }
         String theString = sb.toString();
         // set up textmeter

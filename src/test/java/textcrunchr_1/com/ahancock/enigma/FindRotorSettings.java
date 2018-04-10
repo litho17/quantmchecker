@@ -21,9 +21,9 @@ public class FindRotorSettings {
         // Read three lines from the source file
         @Inv("i+<self>=+26-24") String cipherText = new  String();
         Scanner scanner = new  Scanner(new  File(args[0]));
-        for (int i = 0; i < NUMBER_OF_LINES; i++) {
+        c24: for (int i = 0; i < NUMBER_OF_LINES; i++) {
             // Preserve the newline from the source text
-            cipherText += scanner.nextLine() + "\n";
+            c26: cipherText += scanner.nextLine() + "\n";
         }
         scanner.close();
         EnigmaMachine machine = EnigmaFactory.buildEnigmaMachine();

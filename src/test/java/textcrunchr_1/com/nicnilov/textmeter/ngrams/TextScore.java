@@ -20,9 +20,9 @@ public class TextScore {
 
     public String toString() {
         @Inv("ngramScores+<self>=+26-24") StringBuilder sb = new  StringBuilder();
-        for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
+        c24: for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
             if (entry.getValue() != null) {
-                toStringHelper(entry, sb);
+                c26: toStringHelper(entry, sb);
             }
         }
         return sb.toString();

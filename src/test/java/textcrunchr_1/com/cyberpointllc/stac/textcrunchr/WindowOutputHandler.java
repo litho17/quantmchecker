@@ -49,8 +49,8 @@ public class WindowOutputHandler extends OutputHandler {
                 @Inv("sampleResults+<self>=+53-52") StringBuilder outputString = new  StringBuilder();
                 String path = namesToPaths.get(selected);
                 List<TCResult> sampleResults = results.get(path);
-                for (TCResult result : sampleResults) {
-                    outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
+                c52: for (TCResult result : sampleResults) {
+                    c53: outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
                 }
                 //Clear the current text
                 textArea.setText(null);

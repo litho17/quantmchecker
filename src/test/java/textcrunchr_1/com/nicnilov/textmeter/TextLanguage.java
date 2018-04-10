@@ -36,16 +36,16 @@ public class TextLanguage {
 
     public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
         Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
-        ngrams.put(ngramType, ngram);
+        c41: ngrams.put(ngramType, ngram);
         return ngram;
     }
 
     public TextScore score(final String text) {
         @Inv("ngrams+<self>.ngramScores=+50-48") TextScore textScore = new TextScore();
         Ngram ngram;
-        for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
+        c48: for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {
-                textScore.ngramScores.put(entry.getKey(), ngram.score(text));
+                c50: textScore.ngramScores.put(entry.getKey(), ngram.score(text));
             }
         }
         return textScore;
