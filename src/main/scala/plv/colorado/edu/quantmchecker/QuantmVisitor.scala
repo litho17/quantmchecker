@@ -311,13 +311,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               * @return if the expression is same as self or remainder
               */
             def isReassign(name: String, self: String, remainder: Option[String]): Boolean = {
-              if (name == self) {
+              val inConstructor = isInConstructor(node)
+              if (name == self && !inConstructor) {
+                // Don't issue error if in class constructor
                 issueError(node, "[AssignmentTree][Destructive update] Reassigning <self> is " + NOT_SUPPORTED)
                 false
               } else {
                 remainder match {
                   case Some(remainder) =>
-                    if (name == remainder) {
+                    if (name == remainder&& !inConstructor) {
                       // We require that remainder is always defined in current method scope
                       issueError(node, "[AssignmentTree][Destructive update] Reassigning remainder is " + NOT_SUPPORTED)
                       false
@@ -540,7 +542,32 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     success
   }
-  
+
+  /*override def visitUnary(node: UnaryTree, p: Void): Void = {
+    val updatedLabel = getLabel(node)
+    (fieldInv ++ localInv).forall {
+      invariant =>
+        invariant match {
+          case Invariant(remainder, self, posLine, negLine) =>
+            // This expression could only change remainder
+            if (remainder == node.getExpression.toString) {
+              node.getKind match {
+                case Tree.Kind.POSTFIX_INCREMENT
+                     | Tree.Kind.PREFIX_INCREMENT
+                     | Tree.Kind.POSTFIX_DECREMENT
+                     | Tree.Kind.PREFIX_DECREMENT =>
+                  InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
+                case _ => issueWarning(node, "[UnaryTree] Unknown unary operator is " + NOT_SUPPORTED); true
+              }
+            } else {
+              true
+            }
+          case _ => ignoreWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
+        }
+    }
+    super.visitUnary(node, p)
+  }*/
+
   /**
     *
     * @param node a method invocation
@@ -747,6 +774,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val field = fieldInv.filter { case (i, t) => t == enclosingClass }.keySet
     val local = localInv.filter { case (i, t) => t == enclosingMethod }.keySet
     new HashSet ++ field ++ local
+  }
+
+  /**
+    *
+    * @param node a statement or expression
+    * @return if it is in class constructor
+    */
+  private def isInConstructor(node: Tree): Boolean = {
+    // val enclosingClass = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
+    val enclosingMethod = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
+    enclosingMethod.getName.toString == "<init>"
   }
 
   @deprecated
