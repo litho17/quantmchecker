@@ -94,7 +94,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (node.getBody != null) {
       val stmts = node.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
         (acc, stmt) => acc ++ flattenStmt(stmt)
-      }
+      } ++ node.getParameters.asScala
       // if (node.getName.toString == "main") PrintStuff.printMagentaString(stmts)
       stmts.foldLeft(new HashMap[Int, InvLangAST]) {
         (acc, stmt) =>
@@ -179,11 +179,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             invariant match {
               case Invariant(remainder, self, posLine, negLine) =>
                 stmt.getExpression match {
+                  /**
+                    * This extension (handling EnhancedForLoopTree) makes the implementation context sensitive:
+                    * We have to know the expression is under which context, in order to apply proper updates
+                    */
                   case expr: IdentifierTree =>
                     if (remainder == expr.getName.toString) {
                       InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
                     } else {
-                      // issueWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
+                      ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
                       true
                     }
                   case expr: MethodInvocationTree =>
@@ -194,7 +198,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                           if (mst.getExpression.toString == remainder) {
                             InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
                           } else {
-                            // issueWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
+                            ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
                             true
                           }
                         } else {
@@ -371,7 +375,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     case _ => issueWarning(node, "[CompoundAssignmentTree] Non-literal is " + NOT_SUPPORTED); true
                   }
                 } else {
-                  // issueWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
+                  ignoreWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
                   true
                 }
               case _ => issueWarning(node, "[CompoundAssignmentTree] Malformed invariant is " + NOT_SUPPORTED); true
@@ -391,7 +395,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case expr: MemberReferenceTree => // Not supported
         issueWarning(node, "[MemberReferenceTree] " + NOT_SUPPORTED); true
       case expr: MemberSelectTree =>
-        // issueWarning(node, "[MemberSelectTree] Should not reach this case")
+        ignoreWarning(node, "[MemberSelectTree] Should not reach this case")
         true
       case expr: MethodInvocationTree => // Check if side effects will invalidate invariants
         // TODO: o.f1().f2().f3()
@@ -433,8 +437,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       } else if (arg.toString == _self) { // Summary says: update self
                         InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
                       } else {
-                        issueWarning(node, "[MethodInvocationTree] Method summary applies changes " +
-                          "to a local variable, but that local variable is neither remainder or self")
+                        ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
+                          "to a local variable, but that local variable is neither remainder or self " + (arg, remainder, self))
                         true
                       }
                     case _ =>
@@ -477,7 +481,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                         InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, expr)
                       } else {
                         // This update does not influence the current invariant
-                        // issueWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
+                        ignoreWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
                         true
                       }
                     case mst: IdentifierTree =>
@@ -643,11 +647,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     line_long.toInt
   }
 
+  private def ignoreWarning(node: Object, msg: String): Unit = {
+    /*if (DEBUG_WHICH_UNHANDLED_CASE) {
+      val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
+      PrintStuff.printGreenString("WARNING issued by " + trace.getFileName + ": " + trace.getLineNumber)
+    }*/
+    // checker.report(Result.warning(msg), node)
+  }
+
   private def issueWarning(node: Object, msg: String): Unit = {
     // Debug only: I want to know which unhandled case issues the warning
     if (DEBUG_WHICH_UNHANDLED_CASE) {
       val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
-      PrintStuff.printGreenString("WARNING issued by" + trace.getFileName + ": " + trace.getLineNumber)
+      PrintStuff.printGreenString("WARNING issued by " + trace.getFileName + ": " + trace.getLineNumber)
     }
     checker.report(Result.warning(msg), node)
   }
@@ -655,7 +667,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def issueError(node: Object, msg: String): Unit = {
     /*if (DEBUG_WHICH_UNHANDLED_CASE) {
       val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
-      PrintStuff.printGreenString("ERROR issued by" + trace.getFileName + ": " + trace.getLineNumber)
+      PrintStuff.printGreenString("ERROR issued by " + trace.getFileName + ": " + trace.getLineNumber)
     }*/
     checker.report(Result.failure(msg), node)
   }

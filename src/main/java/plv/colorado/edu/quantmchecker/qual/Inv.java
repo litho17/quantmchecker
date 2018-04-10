@@ -9,7 +9,7 @@ import java.lang.annotation.*;
  */
 @SubtypeOf({InvTop.class})
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD})
+@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.PARAMETER})
 @Documented
 //Check these qualifiers: package org.checkerframework.framework.qual;
 public @interface Inv {
