@@ -14,7 +14,7 @@ import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvBounded}
   */
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
-  protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INVBOUNDED: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBounded])
 
@@ -51,15 +51,19 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         case (false, false) => super.isSubtype(subAnno, superAnno)
       }*/
 
-      if (AnnotationUtils.areSameIgnoringValues(superAnno, LISTINV) && AnnotationUtils.areSameIgnoringValues(subAnno, LISTINV)) {
+      if (AnnotationUtils.areSameIgnoringValues(superAnno, INV) && AnnotationUtils.areSameIgnoringValues(subAnno, INV)) {
         val lhsValues = Utils.extractValues(superAnno)
         val rhsValues = Utils.extractValues(subAnno)
         // return rhsValues.containsAll(lhsValues);
         return false
       }
       // Ignore annotation values to ensure that annotation is in supertype map.
-      val newSuperAnno = if (AnnotationUtils.areSameIgnoringValues(superAnno, LISTINV)) LISTINV else superAnno
-      val newSubAnno = if (AnnotationUtils.areSameIgnoringValues(subAnno, LISTINV)) LISTINV else subAnno
+      val newSuperAnno = if (AnnotationUtils.areSameIgnoringValues(superAnno, INV)) INV else superAnno
+      val newSubAnno = if (AnnotationUtils.areSameIgnoringValues(subAnno, INV)) INV else subAnno
+      if (DEBUG && !super.isSubtype(newSubAnno, newSuperAnno)) {
+        println(subAnno, newSubAnno)
+        println(superAnno, newSuperAnno)
+      }
       super.isSubtype(newSubAnno, newSuperAnno)
     }
   }
