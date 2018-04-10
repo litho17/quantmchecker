@@ -257,20 +257,30 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case expr: AssignmentTree =>
 
         /**
-          * TODO: Currently assignment cannot invalidate any invariant
-          * because we do not support changing either <remainder> or <self>
-          * via any form of assignment
-          * TODO: Make sure to annotate every list in the program
+          * Steps:
+          * 1. Check subtyping
+          * 2. Check if there is any destructive update (reassignment)
           */
+        val lhs = expr.getVariable
+        val rhs = expr.getExpression
+        // Check subtyping???
+
 
         /**
-          * TODO
+          * TODO: Make sure to annotate every list in the program
           * 1. Find declaration of lhs
           * 2. See if lhs is annotated
           * 3. If rhs is NewClassTree and lhs is not annotated, report error
           */
-        val isAnnotated = atypeFactory.getAnnotatedTypeLhs(expr.getVariable)
-        val rhsPreserveInv = isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
+        val isAnnotated = atypeFactory.getAnnotatedTypeLhs(lhs)
+
+        /**
+          * Check if there is any destructive update (reassignment) that will invalidate an invariant
+          * TODO: Currently assignment cannot invalidate any invariant
+          * because we do not support changing either <remainder> or <self>
+          * via any form of assignment
+          */
+        val rhsPreserveInv = isInvariantPreservedInExpr(rhs, fieldInv, localInv)
 
         /**
           * TODO: Assume that any two variables won't have a same name. Otherwise,
@@ -312,7 +322,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val lhsPreserveInv = self match {
               case Some(self) =>
                 val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
-                expr.getVariable match {
+                lhs match {
                   case i: IdentifierTree => isReassign(i.getName.toString, _self, remainder)
                   case s: MemberSelectTree =>
                     if (s.toString == _self) {

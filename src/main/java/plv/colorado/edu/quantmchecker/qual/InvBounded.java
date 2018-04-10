@@ -1,7 +1,6 @@
 package plv.colorado.edu.quantmchecker.qual;
 
 import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
-import org.checkerframework.framework.qual.InvisibleQualifier;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 import java.lang.annotation.*;
@@ -9,9 +8,10 @@ import java.lang.annotation.*;
 /**
  * @author Tianhan Lu
  */
-@InvisibleQualifier
-@SubtypeOf({})
-@Documented
+//@DefaultQualifierInHierarchy
+@SubtypeOf({InvTop.class})
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
-public @interface SumTop {}
+@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD})
+@Documented
+public @interface InvBounded {
+}
