@@ -110,7 +110,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 case None => acc
               }
             case x@_ =>
-              if (x.toString.contains("Inv"))
+              if (x.toString.contains("@Inv"))
                 PrintStuff.printBlueString("Missed an invariant!", x, x.getClass)
               acc
           }
@@ -226,7 +226,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
       case stmt: VariableTree => true // Variable declaration shouldn't change invariants
       case stmt: ReturnTree => // Base case
-        isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
+        if (stmt.getExpression != null)
+          isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
+        else
+          true
       case stmt: SwitchTree =>
         stmt.getCases.asScala.forall(caseTree => caseTree.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv)))
       case stmt: WhileLoopTree =>
@@ -412,7 +415,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
                 val increment: Integer = summary match {
                   case MethodSummaryI(_, i) => i
-                  case _ => 0 // TODO: Not yet support describing changes via variable name in a method summary
+                  case MethodSummaryV(_, _) => 1
+                  // TODO: Not yet support describing changes via variable name in a method summary
+                  case _ => 0
                 }
 
                 /**
@@ -454,6 +459,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 }
               case None => // No method summaries found
                 // Translate library methods (e.g. append, add) into numerical updates
+                if (receiverTyp == null) {
+                  // Might be invoking a super class
+                  return true
+                }
                 val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
                 if (isColAdd) {
                   expr.getMethodSelect match {
@@ -476,6 +485,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
                   }
                 } else {
+                  // TODO: might update remainder
                   true // A method is invoked, but it does not have a summary and is not Collection ADD
                 }
             }
