@@ -68,15 +68,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param classTree a class definition
     * @return a map from a line number to an invariant that might be changed by that line
     */
-  private def gatherClassFieldInvariants(classTree: ClassTree): HashSet[InvLangAST] = {
-    classTree.getMembers.asScala.foldLeft(new HashSet[InvLangAST]) {
+  private def gatherClassFieldInvariants(classTree: ClassTree): HashMap[InvLangAST, Tree] = {
+    classTree.getMembers.asScala.foldLeft(new HashMap[InvLangAST, Tree]) {
       (acc, member) =>
         member match {
           case member: VariableTree => // Only care about variable declarations in a class
             /**
               * Get annotations on class fields
               */
-            acc ++ getAnnotationFromVariableTree(member, LISTINV)
+            getAnnotationFromVariableTree(member, LISTINV).foldLeft(acc) {
+              case (acc2, a) => acc2 + (a -> classTree)
+            }
           case _ => acc
         }
     }
@@ -84,16 +86,16 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param node a method
+    * @param methodTree a method
     * @return all invariants that are declared in the method
     */
-  private def gatherLocalInvariants(node: MethodTree): HashSet[InvLangAST] = {
-    if (node.getBody != null) {
-      val stmts = node.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
+  private def gatherLocalInvariants(methodTree: MethodTree): HashMap[InvLangAST, Tree] = {
+    if (methodTree.getBody != null) {
+      val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
         (acc, stmt) => acc ++ flattenStmt(stmt)
-      } ++ node.getParameters.asScala
-      // if (node.getName.toString == "main") PrintStuff.printMagentaString(stmts)
-      stmts.foldLeft(new HashSet[InvLangAST]) {
+      } ++ methodTree.getParameters.asScala
+
+      stmts.foldLeft(new HashMap[InvLangAST, Tree]) {
         (acc, stmt) =>
           stmt match {
             case stmt: VariableTree =>
@@ -102,7 +104,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 * Local invariants should only be on variable declarations
                 * Otherwise, invariants are simply ignored
                 */
-              acc ++ getAnnotationFromVariableTree(stmt, LISTINV)
+              getAnnotationFromVariableTree(stmt, LISTINV).foldLeft(acc) {
+                case (acc2, a) => acc2 + (a -> methodTree)
+              }
             case x@_ =>
               if (x.toString.contains("@Inv"))
                 PrintStuff.printBlueString("Missed an invariant!", x, x.getClass)
@@ -110,7 +114,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           }
       }
     } else {
-      new HashSet[InvLangAST]
+      new HashMap[InvLangAST, Tree]
     }
   }
 
@@ -124,8 +128,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return if the method violates any invariant
     */
   private def isInvariantPreservedInMethod(node: MethodTree,
-                                           fieldInv: HashSet[InvLangAST],
-                                           localInv: HashSet[InvLangAST]): Boolean = {
+                                           fieldInv: HashMap[InvLangAST, Tree],
+                                           localInv: HashMap[InvLangAST, Tree]): Boolean = {
     if (node.getBody != null) {
       /**
         * 1. Collect all invariants (from method bodies as well as from class fields)
@@ -158,8 +162,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return if the statement violates any invariant
     */
   private def isInvariantPreservedInStmt(node: StatementTree,
-                                         fieldInv: HashSet[InvLangAST],
-                                         localInv: HashSet[InvLangAST]): Boolean = {
+                                         fieldInv: HashMap[InvLangAST, Tree],
+                                         localInv: HashMap[InvLangAST, Tree]): Boolean = {
     val updatedLabel = getLabel(node)
     node match {
       case stmt: BlockTree => stmt.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv))
@@ -172,7 +176,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         /**
           * Make sure ???
           */
-        val head = (fieldInv ++ localInv).forall {
+        val head = getRelevantInv(node, fieldInv, localInv).forall {
           invariant =>
             invariant match {
               case Invariant(remainder, self, posLine, negLine) =>
@@ -248,8 +252,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def isInvariantPreservedInExpr(node: ExpressionTree,
-                                         fieldInv: HashSet[InvLangAST],
-                                         localInv: HashSet[InvLangAST]): Boolean = {
+                                         fieldInv: HashMap[InvLangAST, Tree],
+                                         localInv: HashMap[InvLangAST, Tree]): Boolean = {
     // TODO: We assume that the change of remainder is always towards end
     val updatedLabel = getLabel(node)
     val success: Boolean = node match {
@@ -293,7 +297,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           * if variable a is used in an invariant in one scope, but not used
           * in an invariant in the other scope, type check will fail.
           */
-        (fieldInv ++ localInv).forall {
+        getRelevantInv(node, fieldInv, localInv).forall {
           invariant =>
             val (remainder, self) = invariant match {
               case Invariant(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
@@ -351,7 +355,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         left && right
       case expr: CompoundAssignmentTree =>
         // This expression could only change remainder
-        (fieldInv ++ localInv).forall {
+        getRelevantInv(node, fieldInv, localInv).forall {
           invariant =>
             invariant match {
               case Invariant(remainder, self, posLine, negLine) =>
@@ -376,7 +380,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   ignoreWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
                   true
                 }
-              case _ => issueWarning(node, "[CompoundAssignmentTree] Malformed invariant is " + NOT_SUPPORTED); true
+              case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant is " + NOT_SUPPORTED); true
             }
         }
       case expr: ConditionalExpressionTree =>
@@ -402,7 +406,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val receiver: ExpressionTree = TreeUtils.getReceiverTree(expr)
         // atypeFactory.declarationFromElement(callee)
 
-        (fieldInv ++ localInv).forall {
+        getRelevantInv(node, fieldInv, localInv).forall {
           invariant =>
             val (remainder: String, self: List[String]) = invariant match {
               case Invariant(remainder, self, _, _) => (remainder, self)
@@ -447,11 +451,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
                     case Some(field) =>
                       // If receiver is self and summary updates self's field
-                      if ((if (receiver == null) "" else receiver.toString) + "." + field.toString == _self) {
+                      val receiverName = if (receiver == null) "" else receiver.toString + "."
+                      val updatedFldName = receiverName + field.toString
+                      if (updatedFldName == _self) {
                         InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
                       } else {
-                        issueWarning(node, "Summary specifies a change in a field that is " +
-                          "not described by invariant. " + summary + "\t" + invariant)
+                        ignoreWarning(node, "Summary specifies a change in a field that is " +
+                          "not described by invariant. " + (updatedFldName, _self, summary, invariant))
                         true
                       }
                     case None =>
@@ -506,7 +512,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case expr: ParenthesizedTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
       case expr: TypeCastTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
       case expr: UnaryTree =>
-        (fieldInv ++ localInv).forall {
+        getRelevantInv(node, fieldInv, localInv).forall {
           invariant =>
             invariant match {
               case Invariant(remainder, self, posLine, negLine) =>
@@ -523,7 +529,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 } else {
                   true
                 }
-              case _ => issueWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
+              case _ => ignoreWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
             }
         }
       case _ => PrintStuff.printBlueString("Expr not handled", node, node.getClass); true
@@ -534,7 +540,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     success
   }
-
+  
   /**
     *
     * @param node a method invocation
@@ -613,24 +619,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case stmt: TryTree => flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)
       case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
       case _ => new HashSet[StatementTree]
-    }
-  }
-
-  /**
-    *
-    * @param invLangAST an invariant
-    * @param acc        a map from a line number to an invariant that might be changed by that line
-    * @return a map that is updated by invLangAST
-    */
-  private def mapInvToLine(invLangAST: InvLangAST, acc: HashMap[Int, InvLangAST]): HashMap[Int, InvLangAST] = {
-    invLangAST match {
-      case me@Invariant(remainder, self, posLine, negLine) =>
-        val tmpAcc = negLine.foldLeft(acc)((acc2, line) => acc2 + (line -> me))
-        posLine.foldLeft(tmpAcc)((acc2, line) => acc2 + (line -> me))
-      case me@InvNoRem(self, posLine, negLine) =>
-        val tmpAcc = negLine.foldLeft(acc)((acc2, line) => acc2 + (line -> me))
-        posLine.foldLeft(tmpAcc)((acc2, line) => acc2 + (line -> me))
-      case _ => acc
     }
   }
 
@@ -741,6 +729,24 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     } else {
       0
     }
+  }
+
+  /**
+    *
+    * @param node a statement or expression
+    * @param fieldInv
+    * @param localInv
+    * @return all invariants in the enclosing method and class
+    *         Resolve naming conflict for variables between local and field
+    */
+  private def getRelevantInv(node: Tree,
+                             fieldInv: HashMap[InvLangAST, Tree],
+                             localInv: HashMap[InvLangAST, Tree]): HashSet[InvLangAST] = {
+    val enclosingClass = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
+    val enclosingMethod = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
+    val field = fieldInv.filter { case (i, t) => t == enclosingClass }.keySet
+    val local = localInv.filter { case (i, t) => t == enclosingMethod }.keySet
+    new HashSet ++ field ++ local
   }
 
   @deprecated
