@@ -1,6 +1,6 @@
 package unit;
 
-import plv.colorado.edu.quantmchecker.qual.ListInv;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ class Message {
 }
 
 public class MotivatingExample {
-    @ListInv("input1+<self>=+30-29") List<Message> msgHist = new ArrayList<>();
+    @Inv("input1+<self>=+30-29") List<Message> msgHist = new ArrayList<>();
 
     void driver(List<Message> input1, List<Message> input2) {
         while (true) {
@@ -43,7 +43,7 @@ public class MotivatingExample {
     }
 
     void showMsgHistory() {
-        @ListInv("it+<self>=+51-50") List<Message> toShow = new ArrayList<>();
+        @Inv("it+<self>=+51-50") List<Message> toShow = new ArrayList<>();
         toShow.add(new Message("Message history begins:".toCharArray()));
         Iterator<Message> it = msgHist.iterator();
         while (it.hasNext()) {

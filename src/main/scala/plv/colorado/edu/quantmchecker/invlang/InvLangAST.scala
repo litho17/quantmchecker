@@ -11,7 +11,7 @@ case class RemainderAST(variable: String) extends InvLangAST
 
 case class LinecounterAST(number: Int) extends InvLangAST
 
-case class Inv(remainder: String, self: List[String], posLine: List[Int], negLine: List[Int]) extends InvLangAST {
+case class Invariant(remainder: String, self: List[String], posLine: List[Int], negLine: List[Int]) extends InvLangAST {
   override def toString: String = {
     remainder + "+" +
       self.tail.foldLeft("<self>")((acc, e) => acc + "." + e) + "=" +

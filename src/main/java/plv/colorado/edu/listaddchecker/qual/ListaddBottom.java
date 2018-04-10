@@ -3,7 +3,6 @@ package plv.colorado.edu.listaddchecker.qual;
 import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
-import plv.colorado.edu.quantmchecker.qual.ListInv;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

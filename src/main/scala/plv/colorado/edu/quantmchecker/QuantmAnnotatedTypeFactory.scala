@@ -7,14 +7,14 @@ import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual.{InvBot, InvBounded, ListInv}
+import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvBounded}
 
 /**
   * @author Tianhan Lu
   */
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
-  protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[ListInv])
+  protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INVBOUNDED: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBounded])
 

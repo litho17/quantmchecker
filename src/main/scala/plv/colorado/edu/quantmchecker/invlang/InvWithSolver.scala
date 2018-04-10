@@ -73,7 +73,7 @@ object InvWithSolver {
     }
 
     val (posLine: List[Int], negLine: List[Int]) = inv match {
-      case Inv(_remainder, _self, _posLine, _negLine) => (_posLine, _negLine)
+      case Invariant(_remainder, _self, _posLine, _negLine) => (_posLine, _negLine)
       case InvNoRem(_self, _posLine, _negLine) => (_posLine, _negLine)
       case _ => (List.empty, List.empty)
     }
@@ -100,7 +100,7 @@ object InvWithSolver {
     val newRhs: Z3AST = z3.simplifyAst(z3.mkAdd(listToPred(newPos, ADD), listToPred(newNeg, SUB)))
 
     val (p, q, newSyms) = inv match {
-      case Inv(_, _, _, _) =>
+      case Invariant(_, _, _, _) =>
         val remainderSym = z3.mkSymbol("rem")
         val oldRemainder = z3.mkIntConst(remainderSym)
         val newRemainder = z3.mkAdd(oldRemainder, mkInt(remainder))

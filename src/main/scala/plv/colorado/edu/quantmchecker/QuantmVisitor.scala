@@ -10,7 +10,7 @@ import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.invlang._
-import plv.colorado.edu.quantmchecker.qual.{ListInv, Summary}
+import plv.colorado.edu.quantmchecker.qual.{Inv, Summary}
 import plv.colorado.edu.quantmchecker.summarylang.{MethodSumUtils, MethodSummary, MethodSummaryI, MethodSummaryV}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 
@@ -25,7 +25,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_COLLECT_INV = false
   private val DEBUG_WHICH_UNHANDLED_CASE = true
 
-  protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[ListInv])
+  protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "NOT SUPPORTED"
@@ -109,7 +109,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 case None => acc
               }
             case x@_ =>
-              if (x.toString.contains("ListInv"))
+              if (x.toString.contains("Inv"))
                 PrintStuff.printBlueString("Missed an invariant!", x, x.getClass)
               acc
           }
@@ -176,7 +176,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val head = (fieldInv.values ++ localInv.values).forall {
           invariant =>
             invariant match {
-              case Inv(remainder, self, posLine, negLine) =>
+              case Invariant(remainder, self, posLine, negLine) =>
                 stmt.getExpression match {
                   case expr: IdentifierTree =>
                     if (remainder == expr.getName.toString) {
@@ -290,7 +290,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         (fieldInv.values ++ localInv.values).forall {
           invariant =>
             val (remainder, self) = invariant match {
-              case Inv(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
+              case Invariant(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
               case InvNoRem(self, posLine, negLine) => (None, Some(self))
               case _ => issueWarning(node, "[AssignmentTree] " + NOT_SUPPORTED); (None, None)
             }
@@ -348,7 +348,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         (fieldInv.values ++ localInv.values).forall {
           invariant =>
             invariant match {
-              case Inv(remainder, self, posLine, negLine) =>
+              case Invariant(remainder, self, posLine, negLine) =>
                 if (remainder == expr.getVariable.toString) {
                   expr.getExpression match {
                     case rhs: LiteralTree =>
@@ -399,7 +399,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         (fieldInv.values ++ localInv.values).forall {
           invariant =>
             val (remainder: String, self: List[String]) = invariant match {
-              case Inv(remainder, self, _, _) => (remainder, self)
+              case Invariant(remainder, self, _, _) => (remainder, self)
               case InvNoRem(self, _, _) => ("", self)
               case _ => ("", List.empty)
             }
@@ -496,7 +496,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         (fieldInv.values ++ localInv.values).forall {
           invariant =>
             invariant match {
-              case Inv(remainder, self, posLine, negLine) =>
+              case Invariant(remainder, self, posLine, negLine) =>
                 // This expression could only change remainder
                 if (remainder == expr.getExpression.toString) {
                   expr.getKind match {
@@ -611,7 +611,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     */
   private def mapInvToLine(invLangAST: InvLangAST, acc: HashMap[Int, InvLangAST]): HashMap[Int, InvLangAST] = {
     invLangAST match {
-      case me@Inv(remainder, self, posLine, negLine) =>
+      case me@Invariant(remainder, self, posLine, negLine) =>
         val tmpAcc = negLine.foldLeft(acc)((acc2, line) => acc2 + (line -> me))
         posLine.foldLeft(tmpAcc)((acc2, line) => acc2 + (line -> me))
       case me@InvNoRem(self, posLine, negLine) =>
@@ -658,22 +658,22 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def getAnnotationFromVariableTree(node: VariableTree, annot: AnnotationMirror): Option[InvLangAST] = {
     val annotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
     /**
-      * Extract annotations of ListInv type
+      * Extract annotations of Inv type
       */
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, annot))
     // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     if (listInvAnnotations.nonEmpty) {
       if (DEBUG_COLLECT_INV) println(listInvAnnotations)
       val invs = Utils.extractValues(listInvAnnotations.head)
-      assert(invs.size == 1, "ListInv should only have 1 element")
+      assert(invs.size == 1, "Inv should only have 1 element")
       // TODO: Before parsing, replace multiple spaces with a single space
       val invStr = invs.head.replaceAll("\\s+", " ")
       val inv = InvLangCompiler(invs.head)
       if (inv.isRight) {
         val name = node.getName.toString // the variable that <self> represents
         inv.right.get match {
-          case Inv(remainder, self, posLine, negLine) =>
-            val invariant = Inv(remainder, name :: self, posLine, negLine)
+          case Invariant(remainder, self, posLine, negLine) =>
+            val invariant = Invariant(remainder, name :: self, posLine, negLine)
             if (invariant.toString != invStr) {
               issueError(node, MALFORMAT_INVARIANT)
               None // parser error
