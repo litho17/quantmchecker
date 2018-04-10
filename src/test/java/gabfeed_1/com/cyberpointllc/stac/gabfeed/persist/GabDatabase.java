@@ -13,6 +13,7 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -212,8 +213,10 @@ public class GabDatabase {
         return gabChats;
     }
 
+    @Summary({"users", "1"})
+    // @Inv("+<self>.users=+218")
     public void addUser(GabUser user) {
-        users.put(user.getId(), user);
+        c218: users.put(user.getId(), user);
     }
 
     public void addThread(GabThread thread) {
@@ -240,7 +243,8 @@ public class GabDatabase {
         indexMessage(message);
     }
 
-    private void initializeUsersHelper(Map<String, GabUser> users, String line, String passwordKey) throws IOException {
+    @Summary({"users", "1"})
+    private void initializeUsersHelper(@Inv("+<self>=+253") Map<String, GabUser> users, String line, String passwordKey) throws IOException {
         String[] parts = line.split(",", 3);
         String id = parts[0];
         String displayName = parts[1];
@@ -248,7 +252,7 @@ public class GabDatabase {
         String encryptedPw = DESHelper.getEncryptedString(password, passwordKey);
         GabUser user = new  GabUser(this, id, displayName, encryptedPw);
         addUser(user);
-        users.put(parts[0], user);
+        c253: users.put(parts[0], user);
     }
 
     private void initializeRoomsHelper(String line, Map<String, GabRoom> rooms) throws IOException {

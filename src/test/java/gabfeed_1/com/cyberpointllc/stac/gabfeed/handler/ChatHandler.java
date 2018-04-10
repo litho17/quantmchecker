@@ -158,12 +158,12 @@ public class ChatHandler extends GabHandler {
     }
 
     @Summary({"builder", "1"})
-    private void getMessageContentsHelper(GabMessage message, WebSession webSession, TemplateEngine engine, StringBuilder builder) {
+    private void getMessageContentsHelper(GabMessage message, WebSession webSession, TemplateEngine engine, @Inv("+<self>=+166") StringBuilder builder) {
         @Inv("+<self>=+163") Map<String, String> messageMap = message.getTemplateMap();
         // fix up the contents
         String content = messageMap.get("messageContents");
         c163: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
-        engine.replaceTagsBuilder(messageMap, builder);
+        c166: engine.replaceTagsBuilder(messageMap, builder);
     }
 
     private void handlePostHelper(HttpExchange httpExchange) {

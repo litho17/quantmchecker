@@ -3,6 +3,9 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
@@ -66,9 +69,9 @@ public class GabChat implements Templated {
     }
 
     public List<GabMessage> getMessages() {
-        LinkedList<GabMessage> messages = new  LinkedList();
-        for (String messageId : getMessageIds()) {
-            getMessagesHelper(messageId, messages);
+        @Inv("+<self>=+74-73") LinkedList<GabMessage> messages = new  LinkedList();
+        c73: for (String messageId : getMessageIds()) {
+            c74: getMessagesHelper(messageId, messages);
         }
         return messages;
     }
@@ -118,8 +121,9 @@ public class GabChat implements Templated {
         }
     }
 
-    private void getMessagesHelper(String messageId, LinkedList<GabMessage> messages) {
-        messages.add(db.getMessage(messageId));
+    @Summary({"messages", "1"})
+    private void getMessagesHelper(String messageId, @Inv("+<self>=+126") LinkedList<GabMessage> messages) {
+        c126: messages.add(db.getMessage(messageId));
     }
 
     private void getOthersHelper(StringBuilder sb) {

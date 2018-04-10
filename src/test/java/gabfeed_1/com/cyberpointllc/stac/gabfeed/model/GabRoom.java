@@ -4,6 +4,8 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
@@ -62,19 +64,19 @@ public class GabRoom implements Templated {
     }
 
     public List<GabThread> getThreads() {
-        LinkedList<GabThread> threads = new  LinkedList();
-        for (String threadId : getThreadIds()) {
-            threads.add(db.getThread(threadId));
+        @Inv("+<self>=+69-68") LinkedList<GabThread> threads = new  LinkedList();
+        c68: for (String threadId : getThreadIds()) {
+            c69: threads.add(db.getThread(threadId));
         }
         return threads;
     }
 
     @Override
     public Map<String, String> getTemplateMap() {
-        Map<String, String> templateMap = new  HashMap();
-        templateMap.put("roomId", id);
-        templateMap.put("roomName", StringEscapeUtils.escapeHtml4(name));
-        templateMap.put("roomDescription", StringEscapeUtils.escapeHtml4(description));
+        @Inv("+<self>=+77+78+79") Map<String, String> templateMap = new  HashMap();
+        c77: templateMap.put("roomId", id);
+        c78: templateMap.put("roomName", StringEscapeUtils.escapeHtml4(name));
+        c79: templateMap.put("roomDescription", StringEscapeUtils.escapeHtml4(description));
         return templateMap;
     }
 

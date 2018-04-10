@@ -4,6 +4,9 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
@@ -41,6 +44,7 @@ public class GabThread implements Templated {
         this.messageIds = messageIds;
     }
 
+    @Summary({"messageIds", "1"})
     public GabMessage addMessage(String contents, String authorId) {
         String messageId = getId() + "_" + messageIds.size();
         Date postDate = new  Date();
@@ -82,26 +86,26 @@ public class GabThread implements Templated {
     }
 
     public List<GabMessage> getMessages() {
-        LinkedList<GabMessage> messages = new  LinkedList();
-        for (String messageId : getMessageIds()) {
-            getMessagesHelper(messageId, messages);
+        @Inv("+<self>=+89-88") LinkedList<GabMessage> messages = new  LinkedList();
+        c88: for (String messageId : getMessageIds()) {
+            c89: getMessagesHelper(messageId, messages);
         }
         return messages;
     }
 
     @Override
     public Map<String, String> getTemplateMap() {
-        Map<String, String> templateMap = new  HashMap();
-        templateMap.put("threadId", id);
-        templateMap.put("threadName", StringEscapeUtils.escapeHtml4(name));
-        templateMap.put("threadAuthorId", authorId);
-        templateMap.put("threadLastUpdated", lastUpdated.toString());
+        @Inv("+<self>=+98+99+100+101+107") Map<String, String> templateMap = new  HashMap();
+        c98: templateMap.put("threadId", id);
+        c99: templateMap.put("threadName", StringEscapeUtils.escapeHtml4(name));
+        c100: templateMap.put("threadAuthorId", authorId);
+        c101: templateMap.put("threadLastUpdated", lastUpdated.toString());
         String displayName = authorId;
         GabUser user = db.getUser(authorId);
         if (user != null) {
             displayName = user.getDisplayName();
         }
-        templateMap.put("threadAuthorDisplayName", displayName);
+        c107: templateMap.put("threadAuthorDisplayName", displayName);
         return templateMap;
     }
 
@@ -125,7 +129,8 @@ public class GabThread implements Templated {
         }
     }
 
-    private void getMessagesHelper(String messageId, LinkedList<GabMessage> messages) {
-        messages.add(db.getMessage(messageId));
+    @Summary({"messages", "1"})
+    private void getMessagesHelper(String messageId, @Inv("+<self>=+133") LinkedList<GabMessage> messages) {
+        c133: messages.add(db.getMessage(messageId));
     }
 }

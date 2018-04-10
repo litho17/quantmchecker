@@ -19,9 +19,9 @@ public class PageUtils {
     }
 
     @Summary({"builder", "1"})
-    private static void formatLongStringHelper(String paragraph, StringBuilder builder) {
-        builder.append("<p>");
-        builder.append(paragraph);
-        builder.append("</p>");
+    private static void formatLongStringHelper(String paragraph, @Inv("+<self>=+23+24+25") StringBuilder builder) {
+        c23: builder.append("<p>");
+        c24: builder.append(paragraph);
+        c25: builder.append("</p>");
     }
 }

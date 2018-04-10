@@ -4,6 +4,8 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,7 @@ public class GabUser implements Templated {
         this.messageIds = messageIds;
     }
 
+    @Summary({"messageIds", "1"})
     public void addMessage(String messageId) {
         messageIds.add(messageId);
         db.addUser(this);
