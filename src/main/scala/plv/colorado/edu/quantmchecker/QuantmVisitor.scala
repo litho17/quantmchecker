@@ -749,18 +749,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param node a statement or expression
     * @return label of the enclosing statement of node, if any
     */
-  private def getLabel(node: Tree): Int = {
+  private def getLabel(node: Tree): String = {
     val enclosingLabel = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.LABELED_STATEMENT).asInstanceOf[LabeledStatementTree]
     if (enclosingLabel != null) {
-      val label = enclosingLabel.getLabel.toString
-      if (label.startsWith("c")) {
-        label.substring(1).toInt
-      } else {
-        issueError(node, BAD_LABEL)
-        0
-      }
+      enclosingLabel.getLabel.toString
     } else {
-      0
+      ""
     }
   }
 

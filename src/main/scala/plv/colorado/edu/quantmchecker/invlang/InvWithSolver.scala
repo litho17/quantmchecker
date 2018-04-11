@@ -13,7 +13,7 @@ object InvWithSolver {
   val z3 = new Z3Context("MODEL" -> true)
   val solver = z3.mkSolver
 
-  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: Int, node: Tree): Boolean = {
+  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: String, node: Tree): Boolean = {
     val result = isValidAfterUpdate(inv, remainder, self, label)
     if (DEBUG && !result)
       PrintStuff.printRedString("Invariant invalidated!", "label: " + label, "code: " + node)
@@ -29,7 +29,7 @@ object InvWithSolver {
     * @return if the invariant holds before visiting current line,
     *         returns if the invariant still holds after executing current line
     */
-  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: Int): Boolean = {
+  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: String): Boolean = {
     val startTime = System.nanoTime()
     val DEBUG = false
 
@@ -72,7 +72,7 @@ object InvWithSolver {
       }
     }
 
-    val (posLine: List[Int], negLine: List[Int]) = inv match {
+    val (posLine: List[String], negLine: List[String]) = inv match {
       case Invariant(_remainder, _self, _posLine, _negLine) => (_posLine, _negLine)
       case InvNoRem(_self, _posLine, _negLine) => (_posLine, _negLine)
       case _ => (List.empty, List.empty)

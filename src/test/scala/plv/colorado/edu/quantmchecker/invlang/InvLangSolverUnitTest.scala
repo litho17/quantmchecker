@@ -7,9 +7,9 @@ import org.scalatest.{FlatSpec, Matchers}
   */
 class InvLangSolverUnitTest extends FlatSpec with Matchers {
   val tests = List(
-    ("entrySet+<self>=+26-24", 0, 1, 24, false),
-    ("INPUTINPUT+<self>.results=+22+24+26+28+30-16", 0, 1, 55, false),
-    ("+<self>=+41", -1, 1, 41, true)
+    ("entrySet+<self>=+c26-c24", 0, 1, "c24", false),
+    ("INPUTINPUT+<self>.results=+c22+c24+c26+c28+c30-c16", 0, 1, "c55", false),
+    ("+<self>=+c41", -1, 1, "c41", true)
   )
 
   "Solver" should "success" in {

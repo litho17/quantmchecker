@@ -9,9 +9,9 @@ case class SelfAST(id: List[String]) extends InvLangAST
 
 case class RemainderAST(variable: String) extends InvLangAST
 
-case class LinecounterAST(number: Int) extends InvLangAST
+case class LineCounterAST(id: String) extends InvLangAST
 
-case class Invariant(remainder: String, self: List[String], posLine: List[Int], negLine: List[Int]) extends InvLangAST {
+case class Invariant(remainder: String, self: List[String], posLine: List[String], negLine: List[String]) extends InvLangAST {
   override def toString: String = {
     remainder + "+" +
       self.tail.foldLeft("<self>")((acc, e) => acc + "." + e) + "=" +
@@ -20,7 +20,7 @@ case class Invariant(remainder: String, self: List[String], posLine: List[Int], 
   }
 }
 
-case class InvNoRem(self: List[String], posLine: List[Int], negLine: List[Int]) extends InvLangAST {
+case class InvNoRem(self: List[String], posLine: List[String], negLine: List[String]) extends InvLangAST {
   override def toString: String = {
     "+" + self.tail.foldLeft("<self>")((acc, e) => acc + "." + e) + "=" +
       posLine.foldLeft("")((acc, p) => acc + "+" + p) +

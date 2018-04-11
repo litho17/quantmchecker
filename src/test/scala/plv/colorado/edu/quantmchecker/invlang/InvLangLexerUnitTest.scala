@@ -12,7 +12,7 @@ class InvLangLexerUnitTest extends FlatSpec with Matchers {
         print(test + ": ")
         val lexres = InvLangLexer(test)
         if (lexres.isLeft) assert(false)
-        else println(lexres.right)
+        else println(lexres.right.get)
     }
   }
 }

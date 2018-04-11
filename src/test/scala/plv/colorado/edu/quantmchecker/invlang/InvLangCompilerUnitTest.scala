@@ -9,10 +9,10 @@ class InvLangCompilerUnitTest extends FlatSpec with Matchers {
   "Parser" should "success" in {
     InvLangUnitTestCases.parserTests.foreach {
       test =>
-        print(test + ": ")
+        print(test + " => ")
         val compilerResults = InvLangCompiler(test)
         if (compilerResults.isLeft) assert(false)
-        else println(compilerResults.right)
+        else println(compilerResults.right.get)
     }
   }
 }

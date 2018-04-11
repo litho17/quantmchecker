@@ -23,9 +23,9 @@ object InvLangParser extends PackratParsers {
     accept("identifier", { case id@IDENTIFIER(name) => id })
   }
 
-  private def number: Parser[NUMBER] = {
+  /*private def number: Parser[NUMBER] = {
     accept("number", { case coeff@NUMBER(num) => coeff })
-  }
+  }*/
 
   def remainder: Parser[RemainderAST] = {
     identifier ^^ {
@@ -33,9 +33,9 @@ object InvLangParser extends PackratParsers {
     }
   }
 
-  def linecounter: Parser[LinecounterAST] = {
-    number ^^ {
-      case NUMBER(number) => LinecounterAST(number)
+  def linecounter: Parser[LineCounterAST] = {
+    identifier ^^ {
+      case IDENTIFIER(id) => LineCounterAST(id)
     }
   }
 
@@ -51,8 +51,8 @@ object InvLangParser extends PackratParsers {
     opt(remainder) ~ ADD ~ self ~ EQ ~ rep(ADD ~ linecounter) ~ rep(SUB ~ linecounter) ^^ {
       case remainder ~ self ~ _ ~ posLine ~ negLine =>
         remainder._1 match {
-          case Some(remainderAST) => Invariant(remainderAST.variable, self.id, posLine.map { x => x._2.number }, negLine.map { x => x._2.number })
-          case None => InvNoRem(self.id, posLine.map { x => x._2.number }, negLine.map { x => x._2.number })
+          case Some(remainderAST) => Invariant(remainderAST.variable, self.id, posLine.map { x => x._2.id }, negLine.map { x => x._2.id })
+          case None => InvNoRem(self.id, posLine.map { x => x._2.id }, negLine.map { x => x._2.id })
         }
     }
   }
