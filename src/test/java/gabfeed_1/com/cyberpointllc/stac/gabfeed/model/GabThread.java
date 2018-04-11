@@ -86,7 +86,7 @@ public class GabThread implements Templated {
     }
 
     public List<GabMessage> getMessages() {
-        @Inv("+<self>=+89-88") LinkedList<GabMessage> messages = new  LinkedList();
+        @Inv("+<self>=+c89-c88") LinkedList<GabMessage> messages = new  LinkedList();
         c88: for (String messageId : getMessageIds()) {
             c89: getMessagesHelper(messageId, messages);
         }
@@ -95,7 +95,7 @@ public class GabThread implements Templated {
 
     @Override
     public Map<String, String> getTemplateMap() {
-        @Inv("+<self>=+98+99+100+101+107") Map<String, String> templateMap = new  HashMap();
+        @Inv("+<self>=+c98+c99+c100+c101+c107") Map<String, String> templateMap = new  HashMap();
         c98: templateMap.put("threadId", id);
         c99: templateMap.put("threadName", StringEscapeUtils.escapeHtml4(name));
         c100: templateMap.put("threadAuthorId", authorId);
@@ -130,7 +130,7 @@ public class GabThread implements Templated {
     }
 
     @Summary({"messages", "1"})
-    private void getMessagesHelper(String messageId, @Inv("+<self>=+133") LinkedList<GabMessage> messages) {
+    private void getMessagesHelper(String messageId, @Inv("+<self>=+c133") LinkedList<GabMessage> messages) {
         c133: messages.add(db.getMessage(messageId));
     }
 }

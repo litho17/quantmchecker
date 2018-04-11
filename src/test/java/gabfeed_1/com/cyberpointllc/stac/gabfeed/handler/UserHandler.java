@@ -74,12 +74,12 @@ public class UserHandler extends GabHandler {
         // eventually we should do our own thing here
         // like just have a snippet of the content
         // and have a link to the original thread/post
-        @Inv("+<self>=+87+89") StringBuilder builder = new  StringBuilder();
+        @Inv("+<self>=+c87+c89") StringBuilder builder = new  StringBuilder();
         List<GabMessage> messages = user.getMessages();
         Sorter sorter = new  Sorter(GabMessage.DESCENDING_COMPARATOR);
         messages = sorter.sort(messages);
         for (GabMessage message : messages) {
-            @Inv("+<self>=+85") Map<String, String> messageMap = message.getTemplateMap();
+            @Inv("+<self>=+c85") Map<String, String> messageMap = message.getTemplateMap();
             // fix up the contents
             String content = messageMap.get("messageContents");
             c85: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
@@ -90,7 +90,7 @@ public class UserHandler extends GabHandler {
             }
         }
         String messageContents = builder.toString();
-        @Inv("+<self>=+94+95") Map<String, String> userMap = user.getTemplateMap();
+        @Inv("+<self>=+c94+c95") Map<String, String> userMap = user.getTemplateMap();
         c94: userMap.put("chats", getChatContent(user, webSession));
         c95: userMap.put("messages", messageContents);
         return userTemplate.getEngine().replaceTags(userMap);
@@ -107,7 +107,7 @@ public class UserHandler extends GabHandler {
         } else {
             getChatContentHelper1(links, user);
         }
-        @Inv("+<self>=+112") StringBuilder sb = new  StringBuilder();
+        @Inv("+<self>=+c112") StringBuilder sb = new  StringBuilder();
         if (!links.isEmpty()) {
             c112: getChatContentHelper2(sb, links);
         }
@@ -120,7 +120,7 @@ public class UserHandler extends GabHandler {
     }
 
     @Summary({"links", "1"})
-    private void getChatContentHelper(WebSession webSession, Collection<GabChat> gabChats, @Inv("gabChats+<self>=+125-124") List<Link> links) {
+    private void getChatContentHelper(WebSession webSession, Collection<GabChat> gabChats, @Inv("gabChats+<self>=+c125-c124") List<Link> links) {
         c124: for (GabChat gabChat : gabChats) {
             c125: links.add(new  Link(ChatHandler.getPathToChat(gabChat.getId()), "Chat with " + gabChat.getOthers(webSession.getUserId())));
         }

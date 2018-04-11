@@ -54,7 +54,7 @@ public class RoomHandler extends GabHandler {
         Sorter sorter = new  Sorter(GabThread.DESCENDING_COMPARATOR);
         threads = sorter.sort(threads);
         String threadContents = threadListTemplate.getEngine().replaceTags(threads);
-        @Inv("+<self>=+58") Map<String, String> roomMap = room.getTemplateMap();
+        @Inv("+<self>=+c58") Map<String, String> roomMap = room.getTemplateMap();
         c58: roomMap.put("threads", threadContents);
         return roomTemplate.getEngine().replaceTags(roomMap);
     }

@@ -62,7 +62,7 @@ public class ThreadHandler extends GabHandler {
             return AbstractHttpHandler.getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Room: " + threadId);
         }
         GabRoom room = thread.getRoom();
-        @Inv("+<self>=+66+67") List<Link> menuItems = new  LinkedList();
+        @Inv("+<self>=+c66+c67") List<Link> menuItems = new  LinkedList();
         c66: menuItems.add(new  Link(RoomHandler.getPathToRoom(room.getId()), room.getName()));
         c67: menuItems.add(new  Link(NewMessageHandler.getPathToPostToThread(thread.getId()), "New Message"));
         return getTemplateResponse(thread.getName(), getContents(thread, webSession), user, menuItems);
@@ -71,12 +71,12 @@ public class ThreadHandler extends GabHandler {
     private String getContents(GabThread thread, WebSession webSession) {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
-        @Inv("+<self>=+84+86") StringBuilder builder = new  StringBuilder();
+        @Inv("+<self>=+c84+c86") StringBuilder builder = new  StringBuilder();
         List<GabMessage> messages = thread.getMessages();
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         messages = sorter.sort(messages);
         for (GabMessage message : messages) {
-            @Inv("+<self>=+82") Map<String, String> messageMap = message.getTemplateMap();
+            @Inv("+<self>=+c82") Map<String, String> messageMap = message.getTemplateMap();
             // fix up the contents
             String content = messageMap.get("messageContents");
             c82: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
@@ -87,7 +87,7 @@ public class ThreadHandler extends GabHandler {
             }
         }
         String messageContents = builder.toString();
-        @Inv("+<self>=+91") Map<String, String> threadMap = thread.getTemplateMap();
+        @Inv("+<self>=+c91") Map<String, String> threadMap = thread.getTemplateMap();
         c91: threadMap.put("messages", messageContents);
         return threadTemplate.getEngine().replaceTags(threadMap);
     }

@@ -44,7 +44,7 @@ public class ChatSerializer extends Serializer<GabChat> {
         String id = in.readUTF();
         Date lastUpdated = DATE.deserialize(in, available);
         int numberOfUsers = in.readInt();
-        @Inv("i+<self>=+51-50") Set<String> userIds = new  LinkedHashSet(numberOfUsers);
+        @Inv("i+<self>=+c51-c50") Set<String> userIds = new  LinkedHashSet(numberOfUsers);
         for (int i = 0; i < numberOfUsers; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
@@ -54,7 +54,7 @@ public class ChatSerializer extends Serializer<GabChat> {
             }
         }
         int numberOfMessages = in.readInt();
-        @Inv("j+<self>=+62-61") List<String> messageIds = new  ArrayList(numberOfMessages);
+        @Inv("j+<self>=+c62-c61") List<String> messageIds = new  ArrayList(numberOfMessages);
         for (int j = 0; j < numberOfMessages; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; j < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
@@ -71,12 +71,12 @@ public class ChatSerializer extends Serializer<GabChat> {
     }
 
     @Summary({"userIds", "1"})
-    private void deserializeHelper(@Inv("+<self>=+75") Set<String> userIds, DataInput in) throws IOException {
+    private void deserializeHelper(@Inv("+<self>=+c75") Set<String> userIds, DataInput in) throws IOException {
         c75: userIds.add(in.readUTF());
     }
 
     @Summary({"messageIds", "1"})
-    private void deserializeHelper1(@Inv("+<self>=+79") List<String> messageIds, DataInput in) throws IOException {
+    private void deserializeHelper1(@Inv("+<self>=+c79") List<String> messageIds, DataInput in) throws IOException {
         c79: messageIds.add(in.readUTF());
     }
 }

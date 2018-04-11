@@ -43,13 +43,13 @@ public class GabDatabase {
 
     private final DB db;
 
-    private final Map<String, GabRoom> rooms;
+    private final @Inv("+<self>=+c104+c135+c231+c262+c344") Map<String, GabRoom> rooms;
 
     private final Map<String, GabThread> threads;
 
     private final Map<String, GabMessage> messages;
 
-    private final Map<String, GabUser> users;
+    private final @Inv("+<self>=+c253+c218") Map<String, GabUser> users;
 
     private final Map<String, GabIndexEntry> indices;
 
@@ -78,30 +78,30 @@ public class GabDatabase {
      * Users file format: username,display-name,password
      */
     private Map<String, GabUser> initializeUsers(String dataDir, String passwordKey) {
-        Map<String, GabUser> users = new  HashMap();
+        @Inv("+<self>=+c86") Map<String, GabUser> _users = new  HashMap();
         File usersFile = new  File(dataDir, "gabfeed_users.txt");
         try (BufferedReader br = new  BufferedReader(new  FileReader(usersFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                initializeUsersHelper(users, line, passwordKey);
+                c86: initializeUsersHelper(_users, line, passwordKey);
             }
         } catch (IOException e) {
             System.err.println("Error initializing users in database.");
             e.printStackTrace();
         }
-        return users;
+        return _users;
     }
 
     /**
      * Rooms file format: room-id, Room-name, Room-description
      */
     private Map<String, GabRoom> initializeRooms(String dataDir) {
-        Map<String, GabRoom> rooms = new  HashMap();
+        @Inv("br+<self>=+c104-c103") Map<String, GabRoom> rooms = new  HashMap();
         File roomsFile = new  File(dataDir, "gabfeed_rooms.txt");
         try (BufferedReader br = new  BufferedReader(new  FileReader(roomsFile))) {
             String line;
-            while ((line = br.readLine()) != null) {
-                initializeRoomsHelper(line, rooms);
+            c103: while ((line = br.readLine()) != null) {
+                c104: initializeRoomsHelper(line, rooms);
             }
         } catch (IOException e) {
             System.err.println("Error initializing rooms in database.");
@@ -132,7 +132,7 @@ public class GabDatabase {
                     String[] parts = line.split(",", 4);
                     GabRoom room = rooms.get(parts[1]);
                     thread = room.addThread(parts[2], parts[3]);
-                    addRoom(room);
+                    c135: addRoom(room);
                 } else if (thread != null) {
                     initializeThreadsHelper(users, thread, line);
                 }
@@ -214,7 +214,6 @@ public class GabDatabase {
     }
 
     @Summary({"users", "1"})
-    // @Inv("+<self>.users=+218")
     public void addUser(GabUser user) {
         c218: users.put(user.getId(), user);
     }
@@ -227,10 +226,12 @@ public class GabDatabase {
         addMessageHelper(message);
     }
 
+    @Summary({"rooms", "1"})
     public void addRoom(GabRoom room) {
-        addRoomHelper(room);
+        c231: addRoomHelper(room);
     }
 
+    @Summary({"chats", "1"})
     public void addChat(GabChat chat) {
         addChatHelper(chat);
     }
@@ -243,23 +244,24 @@ public class GabDatabase {
         indexMessage(message);
     }
 
-    @Summary({"users", "1"})
-    private void initializeUsersHelper(@Inv("+<self>=+253") Map<String, GabUser> users, String line, String passwordKey) throws IOException {
+    @Summary({"_users", "1"})
+    private void initializeUsersHelper(@Inv("+<self>=+c254") Map<String, GabUser> _users, String line, String passwordKey) throws IOException {
         String[] parts = line.split(",", 3);
         String id = parts[0];
         String displayName = parts[1];
         String password = parts[2];
         String encryptedPw = DESHelper.getEncryptedString(password, passwordKey);
         GabUser user = new  GabUser(this, id, displayName, encryptedPw);
-        addUser(user);
-        c253: users.put(parts[0], user);
+        c253: addUser(user);
+        c254: _users.put(parts[0], user);
     }
 
-    private void initializeRoomsHelper(String line, Map<String, GabRoom> rooms) throws IOException {
+    @Summary({"_rooms", "1"})
+    private void initializeRoomsHelper(String line, @Inv("+<self>=+c263") Map<String, GabRoom> _rooms) throws IOException {
         String[] parts = line.split(",", 3);
         GabRoom room = new  GabRoom(this, parts[0], parts[1], parts[2]);
-        addRoom(room);
-        rooms.put(parts[0], room);
+        c262: addRoom(room);
+        c263: _rooms.put(parts[0], room);
     }
 
     private void initializeThreadsHelper(Map<String, GabUser> users, GabThread thread, String line) throws IOException {
@@ -276,11 +278,11 @@ public class GabDatabase {
         try (BufferedReader br = new  BufferedReader(new  FileReader(file))) {
             String line;
             GabChat chat = null;
-            while ((line = br.readLine()) != null) {
+            c281: while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts[0].trim().equalsIgnoreCase("c")) {
                     // A new chat
-                    @Inv("i+<self>=+283-280") Set<String> userIds = new  HashSet();
+                    @Inv("i+<self>=+c283-c280") Set<String> userIds = new  HashSet();
                     c280: for (int i = 1; i < parts.length; i++) {
                         // Skip first value ('c')
                         if (users.containsKey(parts[i])) {
@@ -288,7 +290,7 @@ public class GabDatabase {
                         }
                     }
                     chat = new  GabChat(this, userIds);
-                    addChat(chat);
+                    c293: addChat(chat);
                 } else if (parts[0].trim().equalsIgnoreCase("m") && (chat != null)) {
                     // Add a message to the chat
                     if (users.containsKey(parts[1])) {
@@ -338,10 +340,12 @@ public class GabDatabase {
         indexMessage(message);
     }
 
+    @Summary({"rooms", "1"})
     private void addRoomHelper(GabRoom room) {
-        rooms.put(room.getId(), room);
+        c344: rooms.put(room.getId(), room);
     }
 
+    @Summary({"chats", "1"})
     private void addChatHelper(GabChat chat) {
         chats.put(chat.getId(), chat);
     }

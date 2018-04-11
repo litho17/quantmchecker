@@ -52,13 +52,13 @@ public class NewMessageHandler extends GabHandler {
     }
 
     @Override
-    protected HttpHandlerResponse handlePost(HttpExchange httpExchange, String threadId, @Inv("+<self>.messageIds=+67") GabUser user) {
+    protected HttpHandlerResponse handlePost(HttpExchange httpExchange, String threadId, @Inv("+<self>.messageIds=+c67") GabUser user) {
         String query = httpExchange.getRequestURI().getQuery();
         if (!StringUtils.isBlank(query) && query.equals("suppressTimestamp=true")) {
             WebSession webSession = getWebSessionService().getSession(httpExchange);
             webSession.setProperty("suppressTimestamp", "true");
         }
-        @Inv("+<self>.messageIds=+66") GabThread thread = getDb().getThread(threadId);
+        @Inv("+<self>.messageIds=+c66") GabThread thread = getDb().getThread(threadId);
         if (thread == null) {
             return getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Thread: " + threadId);
         }

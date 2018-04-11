@@ -59,7 +59,7 @@ public class GabMessage implements Templated {
 
     @Override
     public Map<String, String> getTemplateMap() {
-        @Inv("+<self>=+63+64+65+66+72+73") Map<String, String> templateMap = new  HashMap();
+        @Inv("+<self>=+c63+c64+c65+c66+c72+c73") Map<String, String> templateMap = new  HashMap();
         c63: templateMap.put("messageId", id);
         c64: templateMap.put("messageContents", StringEscapeUtils.escapeHtml4(contents));
         c65: templateMap.put("messageAuthorId", authorId);

@@ -11,7 +11,7 @@ public class PageUtils {
         String widthString = webSession.getProperty(WidthHandler.PROPERTY_NAME, "80");
         int width = Integer.parseInt(widthString);
         LineBreak lineBreak = new  LineBreak(width);
-        @Inv("+<self>=+15-14") StringBuilder builder = new  StringBuilder();
+        @Inv("+<self>=+c15-c14") StringBuilder builder = new  StringBuilder();
         c14: for (String paragraph : lineBreak.breakParagraphs(content, "<br/>")) {
             c15: formatLongStringHelper(paragraph, builder);
         }
@@ -19,7 +19,7 @@ public class PageUtils {
     }
 
     @Summary({"builder", "1"})
-    private static void formatLongStringHelper(String paragraph, @Inv("+<self>=+23+24+25") StringBuilder builder) {
+    private static void formatLongStringHelper(String paragraph, @Inv("+<self>=+c23+c24+c25") StringBuilder builder) {
         c23: builder.append("<p>");
         c24: builder.append(paragraph);
         c25: builder.append("</p>");

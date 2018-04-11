@@ -81,7 +81,7 @@ public class SearchHandler extends GabHandler {
     private String getContents(GabIndexEntry gabIndexEntry, WebSession webSession, String specialContents) {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
-        @Inv("items+<self>=+91-90") StringBuilder builder = new  StringBuilder();
+        @Inv("items+<self>=+c91-c90") StringBuilder builder = new  StringBuilder();
         // get the items in the indexEntry and sort them by the number
         // of times the word appears in the item's associated message
         Sorter sorter = new  Sorter(GabIndexEntry.DESCENDING_COMPARATOR);
@@ -128,7 +128,7 @@ public class SearchHandler extends GabHandler {
     }
 
     private List<String> getDailyTerms() {
-        @Inv("reader+<self>=+135-134") List<String> terms = new  ArrayList<String>();
+        @Inv("reader+<self>=+c135-c134") List<String> terms = new  ArrayList<String>();
         try (BufferedReader reader = new  BufferedReader(new  FileReader(dataPath + File.separator + "special_terms.txt"))) {
             String term;
             c134: while ((term = reader.readLine()) != null) {
@@ -149,7 +149,7 @@ public class SearchHandler extends GabHandler {
             String line = "";
             String key = "";
             String val = "";
-            @Inv("reader+<self>=+156+169-153") Map<String, String> textInfo = new  TreeMap<String, String>();
+            @Inv("reader+<self>=+c156+c169-c153") Map<String, String> textInfo = new  TreeMap<String, String>();
             c153: while ((line = reader.readLine()) != null) {
                 if (line.contains("=")) {
                     if (key.length() != conditionObj0.getValue()) {
@@ -191,7 +191,7 @@ public class SearchHandler extends GabHandler {
     @Summary({"builder", "1"})
     private void getContentsHelper(boolean suppressTimestamp, WebSession webSession, GabIndexEntry.Item item, StringBuilder builder) {
         GabMessage message = getDb().getMessage(item.getMessageId());
-        @Inv("+<self>=+197") Map<String, String> messageMap = message.getTemplateMap();
+        @Inv("+<self>=+c197") Map<String, String> messageMap = message.getTemplateMap();
         String content = messageMap.get("messageContents");
         c197: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
         if (!suppressTimestamp) {

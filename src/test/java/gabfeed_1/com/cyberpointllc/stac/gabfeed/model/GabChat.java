@@ -69,7 +69,7 @@ public class GabChat implements Templated {
     }
 
     public List<GabMessage> getMessages() {
-        @Inv("+<self>=+74-73") LinkedList<GabMessage> messages = new  LinkedList();
+        @Inv("+<self>=+c74-c73") LinkedList<GabMessage> messages = new  LinkedList();
         c73: for (String messageId : getMessageIds()) {
             c74: getMessagesHelper(messageId, messages);
         }
@@ -122,7 +122,7 @@ public class GabChat implements Templated {
     }
 
     @Summary({"messages", "1"})
-    private void getMessagesHelper(String messageId, @Inv("+<self>=+126") LinkedList<GabMessage> messages) {
+    private void getMessagesHelper(String messageId, @Inv("+<self>=+c126") LinkedList<GabMessage> messages) {
         c126: messages.add(db.getMessage(messageId));
     }
 

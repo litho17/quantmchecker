@@ -25,6 +25,7 @@ class_files_location="target/scala-2.12/classes"
 cd $class_files_location
 src_dir="$pwd/$2" # relative path
 
+rm -rf output/
 mkdir output/
 
 # set -x

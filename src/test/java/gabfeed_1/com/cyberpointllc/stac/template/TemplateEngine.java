@@ -57,7 +57,7 @@ public class TemplateEngine {
      */
     public List<Pair<Integer, Integer>> findTags() {
         Matcher matcher = pattern.matcher(text);
-        @Inv("+<self>=+62") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
+        @Inv("+<self>=+c62") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
         while (matcher.find()) {
             c62: findTagsHelper(tagsList, matcher);
         }
@@ -89,7 +89,7 @@ public class TemplateEngine {
      *            The string builder to put the data in
      */
     @Summary({"sb", "1"})
-    public void replaceTagsBuilder(Map<String, String> dictionary, @Inv("+<self>=+93") StringBuilder sb) {
+    public void replaceTagsBuilder(Map<String, String> dictionary, @Inv("+<self>=+c93") StringBuilder sb) {
         c93: replaceTagsBuilderHelper(sb, dictionary);
     }
 
@@ -129,7 +129,7 @@ public class TemplateEngine {
     }
 
     @Summary({"sb", "1"})
-    private void replaceTagsBuilderHelper(@Inv("i+<self>=+145+149+155-141") StringBuilder sb, Map<String, String> dictionary) {
+    private void replaceTagsBuilderHelper(@Inv("i+<self>=+c145+c149+c155-c141") StringBuilder sb, Map<String, String> dictionary) {
         // keep track of where we are on the text string
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();

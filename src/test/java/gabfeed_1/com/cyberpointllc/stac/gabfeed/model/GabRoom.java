@@ -64,7 +64,7 @@ public class GabRoom implements Templated {
     }
 
     public List<GabThread> getThreads() {
-        @Inv("+<self>=+69-68") LinkedList<GabThread> threads = new  LinkedList();
+        @Inv("+<self>=+c69-c68") LinkedList<GabThread> threads = new  LinkedList();
         c68: for (String threadId : getThreadIds()) {
             c69: threads.add(db.getThread(threadId));
         }
@@ -73,7 +73,7 @@ public class GabRoom implements Templated {
 
     @Override
     public Map<String, String> getTemplateMap() {
-        @Inv("+<self>=+77+78+79") Map<String, String> templateMap = new  HashMap();
+        @Inv("+<self>=+c77+c78+c79") Map<String, String> templateMap = new  HashMap();
         c77: templateMap.put("roomId", id);
         c78: templateMap.put("roomName", StringEscapeUtils.escapeHtml4(name));
         c79: templateMap.put("roomDescription", StringEscapeUtils.escapeHtml4(description));

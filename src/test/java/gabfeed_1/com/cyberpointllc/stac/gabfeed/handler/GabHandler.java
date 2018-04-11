@@ -63,7 +63,7 @@ public abstract class GabHandler extends AbstractHttpHandler {
         List<Link> finalMenuItems = getLeftMenuItems();
         finalMenuItems.addAll(menuItems);
         finalMenuItems.addAll(getRightMenuItems());
-        @Inv("+<self>=+67+68+69") Map<String, String> templateMap = user.getTemplateMap();
+        @Inv("+<self>=+c67+c68+c69") Map<String, String> templateMap = user.getTemplateMap();
         c67: templateMap.put("contents", contents);
         c68: templateMap.put("title", title);
         c69: templateMap.put("main_menu", menuTemplate.getEngine().replaceTags(finalMenuItems));
@@ -79,13 +79,13 @@ public abstract class GabHandler extends AbstractHttpHandler {
     }
 
     protected List<Link> getLeftMenuItems() {
-        @Inv("+<self>=+83") LinkedList<Link> items = new  LinkedList();
+        @Inv("+<self>=+c83") LinkedList<Link> items = new  LinkedList();
         c83: items.add(new  Link(RoomsHandler.PATH, RoomsHandler.TITLE));
         return items;
     }
 
     protected List<Link> getRightMenuItems() {
-        @Inv("+<self>=+89+90") LinkedList<Link> items = new  LinkedList();
+        @Inv("+<self>=+c89+c90") LinkedList<Link> items = new  LinkedList();
         c89: items.add(new  Link(SearchHandler.PATH, SearchHandler.TITLE));
         c90: items.add(new  Link(LogoutHandler.PATH, LogoutHandler.TITLE));
         return items;

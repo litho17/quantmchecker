@@ -45,7 +45,7 @@ public class NewThreadHandler extends GabHandler {
     }
 
     private String getContents(GabRoom room) {
-        @Inv("+<self>=+49") Map<String, String> threadMap = room.getTemplateMap();
+        @Inv("+<self>=+c49") Map<String, String> threadMap = room.getTemplateMap();
         c49: threadMap.put("path", getPath());
         return newThreadTemplate.getEngine().replaceTags(threadMap);
     }
