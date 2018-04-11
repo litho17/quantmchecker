@@ -55,12 +55,332 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // println("Visting method: ", root.getSourceFile.getName, classTree.getSimpleName, member.getName)
         val localInvariants = gatherLocalInvariants(member)
         if (DEBUG_COLLECT_INV && localInvariants.nonEmpty) println(localInvariants)
-        isInvariantPreservedInMethod(member, fieldInvariants, localInvariants)
       case member: VariableTree => // Handled by gatherClassFieldInvariants()
       case member: ClassTree => // Ignore inner classes for the moment
       case x@_ => println("Unhandled Tree kind in processClassTree(): ", x, x.getKind)
     }
     super.processClassTree(classTree)
+  }
+
+  /**
+    * 1. Collect all invariants (from method bodies as well as from class fields)
+    * 2. Collect all method summaries
+    * 3. For every statement, check if any related invariant is preserved
+    * 4. For every loop, check if any related invariant is preserved throughout the loop body
+    * 5. For every branch, check if any related invariant is preserved throughout the branch body
+    *
+    * TO DO
+    * 1. Override the methods that currently report type failures --- which is isSubType()
+    * 2. Write annotations with ScalaZ3 and read them
+    * 3. Connect upper bounds with callbacks' arguments via: method's return value is same size as method's argument
+    * 4. INPUTINPUT is a special variable that represents input. On the line that decrements INPUTINPUT, do not report error even if not type check, because the decrement is meant to be non-deterministic.
+    * 5. Annotate class fields
+    */
+  // val methodAnnotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
+
+  override def visitEnhancedForLoop(node: EnhancedForLoopTree, p: Void): Void = {
+    val (fieldInvs, localInvs, updatedLabel) = getPrepared(node)
+    /**
+      * Make sure ???
+      */
+    (fieldInvs ++ localInvs).forall {
+      invariant =>
+        invariant match {
+          case Invariant(remainder, self, posLine, negLine) =>
+            node.getExpression match {
+              /**
+                * This extension (handling EnhancedForLoopTree) makes the implementation context sensitive:
+                * We have to know the expression is under which context, in order to apply proper updates
+                */
+              case expr: IdentifierTree =>
+                if (remainder == expr.getName.toString) {
+                  InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
+                } else {
+                  ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
+                  true
+                }
+              case expr: MethodInvocationTree =>
+                expr.getMethodSelect match {
+                  case mst: MemberSelectTree =>
+                    // Currently only support entrySet() in the header
+                    if (mst.getIdentifier.toString == "entrySet") {
+                      if (mst.getExpression.toString == remainder) {
+                        InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
+                      } else {
+                        ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
+                        true
+                      }
+                    } else {
+                      issueWarning(node, "[EnhancedForLoopTree] Not invoking entrySet is not " + NOT_SUPPORTED)
+                      true
+                    }
+                  case _ => issueWarning(node, "[EnhancedForLoopTree] " + NOT_SUPPORTED); true
+                }
+              case _ => issueWarning(node, "[EnhancedForLoopTree] " + NOT_SUPPORTED); true
+            }
+          case InvNoRem(_, _, _) => true
+          case x@_ => issueWarning(node, "[EnhancedForLoopTree] Malformed invariant: " + x); true
+        }
+    }
+    super.visitEnhancedForLoop(node, p)
+  }
+
+  override def visitAssignment(node: AssignmentTree, p: Void): Void = {
+    val (fieldInvs, localInvs, updatedLabel) = getPrepared(node)
+    /**
+      * Steps:
+      * 1. Check subtyping
+      * 2. Check if there is any destructive update (reassignment)
+      */
+    val lhs = node.getVariable
+    val rhs = node.getExpression
+    // Check subtyping???
+
+
+    /**
+      * TODO: Make sure to annotate every list in the program
+      * 1. Find declaration of lhs
+      * 2. See if lhs is annotated
+      * 3. If rhs is NewClassTree and lhs is not annotated, report error
+      */
+    val isAnnotated = atypeFactory.getAnnotatedTypeLhs(lhs)
+
+    /**
+      * Check if there is any destructive update (reassignment) that will invalidate an invariant
+      * TODO: Currently assignment cannot invalidate any invariant
+      * because we do not support changing either <remainder> or <self>
+      * via any form of assignment
+      */
+
+    /**
+      * TODO: Assume that any two variables won't have a same name. Otherwise,
+      * if variable a is used in an invariant in one scope, but not used
+      * in an invariant in the other scope, type check will fail.
+      */
+    (fieldInvs ++ localInvs).foreach {
+      invariant =>
+        val (remainder, self) = invariant match {
+          case Invariant(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
+          case InvNoRem(self, posLine, negLine) => (None, Some(self))
+          case _ => issueWarning(node, "[AssignmentTree] " + NOT_SUPPORTED); (None, None)
+        }
+
+        /**
+          *
+          * @param name name of an expression
+          * @return if the expression is same as self or remainder
+          */
+        def isReassign(name: String, self: String, remainder: Option[String]): Boolean = {
+          val inConstructor = isInConstructor(node)
+          if (name == self && !inConstructor) {
+            // Don't issue error if in class constructor
+            issueError(node, "[AssignmentTree][Destructive update] Reassigning <self> is " + NOT_SUPPORTED)
+            false
+          } else {
+            remainder match {
+              case Some(remainder) =>
+                if (name == remainder && !inConstructor) {
+                  // We require that remainder is always defined in current method scope
+                  issueError(node, "[AssignmentTree][Destructive update] Reassigning remainder is " + NOT_SUPPORTED)
+                  false
+                } else {
+                  true
+                }
+              case None => true
+            }
+          }
+        }
+
+        val lhsPreserveInv = self match {
+          case Some(self) =>
+            val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
+            lhs match {
+              case i: IdentifierTree => isReassign(i.getName.toString, _self, remainder)
+              case s: MemberSelectTree =>
+                if (s.toString == _self) {
+                  issueError(node, "[AssignmentTree][Destructive update] Reassigning <self> is " + NOT_SUPPORTED)
+                } else if (s.getExpression.toString == "this") {
+                  isReassign(s.getIdentifier.toString, self.tail.foldLeft("")((acc, e) => acc + "." + e), remainder)
+                }
+              case _ => // TODO: Otherwise, we assume lhs of assignment is side effect free
+            }
+          case None =>
+        }
+    }
+    super.visitAssignment(node, p)
+  }
+
+  override def visitCompoundAssignment(node: CompoundAssignmentTree, p: Void): Void = {
+    val (fieldInvs, localInvs, updatedLabel) = getPrepared(node)
+    // This expression could only change remainder
+    (fieldInvs ++ localInvs).foreach {
+      invariant =>
+        invariant match {
+          case Invariant(remainder, self, posLine, negLine) =>
+            if (remainder == node.getVariable.toString) {
+              node.getExpression match {
+                case rhs: LiteralTree =>
+                  rhs.getKind match {
+                    case Tree.Kind.INT_LITERAL =>
+                      val increment = rhs.getValue.asInstanceOf[Integer]
+                      node.getKind match {
+                        case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
+                          InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, node)
+                        case _ =>
+                          issueWarning(node, "[CompoundAssignmentTree] Operator " + node.getKind + " is " + NOT_SUPPORTED)
+                          // All other compound assignments are not supported
+                      }
+                    case _ => issueWarning(node, "[CompoundAssignmentTree] Other literal kind is " + NOT_SUPPORTED); true
+                  }
+                case _ => issueWarning(node, "[CompoundAssignmentTree] Non-literal is " + NOT_SUPPORTED); true
+              }
+            } else {
+              ignoreWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
+            }
+          case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant is " + NOT_SUPPORTED); true
+        }
+    }
+    super.visitCompoundAssignment(node, p)
+  }
+
+  override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
+    val (fieldInvs, localInvs, updatedLabel) = getPrepared(node)
+    // Check if side effects will invalidate invariants
+    // TODO: o.f1().f2().f3(): methodinvocation (a.f().g()) -> memberselect (a.f())
+    val callee: ExecutableElement = getMethodElementFromInvocation(node)
+    val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(node)
+    val receiver: ExpressionTree = TreeUtils.getReceiverTree(node)
+    // atypeFactory.declarationFromElement(callee)
+
+    (fieldInvs ++ localInvs).foreach {
+      invariant =>
+        val (remainder: String, self: List[String]) = invariant match {
+          case Invariant(remainder, self, _, _) => (remainder, self)
+          case InvNoRem(self, _, _) => ("", self)
+          case _ => ("", List.empty)
+        }
+        val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
+        val _selfCall = _self + "." + callee.getSimpleName // E.g. <self>.f.g.add(1)
+
+        val summaries = gatherMethodSummaries(node)
+        if (summaries.nonEmpty) {
+          summaries.foreach {
+            summary =>
+              val increment: Integer = summary match {
+                case MethodSummaryI(_, i) => i
+                case MethodSummaryV(_, _) => 1
+                // TODO: Not yet support describing changes via variable name in a method summary
+                case _ => 0
+              }
+
+              /**
+                * Method summary could either change <remainder> or <self>
+                */
+              val whichVar = MethodSumUtils.whichVar(summary, callee)
+              if (whichVar.isLeft) { // Local variable is changed, according to method summary
+                val argIdx = whichVar.left.get
+                node.getArguments.get(argIdx) match {
+                  case arg: IdentifierTree =>
+                    if (arg.toString == remainder) { // Summary says: update remainder
+                      InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, node)
+                    } else if (arg.toString == _self) { // Summary says: update self
+                      InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, node)
+                    } else {
+                      ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
+                        "to a local variable, but that local variable is neither remainder or self " + (arg, remainder, self))
+                    }
+                  case _ =>
+                    issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
+                }
+              } else { // Field of the receiver should be updated, according to method summary
+                findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
+                  case Some(field) =>
+                    // If receiver is self and summary updates self's field
+                    val receiverName = if (receiver == null) "" else receiver.toString + "."
+                    val updatedFldName = receiverName + field.toString
+                    if (updatedFldName == _self) {
+                      InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, node)
+                    } else {
+                      ignoreWarning(node, "Summary specifies a change in a field that is " +
+                        "not described by invariant. " + (updatedFldName, _self, summary, invariant))
+                    }
+                  case None =>
+                    issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
+                }
+              }
+          }
+        } else {
+          // No method summaries found
+          // Translate library methods (e.g. append, add) into numerical updates
+          if (receiverTyp == null) {
+            // Might be invoking a super class
+          } else {
+            val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
+            if (isColAdd) {
+              node.getMethodSelect match {
+                case mst: MemberSelectTree =>
+                  if (mst.getExpression.toString == remainder) {
+                    // Remainder is changed [Although we don't expect this to happen]
+                    // InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber, expr)
+                    issueWarning(node, "We don't expect Collection ADD to change remainder")
+                  } else if (mst.toString == _selfCall) {
+                    // Self is changed, e.g. <self>.f.g.add(1)
+                    InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, node)
+                  } else {
+                    // This update does not influence the current invariant
+                    ignoreWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
+                  }
+                case mst: IdentifierTree => // A member method is invoked, but it does not have a summary
+                case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
+              }
+            } else {
+              // TODO: might update remainder
+              // A method is invoked, but it does not have a summary and is not Collection ADD
+            }
+          }
+        }
+    }
+    super.visitMethodInvocation(node, p)
+  }
+
+  override def visitNewArray(node: NewArrayTree, p: Void): Void = {
+    // if (node.getInitializers != null) // Initializers are not supported
+      // issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED)
+    super.visitNewArray(node, p)
+  }
+
+  override def visitUnary(node: UnaryTree, p: Void): Void = {
+    val (fieldInvs, localInvs, updatedLabel) = getPrepared(node)
+    (fieldInvs ++ localInvs).forall {
+      invariant =>
+        invariant match {
+          case Invariant(remainder, self, posLine, negLine) =>
+            // This expression could only change remainder
+            if (remainder == node.getExpression.toString) {
+              node.getKind match {
+                case Tree.Kind.POSTFIX_INCREMENT
+                     | Tree.Kind.PREFIX_INCREMENT
+                     | Tree.Kind.POSTFIX_DECREMENT
+                     | Tree.Kind.PREFIX_DECREMENT =>
+                  InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
+                case _ => issueWarning(node, "[UnaryTree] Unknown unary operator is " + NOT_SUPPORTED); true
+              }
+            } else {
+              true
+            }
+          case _ => ignoreWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
+        }
+    }
+    super.visitUnary(node, p)
+  }
+
+  private def getPrepared(node: Tree): (Set[InvLangAST], Set[InvLangAST], String) = {
+    val enclosingClass = getEnclosingClass(node)
+    val enclosingMethod = getEnclosingMethod(node)
+    val fieldInvs = gatherClassFieldInvariants(enclosingClass)
+    val localInvs = gatherLocalInvariants(enclosingMethod)
+    val updatedLabel = getLabel(node)
+    (fieldInvs.keySet, localInvs.keySet, updatedLabel)
   }
 
   /**
@@ -117,459 +437,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       new HashMap[InvLangAST, Tree]
     }
   }
-
-  /**
-    *
-    * @param node     a method
-    * @param fieldInv class field invariants: a map from a line number to an invariant
-    *                 that might be changed by that line
-    * @param localInv local variable invariants: a map from a line number to an invariant
-    *                 that might be changed by that line
-    * @return if the method violates any invariant
-    */
-  private def isInvariantPreservedInMethod(node: MethodTree,
-                                           fieldInv: HashMap[InvLangAST, Tree],
-                                           localInv: HashMap[InvLangAST, Tree]): Boolean = {
-    if (node.getBody != null) {
-      /**
-        * 1. Collect all invariants (from method bodies as well as from class fields)
-        * 2. Collect all method summaries
-        * 3. For every statement, check if any related invariant is preserved
-        * 4. For every loop, check if any related invariant is preserved throughout the loop body
-        * 5. For every branch, check if any related invariant is preserved throughout the branch body
-        *
-        * TO DO
-        * 1. Override the methods that currently report type failures --- which is isSubType()
-        * 2. Write annotations with ScalaZ3 and read them
-        * 3. Connect upper bounds with callbacks' arguments via: method's return value is same size as method's argument
-        * 4. INPUTINPUT is a special variable that represents input. On the line that decrements INPUTINPUT, do not report error even if not type check, because the decrement is meant to be non-deterministic.
-        * 5. Annotate class fields
-        */
-      // val methodAnnotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
-      node.getBody.getStatements.asScala.forall { stmt => isInvariantPreservedInStmt(stmt, fieldInv, localInv) }
-    } else {
-      true
-    }
-  }
-
-  /**
-    *
-    * @param node     a statement
-    * @param fieldInv class field invariants: a map from a line number to an invariant
-    *                 that might be changed by that line
-    * @param localInv local variable invariants: a map from a line number to an invariant
-    *                 that might be changed by that line
-    * @return if the statement violates any invariant
-    */
-  private def isInvariantPreservedInStmt(node: StatementTree,
-                                         fieldInv: HashMap[InvLangAST, Tree],
-                                         localInv: HashMap[InvLangAST, Tree]): Boolean = {
-    val updatedLabel = getLabel(node)
-    node match {
-      case stmt: BlockTree => stmt.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv))
-      case stmt: DoWhileLoopTree =>
-        val head = isInvariantPreservedInExpr(stmt.getCondition, fieldInv, localInv)
-        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
-        head && body
-      case stmt: EnhancedForLoopTree =>
-
-        /**
-          * Make sure ???
-          */
-        val head = getRelevantInv(node, fieldInv, localInv).forall {
-          invariant =>
-            invariant match {
-              case Invariant(remainder, self, posLine, negLine) =>
-                stmt.getExpression match {
-                  /**
-                    * This extension (handling EnhancedForLoopTree) makes the implementation context sensitive:
-                    * We have to know the expression is under which context, in order to apply proper updates
-                    */
-                  case expr: IdentifierTree =>
-                    if (remainder == expr.getName.toString) {
-                      InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
-                    } else {
-                      ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
-                      true
-                    }
-                  case expr: MethodInvocationTree =>
-                    expr.getMethodSelect match {
-                      case mst: MemberSelectTree =>
-                        // Currently only support entrySet() in the header
-                        if (mst.getIdentifier.toString == "entrySet") {
-                          if (mst.getExpression.toString == remainder) {
-                            InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
-                          } else {
-                            ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is not " + NOT_SUPPORTED)
-                            true
-                          }
-                        } else {
-                          issueWarning(node, "[EnhancedForLoopTree] Not invoking entrySet is not " + NOT_SUPPORTED)
-                          true
-                        }
-                      case _ => issueWarning(node, "[EnhancedForLoopTree] " + NOT_SUPPORTED); true
-                    }
-                  case _ => issueWarning(node, "[EnhancedForLoopTree] " + NOT_SUPPORTED); true
-                }
-              case InvNoRem(_, _, _) => true
-              case x@_ => issueWarning(node, "[EnhancedForLoopTree] Malformed invariant: " + x); true
-            }
-        }
-        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
-        head && body
-      case stmt: ForLoopTree =>
-        val init = stmt.getInitializer.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv))
-        val cond = isInvariantPreservedInExpr(stmt.getCondition, fieldInv, localInv)
-        val update = stmt.getUpdate.asScala.forall(s => isInvariantPreservedInExpr(s.getExpression, fieldInv, localInv))
-        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
-        init && cond && update && body
-      case stmt: LabeledStatementTree => isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
-      case stmt: IfTree =>
-        val thenBranch = isInvariantPreservedInStmt(stmt.getThenStatement, fieldInv, localInv)
-        val elseBranch = isInvariantPreservedInStmt(stmt.getElseStatement, fieldInv, localInv)
-        thenBranch && elseBranch
-      case stmt: ExpressionStatementTree => // Base case
-        isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
-      case stmt: VariableTree => true // Variable declaration shouldn't change invariants
-      case stmt: ReturnTree => // Base case
-        if (stmt.getExpression != null)
-          isInvariantPreservedInExpr(stmt.getExpression, fieldInv, localInv)
-        else
-          true
-      case stmt: SwitchTree =>
-        stmt.getCases.asScala.forall(caseTree => caseTree.getStatements.asScala.forall(s => isInvariantPreservedInStmt(s, fieldInv, localInv)))
-      case stmt: WhileLoopTree =>
-        val head = isInvariantPreservedInExpr(stmt.getCondition, fieldInv, localInv)
-        val body = isInvariantPreservedInStmt(stmt.getStatement, fieldInv, localInv)
-        head && body
-      case stmt: SynchronizedTree => isInvariantPreservedInStmt(stmt.getBlock, fieldInv, localInv)
-      case stmt: TryTree =>
-        val tryBlock = isInvariantPreservedInStmt(stmt.getBlock, fieldInv, localInv)
-        val finallyBlock = isInvariantPreservedInStmt(stmt.getFinallyBlock, fieldInv, localInv)
-        tryBlock && finallyBlock
-      case _ => true // We assert that any other statement won't change invariant
-    }
-  }
-
-  private def isInvariantPreservedInExpr(node: ExpressionTree,
-                                         fieldInv: HashMap[InvLangAST, Tree],
-                                         localInv: HashMap[InvLangAST, Tree]): Boolean = {
-    // TODO: We assume that the change of remainder is always towards end
-    val updatedLabel = getLabel(node)
-    val success: Boolean = node match {
-      case expr: AnnotatedTypeTree =>
-        issueWarning(node, "[AnnotatedTypeTree] " + NOT_SUPPORTED)
-        true // Not supported
-      case expr: AnnotationTree =>
-        issueWarning(node, "[AnnotationTree] " + NOT_SUPPORTED)
-        true // Not supported
-      case expr: ArrayAccessTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
-      case expr: AssignmentTree =>
-
-        /**
-          * Steps:
-          * 1. Check subtyping
-          * 2. Check if there is any destructive update (reassignment)
-          */
-        val lhs = expr.getVariable
-        val rhs = expr.getExpression
-        // Check subtyping???
-
-
-        /**
-          * TODO: Make sure to annotate every list in the program
-          * 1. Find declaration of lhs
-          * 2. See if lhs is annotated
-          * 3. If rhs is NewClassTree and lhs is not annotated, report error
-          */
-        val isAnnotated = atypeFactory.getAnnotatedTypeLhs(lhs)
-
-        /**
-          * Check if there is any destructive update (reassignment) that will invalidate an invariant
-          * TODO: Currently assignment cannot invalidate any invariant
-          * because we do not support changing either <remainder> or <self>
-          * via any form of assignment
-          */
-        val rhsPreserveInv = isInvariantPreservedInExpr(rhs, fieldInv, localInv)
-
-        /**
-          * TODO: Assume that any two variables won't have a same name. Otherwise,
-          * if variable a is used in an invariant in one scope, but not used
-          * in an invariant in the other scope, type check will fail.
-          */
-        getRelevantInv(node, fieldInv, localInv).forall {
-          invariant =>
-            val (remainder, self) = invariant match {
-              case Invariant(remainder, self, posLine, negLine) => (Some(remainder), Some(self))
-              case InvNoRem(self, posLine, negLine) => (None, Some(self))
-              case _ => issueWarning(node, "[AssignmentTree] " + NOT_SUPPORTED); (None, None)
-            }
-
-            /**
-              *
-              * @param name name of an expression
-              * @return if the expression is same as self or remainder
-              */
-            def isReassign(name: String, self: String, remainder: Option[String]): Boolean = {
-              val inConstructor = isInConstructor(node)
-              if (name == self && !inConstructor) {
-                // Don't issue error if in class constructor
-                issueError(node, "[AssignmentTree][Destructive update] Reassigning <self> is " + NOT_SUPPORTED)
-                false
-              } else {
-                remainder match {
-                  case Some(remainder) =>
-                    if (name == remainder && !inConstructor) {
-                      // We require that remainder is always defined in current method scope
-                      issueError(node, "[AssignmentTree][Destructive update] Reassigning remainder is " + NOT_SUPPORTED)
-                      false
-                    } else {
-                      true
-                    }
-                  case None => true
-                }
-              }
-            }
-
-            val lhsPreserveInv = self match {
-              case Some(self) =>
-                val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
-                lhs match {
-                  case i: IdentifierTree => isReassign(i.getName.toString, _self, remainder)
-                  case s: MemberSelectTree =>
-                    if (s.toString == _self) {
-                      issueError(node, "[AssignmentTree][Destructive update] Reassigning <self> is " + NOT_SUPPORTED)
-                      false
-                    } else if (s.getExpression.toString == "this") {
-                      isReassign(s.getIdentifier.toString, self.tail.foldLeft("")((acc, e) => acc + "." + e), remainder)
-                    } else {
-                      true
-                    }
-                  case _ => true // TODO: Otherwise, we assume lhs of assignment is side effect free
-                }
-              case None => true
-            }
-            lhsPreserveInv && rhsPreserveInv
-        }
-      case expr: BinaryTree => // Every node of a binary tree should preserve the invariant
-        val left = isInvariantPreservedInExpr(expr.getLeftOperand, fieldInv, localInv)
-        val right = isInvariantPreservedInExpr(expr.getRightOperand, fieldInv, localInv)
-        left && right
-      case expr: CompoundAssignmentTree =>
-        // This expression could only change remainder
-        getRelevantInv(node, fieldInv, localInv).forall {
-          invariant =>
-            invariant match {
-              case Invariant(remainder, self, posLine, negLine) =>
-                if (remainder == expr.getVariable.toString) {
-                  expr.getExpression match {
-                    case rhs: LiteralTree =>
-                      rhs.getKind match {
-                        case Tree.Kind.INT_LITERAL =>
-                          val increment = rhs.getValue.asInstanceOf[Integer]
-                          expr.getKind match {
-                            case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
-                              InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, expr)
-                            case _ =>
-                              issueWarning(node, "[CompoundAssignmentTree] Operator " + expr.getKind + " is " + NOT_SUPPORTED)
-                              true // All other compound assignments are not supported
-                          }
-                        case _ => issueWarning(node, "[CompoundAssignmentTree] Other literal kind is " + NOT_SUPPORTED); true
-                      }
-                    case _ => issueWarning(node, "[CompoundAssignmentTree] Non-literal is " + NOT_SUPPORTED); true
-                  }
-                } else {
-                  ignoreWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
-                  true
-                }
-              case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant is " + NOT_SUPPORTED); true
-            }
-        }
-      case expr: ConditionalExpressionTree =>
-        val cond = isInvariantPreservedInExpr(expr.getCondition, fieldInv, localInv)
-        val t = isInvariantPreservedInExpr(expr.getTrueExpression, fieldInv, localInv)
-        val f = isInvariantPreservedInExpr(expr.getFalseExpression, fieldInv, localInv)
-        cond && t && f
-      case expr: ErroneousTree => true // Nothing happens
-      case expr: IdentifierTree => true // Nothing happens
-      case expr: InstanceOfTree => true // Nothing happens
-      case expr: LambdaExpressionTree => // Not supported
-        issueWarning(node, "[LambdaExpressionTree] " + NOT_SUPPORTED); true
-      case expr: LiteralTree => true // Nothing happens
-      case expr: MemberReferenceTree => // Not supported
-        issueWarning(node, "[MemberReferenceTree] " + NOT_SUPPORTED); true
-      case expr: MemberSelectTree =>
-        ignoreWarning(node, "[MemberSelectTree] Should not reach this case")
-        true
-      case expr: MethodInvocationTree => // Check if side effects will invalidate invariants
-        // TODO: o.f1().f2().f3()
-        val callee: ExecutableElement = getMethodElementFromInvocation(expr)
-        val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(expr)
-        val receiver: ExpressionTree = TreeUtils.getReceiverTree(expr)
-        // atypeFactory.declarationFromElement(callee)
-
-        getRelevantInv(node, fieldInv, localInv).forall {
-          invariant =>
-            val (remainder: String, self: List[String]) = invariant match {
-              case Invariant(remainder, self, _, _) => (remainder, self)
-              case InvNoRem(self, _, _) => ("", self)
-              case _ => ("", List.empty)
-            }
-            val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
-            val _selfCall = _self + "." + callee.getSimpleName // E.g. <self>.f.g.add(1)
-
-            val summaries = gatherMethodSummaries(expr)
-            if (summaries.nonEmpty) {
-              summaries.forall {
-                summary =>
-                  val increment: Integer = summary match {
-                    case MethodSummaryI(_, i) => i
-                    case MethodSummaryV(_, _) => 1
-                    // TODO: Not yet support describing changes via variable name in a method summary
-                    case _ => 0
-                  }
-
-                  /**
-                    * Method summary could either change <remainder> or <self>
-                    */
-                  val whichVar = MethodSumUtils.whichVar(summary, callee)
-                  if (whichVar.isLeft) { // Local variable is changed, according to method summary
-                    val argIdx = whichVar.left.get
-                    expr.getArguments.get(argIdx) match {
-                      case arg: IdentifierTree =>
-                        if (arg.toString == remainder) { // Summary says: update remainder
-                          InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, expr)
-                        } else if (arg.toString == _self) { // Summary says: update self
-                          InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
-                        } else {
-                          ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
-                            "to a local variable, but that local variable is neither remainder or self " + (arg, remainder, self))
-                          true
-                        }
-                      case _ =>
-                        issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
-                        true
-                    }
-                  } else { // Field of the receiver should be updated, according to method summary
-                    findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
-                      case Some(field) =>
-                        // If receiver is self and summary updates self's field
-                        val receiverName = if (receiver == null) "" else receiver.toString + "."
-                        val updatedFldName = receiverName + field.toString
-                        if (updatedFldName == _self) {
-                          InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
-                        } else {
-                          ignoreWarning(node, "Summary specifies a change in a field that is " +
-                            "not described by invariant. " + (updatedFldName, _self, summary, invariant))
-                          true
-                        }
-                      case None =>
-                        issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
-                        true
-                    }
-                  }
-              }
-            } else {
-              // No method summaries found
-              // Translate library methods (e.g. append, add) into numerical updates
-              if (receiverTyp == null) {
-                // Might be invoking a super class
-                return true
-              }
-              val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
-              if (isColAdd) {
-                expr.getMethodSelect match {
-                  case mst: MemberSelectTree =>
-                    if (mst.getExpression.toString == remainder) {
-                      // Remainder is changed [Although we don't expect this to happen]
-                      // InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber, expr)
-                      issueWarning(node, "We don't expect Collection ADD to change remainder")
-                      true
-                    } else if (mst.toString == _selfCall) {
-                      // Self is changed, e.g. <self>.f.g.add(1)
-                      InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, expr)
-                    } else {
-                      // This update does not influence the current invariant
-                      ignoreWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
-                      true
-                    }
-                  case mst: IdentifierTree =>
-                    true // A member method is invoked, but it does not have a summary
-                  case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
-                }
-              } else {
-                // TODO: might update remainder
-                true // A method is invoked, but it does not have a summary and is not Collection ADD
-              }
-            }
-        }
-      case expr: NewArrayTree =>
-        if (expr.getInitializers != null) // Initializers are not supported
-          issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED)
-        expr.getDimensions.asScala.forall(e => isInvariantPreservedInExpr(e, fieldInv, localInv))
-        true
-      case expr: NewClassTree =>
-        expr.getArguments.asScala.forall(e => isInvariantPreservedInExpr(e, fieldInv, localInv)) &&
-          (if (expr.getEnclosingExpression != null)
-            isInvariantPreservedInExpr(expr.getEnclosingExpression, fieldInv, localInv)
-          else
-            true)
-      case expr: ParenthesizedTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
-      case expr: TypeCastTree => isInvariantPreservedInExpr(expr.getExpression, fieldInv, localInv)
-      case expr: UnaryTree =>
-        getRelevantInv(node, fieldInv, localInv).forall {
-          invariant =>
-            invariant match {
-              case Invariant(remainder, self, posLine, negLine) =>
-                // This expression could only change remainder
-                if (remainder == expr.getExpression.toString) {
-                  expr.getKind match {
-                    case Tree.Kind.POSTFIX_INCREMENT
-                         | Tree.Kind.PREFIX_INCREMENT
-                         | Tree.Kind.POSTFIX_DECREMENT
-                         | Tree.Kind.PREFIX_DECREMENT =>
-                      InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, expr)
-                    case _ => issueWarning(node, "[UnaryTree] Unknown unary operator is " + NOT_SUPPORTED); true
-                  }
-                } else {
-                  true
-                }
-              case _ => ignoreWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
-            }
-        }
-      case _ => PrintStuff.printBlueString("Expr not handled", node, node.getClass); true
-    }
-
-    if (!success) {
-      issueError(node, "")
-    }
-    success
-  }
-
-  /*override def visitUnary(node: UnaryTree, p: Void): Void = {
-    val updatedLabel = getLabel(node)
-    (fieldInv ++ localInv).forall {
-      invariant =>
-        invariant match {
-          case Invariant(remainder, self, posLine, negLine) =>
-            // This expression could only change remainder
-            if (remainder == node.getExpression.toString) {
-              node.getKind match {
-                case Tree.Kind.POSTFIX_INCREMENT
-                     | Tree.Kind.PREFIX_INCREMENT
-                     | Tree.Kind.POSTFIX_DECREMENT
-                     | Tree.Kind.PREFIX_DECREMENT =>
-                  InvWithSolver.isValidAfterUpdate(invariant, -1, 0, updatedLabel, node)
-                case _ => issueWarning(node, "[UnaryTree] Unknown unary operator is " + NOT_SUPPORTED); true
-              }
-            } else {
-              true
-            }
-          case _ => ignoreWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
-        }
-    }
-    super.visitUnary(node, p)
-  }*/
 
   /**
     *
@@ -744,6 +611,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
   }
 
+  private def getEnclosingClass(node: Tree): ClassTree = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
+
+  private def getEnclosingMethod(node: Tree): MethodTree = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
+
   /**
     *
     * @param node a statement or expression
@@ -769,8 +640,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def getRelevantInv(node: Tree,
                              fieldInv: HashMap[InvLangAST, Tree],
                              localInv: HashMap[InvLangAST, Tree]): HashSet[InvLangAST] = {
-    val enclosingClass = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
-    val enclosingMethod = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
+    val enclosingClass = getEnclosingClass(node)
+    val enclosingMethod = getEnclosingMethod(node)
     val field = fieldInv.filter { case (i, t) => t == enclosingClass }.keySet
     val local = localInv.filter { case (i, t) => t == enclosingMethod }.keySet
     new HashSet ++ field ++ local
