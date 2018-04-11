@@ -2,6 +2,7 @@ package plv.colorado.edu.quantmchecker
 
 import javax.lang.model.element.AnnotationMirror
 
+import com.sun.source.tree.Tree
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
@@ -29,28 +30,20 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   // Learned from KeyForAnnotatedTypeFactory.java
   override def createQualifierHierarchy(factory: MultiGraphQualifierHierarchy.MultiGraphFactory): QualifierHierarchy = new QuantmQualifierHierarchy(factory)
 
+  /**
+    *
+    * @param rcvr
+    * @return annotation of the receiver of a method invocation
+    */
+  def getTypeAnnotation(rcvr: Tree): AnnotationMirror = {
+    this.getQualifierHierarchy()
+      .findAnnotationInHierarchy(
+        getAnnotatedType(rcvr).getAnnotations(),
+        this.getQualifierHierarchy().getTopAnnotations().iterator().next())
+  }
+
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {
     override def isSubtype(subAnno: AnnotationMirror, superAnno: AnnotationMirror): Boolean = {
-      /*val subSameList = AnnotationUtils.areSameIgnoringValues(subAnno, LISTINV)
-      val superSameList = AnnotationUtils.areSameIgnoringValues(superAnno, LISTINV)
-
-      (subSameList, superSameList) match {
-        case (true, true) =>
-          val lhsValues = Utils.extractValues(superAnno)
-          val rhsValues = Utils.extractValues(subAnno)
-          lhsValues == rhsValues
-        case (true, false) =>
-          val newSubAnno = if (AnnotationUtils.areSameIgnoringValues(subAnno, LISTINV)) LISTINV else subAnno
-          if (superAnno == INVBOUNDED)
-            true
-          else
-            super.isSubtype(newSubAnno, superAnno)
-        case (false, true) =>
-          val newSuperAnno = if (AnnotationUtils.areSameIgnoringValues(superAnno, LISTINV)) LISTINV else superAnno
-          super.isSubtype(subAnno, newSuperAnno)
-        case (false, false) => super.isSubtype(subAnno, superAnno)
-      }*/
-
       if (AnnotationUtils.areSameIgnoringValues(superAnno, INV) && AnnotationUtils.areSameIgnoringValues(subAnno, INV)) {
         val lhsValues = Utils.extractValues(superAnno)
         val rhsValues = Utils.extractValues(subAnno)

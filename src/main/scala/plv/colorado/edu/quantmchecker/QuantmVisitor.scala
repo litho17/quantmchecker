@@ -1,7 +1,7 @@
 package plv.colorado.edu.quantmchecker
 
 import javax.lang.model.`type`.TypeMirror
-import javax.lang.model.element.{AnnotationMirror, ExecutableElement, VariableElement}
+import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, VariableElement}
 
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
@@ -10,7 +10,7 @@ import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.invlang._
-import plv.colorado.edu.quantmchecker.qual.{Inv, Summary}
+import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, Summary}
 import plv.colorado.edu.quantmchecker.summarylang.{MethodSumUtils, MethodSummary, MethodSummaryI, MethodSummaryV}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 
@@ -23,9 +23,11 @@ import scala.collection.immutable.{HashMap, HashSet}
 class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnnotatedTypeFactory](checker) {
   private val DEBUG_PATHS = false
   private val DEBUG_COLLECT_INV = false
-  private val DEBUG_WHICH_UNHANDLED_CASE = true
+  private val DEBUG_WHICH_UNHANDLED_CASE = false
 
-  protected val LISTINV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  protected val TOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
+  protected val BOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "NOT SUPPORTED"
@@ -33,6 +35,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     " of an invariant, but the changes are not described by any invariant"
   private val MALFORMAT_INVARIANT = "Malformatted invariant annotation"
   private val BAD_LABEL = "Bad label"
+  private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
 
   if (DEBUG_PATHS) {
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
@@ -41,25 +44,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param classTree a class definition
-    *                  Note: I have to process the source code files by myself, instead of
-    *                  relying on Checker framework's visitor pattern, because I have
-    *                  to know what the invariants are before type checking every statement
+    * @param node
+    * @param p
+    * @return If a method has summary, then we skip it
     */
-  override def processClassTree(classTree: ClassTree): Unit = {
-    val fieldInvariants = gatherClassFieldInvariants(classTree)
-    if (DEBUG_COLLECT_INV && fieldInvariants.nonEmpty) println(fieldInvariants)
-
-    classTree.getMembers.asScala.foreach {
-      case member: MethodTree =>
-        // println("Visting method: ", root.getSourceFile.getName, classTree.getSimpleName, member.getName)
-        val localInvariants = gatherLocalInvariants(member)
-        if (DEBUG_COLLECT_INV && localInvariants.nonEmpty) println(localInvariants)
-      case member: VariableTree => // Handled by gatherClassFieldInvariants()
-      case member: ClassTree => // Ignore inner classes for the moment
-      case x@_ => println("Unhandled Tree kind in processClassTree(): ", x, x.getKind)
-    }
-    super.processClassTree(classTree)
+  override def visitMethod(node: MethodTree, p: Void): Void = {
+    val method: ExecutableElement = TreeUtils.elementFromDeclaration(node)
+    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
+    if (summaries.isEmpty)
+      super.visitMethod(node, p)
+    else
+      null
   }
 
   /**
@@ -226,9 +221,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       node.getKind match {
                         case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
                           InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, node)
-                        case _ =>
+                        case _ => // All other compound assignments are not supported
                           issueWarning(node, "[CompoundAssignmentTree] Operator " + node.getKind + " is " + NOT_SUPPORTED)
-                          // All other compound assignments are not supported
                       }
                     case _ => issueWarning(node, "[CompoundAssignmentTree] Other literal kind is " + NOT_SUPPORTED); true
                   }
@@ -248,42 +242,54 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // Check if side effects will invalidate invariants
     // TODO: o.f1().f2().f3(): methodinvocation (a.f().g()) -> memberselect (a.f())
     val callee: ExecutableElement = getMethodElementFromInvocation(node)
-    val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(node)
     val receiver: ExpressionTree = TreeUtils.getReceiverTree(node)
+    val receiverName = if (receiver == null) "" else receiver.toString + "."
+    val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(node)
+    val receiverDecl: Element = {
+      if (receiver != null) {
+        TreeUtils.elementFromUse(receiver)
+      } else { // this is member method invocation, therefore we return the class tree
+        TreeUtils.elementFromDeclaration(getEnclosingClass(node))
+      }
+    }
+    val receiverAnno: List[AnnotationMirror] = {
+      // trees.getTypeMirror()
+      if (receiverDecl != null) {
+        // elements.getAllAnnotationMirrors(receiverDecl).asScala.toList
+        receiverDecl.getAnnotationMirrors.asScala.toList
+      }
+      else {
+        List.empty
+      }
+    }
     // atypeFactory.declarationFromElement(callee)
 
-    (fieldInvs ++ localInvs).foreach {
-      invariant =>
-        val (remainder: String, self: List[String]) = invariant match {
-          case Invariant(remainder, self, _, _) => (remainder, self)
-          case InvNoRem(self, _, _) => ("", self)
-          case _ => ("", List.empty)
-        }
-        val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
-        val _selfCall = _self + "." + callee.getSimpleName // E.g. <self>.f.g.add(1)
+    val summaries = gatherMethodSummaries(node)
+    if (summaries.nonEmpty) {
+      summaries.foreach {
+        summary =>
+          val increment: Integer = summary match {
+            case MethodSummaryI(_, i) => i
+            case MethodSummaryV(_, _) => 1
+            // TODO: Not yet support describing changes via variable name in a method summary
+            case _ => 0
+          }
 
-        val summaries = gatherMethodSummaries(node)
-        if (summaries.nonEmpty) {
-          summaries.foreach {
-            summary =>
-              val increment: Integer = summary match {
-                case MethodSummaryI(_, i) => i
-                case MethodSummaryV(_, _) => 1
-                // TODO: Not yet support describing changes via variable name in a method summary
-                case _ => 0
-              }
+          /**
+            * Method summary could either change <remainder> or <self>
+            */
+          val whichVar = MethodSumUtils.whichVar(summary, callee)
+          (fieldInvs ++ localInvs).foreach {
+            invariant =>
+              val (remainder: String, self: List[String], fullSelf: String) = InvUtils.getRemSelf(invariant)
 
-              /**
-                * Method summary could either change <remainder> or <self>
-                */
-              val whichVar = MethodSumUtils.whichVar(summary, callee)
               if (whichVar.isLeft) { // Local variable is changed, according to method summary
                 val argIdx = whichVar.left.get
                 node.getArguments.get(argIdx) match {
                   case arg: IdentifierTree =>
                     if (arg.toString == remainder) { // Summary says: update remainder
                       InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, node)
-                    } else if (arg.toString == _self) { // Summary says: update self
+                    } else if (arg.toString == fullSelf) { // Summary says: update self
                       InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, node)
                     } else {
                       ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
@@ -296,34 +302,43 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
                   case Some(field) =>
                     // If receiver is self and summary updates self's field
-                    val receiverName = if (receiver == null) "" else receiver.toString + "."
                     val updatedFldName = receiverName + field.toString
-                    if (updatedFldName == _self) {
+                    if (updatedFldName == fullSelf) {
                       InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, node)
                     } else {
                       ignoreWarning(node, "Summary specifies a change in a field that is " +
-                        "not described by invariant. " + (updatedFldName, _self, summary, invariant))
+                        "not described by invariant. " + (updatedFldName, fullSelf, summary, invariant))
                     }
                   case None =>
                     issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
                 }
               }
           }
-        } else {
-          // No method summaries found
-          // Translate library methods (e.g. append, add) into numerical updates
-          if (receiverTyp == null) {
-            // Might be invoking a super class
-          } else {
-            val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
-            if (isColAdd) {
+      }
+    } else {
+      // No method summaries found
+      // Translate library methods (e.g. append, add) into numerical updates
+      if (receiverTyp == null) {
+        // Might be invoking a super class
+      } else {
+        val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
+        if (isColAdd) {
+          if (receiverAnno.isEmpty) {
+            issueWarning(node, LIST_NOT_ANNOTATED)
+          }
+
+          (fieldInvs ++ localInvs).foreach {
+            invariant =>
+              val (remainder: String, self: List[String], fullSelf: String) = InvUtils.getRemSelf(invariant)
+              val selfCall = fullSelf + "." + callee.getSimpleName // E.g. <self>.f.g.add(1)
+
               node.getMethodSelect match {
                 case mst: MemberSelectTree =>
                   if (mst.getExpression.toString == remainder) {
                     // Remainder is changed [Although we don't expect this to happen]
                     // InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber, expr)
                     issueWarning(node, "We don't expect Collection ADD to change remainder")
-                  } else if (mst.toString == _selfCall) {
+                  } else if (mst.toString == selfCall) {
                     // Self is changed, e.g. <self>.f.g.add(1)
                     InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, node)
                   } else {
@@ -333,19 +348,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 case mst: IdentifierTree => // A member method is invoked, but it does not have a summary
                 case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
               }
-            } else {
-              // TODO: might update remainder
-              // A method is invoked, but it does not have a summary and is not Collection ADD
-            }
           }
+        } else {
+          // TODO: might update remainder
+          // A method is invoked, but it does not have a summary and is not Collection ADD
         }
+      }
     }
     super.visitMethodInvocation(node, p)
   }
 
   override def visitNewArray(node: NewArrayTree, p: Void): Void = {
     // if (node.getInitializers != null) // Initializers are not supported
-      // issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED)
+    // issueWarning(node, "[NewArrayTree] Initializers are " + NOT_SUPPORTED)
     super.visitNewArray(node, p)
   }
 
@@ -374,11 +389,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     super.visitUnary(node, p)
   }
 
+  /**
+    *
+    * @param node
+    * @return field invariants in the enclosing class
+    *         local invariants in the enclosing method
+    *         label of the enclosing statement
+    */
   private def getPrepared(node: Tree): (Set[InvLangAST], Set[InvLangAST], String) = {
     val enclosingClass = getEnclosingClass(node)
     val enclosingMethod = getEnclosingMethod(node)
-    val fieldInvs = gatherClassFieldInvariants(enclosingClass)
-    val localInvs = gatherLocalInvariants(enclosingMethod)
+    assert(enclosingClass != null)
+    assert(enclosingMethod != null)
+    val fieldInvs = collectClassFieldInvariants(enclosingClass)
+    val localInvs = collectLocalInvariants(enclosingMethod)
     val updatedLabel = getLabel(node)
     (fieldInvs.keySet, localInvs.keySet, updatedLabel)
   }
@@ -388,7 +412,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param classTree a class definition
     * @return a map from a line number to an invariant that might be changed by that line
     */
-  private def gatherClassFieldInvariants(classTree: ClassTree): HashMap[InvLangAST, Tree] = {
+  private def collectClassFieldInvariants(classTree: ClassTree): HashMap[InvLangAST, Tree] = {
     classTree.getMembers.asScala.foldLeft(new HashMap[InvLangAST, Tree]) {
       (acc, member) =>
         member match {
@@ -396,7 +420,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             /**
               * Get annotations on class fields
               */
-            getAnnotationFromVariableTree(member, LISTINV).foldLeft(acc) {
+            getAnnotationFromVariableTree(member, INV).foldLeft(acc) {
               case (acc2, a) => acc2 + (a -> classTree)
             }
           case _ => acc
@@ -409,7 +433,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param methodTree a method
     * @return all invariants that are declared in the method
     */
-  private def gatherLocalInvariants(methodTree: MethodTree): HashMap[InvLangAST, Tree] = {
+  private def collectLocalInvariants(methodTree: MethodTree): HashMap[InvLangAST, Tree] = {
     if (methodTree.getBody != null) {
       val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
         (acc, stmt) => acc ++ flattenStmt(stmt)
@@ -424,7 +448,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 * Local invariants should only be on variable declarations
                 * Otherwise, invariants are simply ignored
                 */
-              getAnnotationFromVariableTree(stmt, LISTINV).foldLeft(acc) {
+              getAnnotationFromVariableTree(stmt, INV).foldLeft(acc) {
                 case (acc2, a) => acc2 + (a -> methodTree)
               }
             case x@_ =>
@@ -534,10 +558,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def ignoreWarning(node: Object, msg: String): Unit = {
-    /*if (DEBUG_WHICH_UNHANDLED_CASE) {
-      val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
-      PrintStuff.printGreenString("WARNING issued by " + trace.getFileName + ": " + trace.getLineNumber)
-    }*/
     // checker.report(Result.warning(msg), node)
   }
 
@@ -551,10 +571,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def issueError(node: Object, msg: String): Unit = {
-    /*if (DEBUG_WHICH_UNHANDLED_CASE) {
-      val trace = Thread.currentThread().getStackTrace.toList.filter(s => s.toString.contains("QuantmVisitor.scala"))(1)
-      PrintStuff.printGreenString("ERROR issued by " + trace.getFileName + ": " + trace.getLineNumber)
-    }*/
     checker.report(Result.failure(msg), node)
   }
 
@@ -611,9 +627,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
   }
 
-  private def getEnclosingClass(node: Tree): ClassTree = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
+  private def getEnclosingClass(node: Tree): ClassTree = TreeUtils.enclosingClass(atypeFactory.getPath(node))
 
-  private def getEnclosingMethod(node: Tree): MethodTree = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
+  private def getEnclosingMethod(node: Tree): MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
 
   /**
     *
