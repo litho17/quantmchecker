@@ -319,7 +319,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               } else {
                 remainder match {
                   case Some(remainder) =>
-                    if (name == remainder&& !inConstructor) {
+                    if (name == remainder && !inConstructor) {
                       // We require that remainder is always defined in current method scope
                       issueError(node, "[AssignmentTree][Destructive update] Reassigning remainder is " + NOT_SUPPORTED)
                       false
@@ -418,86 +418,89 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val _self = self.tail.foldLeft(self.head)((acc, e) => acc + "." + e)
             val _selfCall = _self + "." + callee.getSimpleName // E.g. <self>.f.g.add(1)
 
-            gatherMethodSummaries(expr) match {
-              case Some(summary) =>
+            val summaries = gatherMethodSummaries(expr)
+            if (summaries.nonEmpty) {
+              summaries.forall {
+                summary =>
+                  val increment: Integer = summary match {
+                    case MethodSummaryI(_, i) => i
+                    case MethodSummaryV(_, _) => 1
+                    // TODO: Not yet support describing changes via variable name in a method summary
+                    case _ => 0
+                  }
 
-                val increment: Integer = summary match {
-                  case MethodSummaryI(_, i) => i
-                  case MethodSummaryV(_, _) => 1
-                  // TODO: Not yet support describing changes via variable name in a method summary
-                  case _ => 0
-                }
-
-                /**
-                  * Method summary could either change <remainder> or <self>
-                  */
-                val whichVar = MethodSumUtils.whichVar(summary, callee)
-                if (whichVar.isLeft) { // Local variable is changed, according to method summary
-                  val argIdx = whichVar.left.get
-                  expr.getArguments.get(argIdx) match {
-                    case arg: IdentifierTree =>
-                      if (arg.toString == remainder) { // Summary says: update remainder
-                        InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, expr)
-                      } else if (arg.toString == _self) { // Summary says: update self
-                        InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
-                      } else {
-                        ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
-                          "to a local variable, but that local variable is neither remainder or self " + (arg, remainder, self))
+                  /**
+                    * Method summary could either change <remainder> or <self>
+                    */
+                  val whichVar = MethodSumUtils.whichVar(summary, callee)
+                  if (whichVar.isLeft) { // Local variable is changed, according to method summary
+                    val argIdx = whichVar.left.get
+                    expr.getArguments.get(argIdx) match {
+                      case arg: IdentifierTree =>
+                        if (arg.toString == remainder) { // Summary says: update remainder
+                          InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, expr)
+                        } else if (arg.toString == _self) { // Summary says: update self
+                          InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
+                        } else {
+                          ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
+                            "to a local variable, but that local variable is neither remainder or self " + (arg, remainder, self))
+                          true
+                        }
+                      case _ =>
+                        issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
                         true
-                      }
-                    case _ =>
-                      issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
+                    }
+                  } else { // Field of the receiver should be updated, according to method summary
+                    findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
+                      case Some(field) =>
+                        // If receiver is self and summary updates self's field
+                        val receiverName = if (receiver == null) "" else receiver.toString + "."
+                        val updatedFldName = receiverName + field.toString
+                        if (updatedFldName == _self) {
+                          InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
+                        } else {
+                          ignoreWarning(node, "Summary specifies a change in a field that is " +
+                            "not described by invariant. " + (updatedFldName, _self, summary, invariant))
+                          true
+                        }
+                      case None =>
+                        issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
+                        true
+                    }
+                  }
+              }
+            } else {
+              // No method summaries found
+              // Translate library methods (e.g. append, add) into numerical updates
+              if (receiverTyp == null) {
+                // Might be invoking a super class
+                return true
+              }
+              val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
+              if (isColAdd) {
+                expr.getMethodSelect match {
+                  case mst: MemberSelectTree =>
+                    if (mst.getExpression.toString == remainder) {
+                      // Remainder is changed [Although we don't expect this to happen]
+                      // InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber, expr)
+                      issueWarning(node, "We don't expect Collection ADD to change remainder")
                       true
-                  }
-                } else { // Field of the receiver should be updated, according to method summary
-                  findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
-                    case Some(field) =>
-                      // If receiver is self and summary updates self's field
-                      val receiverName = if (receiver == null) "" else receiver.toString + "."
-                      val updatedFldName = receiverName + field.toString
-                      if (updatedFldName == _self) {
-                        InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, expr)
-                      } else {
-                        ignoreWarning(node, "Summary specifies a change in a field that is " +
-                          "not described by invariant. " + (updatedFldName, _self, summary, invariant))
-                        true
-                      }
-                    case None =>
-                      issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
+                    } else if (mst.toString == _selfCall) {
+                      // Self is changed, e.g. <self>.f.g.add(1)
+                      InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, expr)
+                    } else {
+                      // This update does not influence the current invariant
+                      ignoreWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
                       true
-                  }
+                    }
+                  case mst: IdentifierTree =>
+                    true // A member method is invoked, but it does not have a summary
+                  case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
                 }
-              case None => // No method summaries found
-                // Translate library methods (e.g. append, add) into numerical updates
-                if (receiverTyp == null) {
-                  // Might be invoking a super class
-                  return true
-                }
-                val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
-                if (isColAdd) {
-                  expr.getMethodSelect match {
-                    case mst: MemberSelectTree =>
-                      if (mst.getExpression.toString == remainder) {
-                        // Remainder is changed [Although we don't expect this to happen]
-                        // InvWithSolver.isValidAfterUpdate(invariant, -1, 0, lineNumber, expr)
-                        issueWarning(node, "We don't expect Collection ADD to change remainder")
-                        true
-                      } else if (mst.toString == _selfCall) {
-                        // Self is changed, e.g. <self>.f.g.add(1)
-                        InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, expr)
-                      } else {
-                        // This update does not influence the current invariant
-                        ignoreWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
-                        true
-                      }
-                    case mst: IdentifierTree =>
-                      true // A member method is invoked, but it does not have a summary
-                    case _ => issueWarning(node, "[MethodInvocationTree] " + NOT_SUPPORTED); true
-                  }
-                } else {
-                  // TODO: might update remainder
-                  true // A method is invoked, but it does not have a summary and is not Collection ADD
-                }
+              } else {
+                // TODO: might update remainder
+                true // A method is invoked, but it does not have a summary and is not Collection ADD
+              }
             }
         }
       case expr: NewArrayTree =>
@@ -592,28 +595,31 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param node a method invocation tree
     * @return the summary of the invoked method
     */
-  private def gatherMethodSummaries(node: MethodInvocationTree): Option[MethodSummary] = {
+  private def gatherMethodSummaries(node: MethodInvocationTree): HashSet[MethodSummary] = {
     val invokedMethod: ExecutableElement = getMethodElementFromInvocation(node)
-    val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
+    val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
     if (summaries.size == 1) {
       val summaryList = Utils.extractValues(summaries.head)
-      if (summaryList.size != 2) {
-        issueWarning(invokedMethod, "Method summary should have exactly 2 arguments")
-        None
+      if (summaryList.size % 2 != 0) {
+        issueWarning(invokedMethod, "Method summary should have even number of arguments")
+        new HashSet[MethodSummary]
       } else {
-        if (summaryList(1).forall(c => c.isDigit)) {
-          Some(MethodSummaryI(summaryList.head, Integer.parseInt(summaryList(1))))
-        } else {
-          Some(MethodSummaryV(summaryList.head, summaryList(1)))
+        summaryList.grouped(2).foldLeft(new HashSet[MethodSummary]) {
+          (acc, summary) =>
+            assert(summary.size == 2)
+            val variableName = summary.head
+            if (summary(1).forall(c => c.isDigit)) {
+              acc + MethodSummaryI(summaryList.head, Integer.parseInt(summaryList(1)))
+            } else {
+              acc + MethodSummaryV(summaryList.head, summaryList(1))
+            }
         }
       }
+    } else if (summaries.size > 1) {
+      issueWarning(invokedMethod, "Method should have exactly 1 summary")
+      new HashSet[MethodSummary]
     } else {
-      if (summaries.isEmpty)
-        None
-      else {
-        issueWarning(invokedMethod, "Method should have exactly 1 summary")
-        None
-      }
+      new HashSet[MethodSummary]
     }
   }
 
