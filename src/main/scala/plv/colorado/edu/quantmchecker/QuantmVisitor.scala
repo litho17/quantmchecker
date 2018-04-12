@@ -127,11 +127,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (node == null) {
       List.empty
     } else {
+      /*val vtree = TreeUtils.enclosingVariable(atypeFactory.getPath(node))
+      if (vtree == null)
+        return List.empty
+      val element = TreeUtils.elementFromDeclaration(vtree)*/
       val element = TreeUtils.elementFromUse(node)
-      if (element == null)
+      if (element == null) {
         List.empty
-      else
-        element.getAnnotationMirrors.asScala.toList
+      } else {
+        // elements.getAllAnnotationMirrors(element).asScala.toList
+        atypeFactory.getAnnotatedType(element).getAnnotations.asScala.toList
+        //element.getAnnotationMirrors.asScala.toList
+      }
     }
   }
 
@@ -210,25 +217,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
     }
 
-    val isAssignNew: Boolean = node.getExpression match {
-      case t: NewClassTree =>
-        val rhsTyp = atypeFactory.getAnnotatedType(t)
-        val rhsAnno = rhsTyp.getAnnotations
-        if (rhsAnno == null
-          || rhsAnno.isEmpty
-          || AnnotationUtils.areSameIgnoringValues(rhsAnno.asScala.head, TOP)) {
-          lhsAnno != null && !lhsAnno.isEmpty && AnnotationUtils.areSameIgnoringValues(lhsAnno.asScala.head, INV)
-        } else {
-          false
-        }
-      case _ => false
-    }
-
     /**
-      * When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
       * This is unsound because breaking subtype checking, but it is implemented for reducing annotation burden
       */
-    if (isAssignNew) {
+    if (avoidAssignSubtypeCheck(node.getExpression, lhsAnno.asScala.toSet)) {
       null
     } else {
       super.visitAssignment(node, p)
@@ -238,11 +230,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   override def visitVariable(node: VariableTree, p: Void): Void = {
     val initializer = node.getInitializer
     if (initializer != null) {
-      if (node.getModifiers.getAnnotations.asScala.isEmpty)
-        super.visitVariable(node, p)
+      val lhsAnno = node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
+        (acc, t) =>
+          acc ++ atypeFactory.getAnnotatedType(trees.getElement(atypeFactory.getPath(node))).getAnnotations.asScala
+      }
+      if (avoidAssignSubtypeCheck(node.getInitializer, lhsAnno))
+        return null
     }
-    // When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
-    null
+    super.visitVariable(node, p)
   }
 
   override def visitCompoundAssignment(node: CompoundAssignmentTree, p: Void): Void = {
@@ -427,6 +422,72 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
+    * @param node           rhs of assignment
+    * @param candidateAnnos annotations of lhs
+    * @return Whether should we do subtype checking for assignments: lhs = rhs
+    *         This is flow sensitive checking
+    */
+  private def avoidAssignSubtypeCheck(node: ExpressionTree, candidateAnnos: Set[AnnotationMirror]): Boolean = {
+    if (candidateAnnos.isEmpty)
+      return false
+    val pickedAnno = candidateAnnos.head
+    node match {
+      case t: NewClassTree =>
+        // When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
+        val rhsTyp = atypeFactory.getAnnotatedType(t)
+        val rhsAnno = rhsTyp.getAnnotations
+        if (rhsAnno == null
+          || rhsAnno.isEmpty
+          || AnnotationUtils.areSameIgnoringValues(rhsAnno.asScala.head, TOP)) {
+          AnnotationUtils.areSameIgnoringValues(pickedAnno, INV)
+        } else {
+          false
+        }
+      case m: MethodInvocationTree =>
+        // list = o.m(), where m's return value is annotated
+        val callee: ExecutableElement = getMethodElementFromInvocation(m)
+        val methodTree: MethodTree = trees.getTree(callee)
+        if (methodTree == null || methodTree.getBody == null)
+          return false
+        val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
+          (acc, stmt) => acc ++ flattenStmt(stmt)
+        }
+        val retAnnos = stmts.foldLeft(new HashSet[AnnotationMirror]) {
+          (acc, s) =>
+            s match {
+              case s: ReturnTree =>
+                if (s.getExpression != null) {
+                  val anno = getExprAnnotations(s.getExpression) // atypeFactory.getAnnotatedType(s.getExpression)
+                  acc ++ anno.filter(a => AnnotationUtils.areSameIgnoringValues(a, INV))
+                } else {
+                  acc
+                }
+              case _ => acc
+            }
+        }
+        if (retAnnos.size == 1) {
+          val isSubtype = atypeFactory.getQualifierHierarchy.isSubtype(retAnnos.head, pickedAnno)
+          // if (!isSubtype)
+            // println(node, retAnnos.head, pickedAnno)
+          isSubtype
+        } else {
+          println(node, retAnnos)
+          stmts.foreach {
+            case s: ReturnTree =>
+              if (s.getExpression != null) {
+                val anno = getExprAnnotations(s.getExpression)
+                println(s.getExpression, anno, TreeUtils.elementFromUse(node) == null)
+              }
+            case _ =>
+          }
+          false
+        }
+      case _ => false
+    }
+  }
+
+  /**
+    *
     * @param node
     * @return field invariants in the enclosing class
     *         local invariants in the enclosing method
@@ -435,12 +496,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def getPrepared(node: Tree): (Set[InvLangAST], Set[InvLangAST], String) = {
     val enclosingClass = getEnclosingClass(node)
     val enclosingMethod = getEnclosingMethod(node)
-    assert(enclosingClass != null)
-    assert(enclosingMethod != null)
-    val fieldInvs = getClassFieldInvariants(enclosingClass)
-    val localInvs = getLocalInvariants(enclosingMethod)
     val updatedLabel = getLabel(node)
-    (fieldInvs.keySet, localInvs.keySet, updatedLabel)
+    (
+      if (enclosingClass == null) HashSet.empty else getClassFieldInvariants(enclosingClass).keySet,
+      if (enclosingMethod == null) HashSet.empty else getLocalInvariants(enclosingMethod).keySet,
+      updatedLabel
+    )
   }
 
   /**
@@ -708,6 +769,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // val enclosingClass = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
     val enclosingMethod = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
     enclosingMethod.getName.toString == "<init>"
+  }
+
+  private def isLibraryInvoke(node: MethodInvocationTree): Boolean = {
+    false
   }
 
   @deprecated
