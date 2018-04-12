@@ -235,6 +235,16 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
   }
 
+  override def visitVariable(node: VariableTree, p: Void): Void = {
+    val initializer = node.getInitializer
+    if (initializer != null) {
+      if (node.getModifiers.getAnnotations.asScala.isEmpty)
+        super.visitVariable(node, p)
+    }
+    // When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
+    null
+  }
+
   override def visitCompoundAssignment(node: CompoundAssignmentTree, p: Void): Void = {
     val (fieldInvs, localInvs, updatedLabel) = getPrepared(node)
     // This expression could only change remainder

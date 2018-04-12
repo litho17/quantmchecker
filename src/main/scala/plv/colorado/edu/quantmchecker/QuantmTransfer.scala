@@ -8,7 +8,6 @@ import org.checkerframework.dataflow.cfg.node.AssignmentNode
 import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
 import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvBounded, InvTop}
-import plv.colorado.edu.quantmchecker.utils.PrintStuff
 
 import scala.collection.JavaConverters._
 /**
@@ -37,9 +36,17 @@ class QuantmTransfer(analysis: CFAbstractAnalysis[CFValue, CFStore, CFTransfer])
               || rhsAnno.isEmpty
               || AnnotationUtils.areSameIgnoringValues(rhsAnno.asScala.head, INVTOP)) {
               if (lhsAnno != null && !lhsAnno.isEmpty && AnnotationUtils.areSameIgnoringValues(lhsAnno.asScala.head, INV)) {
-                PrintStuff.printRedString(n, rhsAnno, lhsAnno, AnnotationUtils.areSameIgnoringValues(rhsAnno.asScala.head, INVTOP))
+                // PrintStuff.printRedString(n, rhsAnno, lhsAnno, AnnotationUtils.areSameIgnoringValues(rhsAnno.asScala.head, INVTOP))
                 val receiver = FlowExpressions.internalReprOf(analysis.getTypeFactory, n.getExpression)
-                result.getRegularStore.insertValue(receiver, lhsAnno.asScala.head) // Nothing happens here
+                result.getRegularStore.insertValue(receiver, lhsAnno.asScala.head)
+                /**
+                  * Nothing happens here, because only support these five types
+                  * FlowExpressions.FieldAccess
+                  * FlowExpressions.ThisReference
+                  * FlowExpressions.LocalVariable
+                  * FlowExpressions.MethodCall
+                  * FlowExpressions.ArrayAccess
+                  */
                 // PrintStuff.printRedString(result.getRegularStore.getValue(receiver).getAnnotations)
                 // PrintStuff.printGreenString(CFAAbstractStore.canInsertReceiver)
                 // val newResultValue = analysis.createSingleAnnotationValue(lhsAnno.asScala.head, result.getResultValue.getUnderlyingType)
