@@ -308,7 +308,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             * Method summary could either change <remainder> or <self>
             */
           val whichVar = MethodSumUtils.whichVar(summary, callee)
-          (fieldInvs ++ localInvs).foreach {
+          val numofUpdates = (fieldInvs ++ localInvs).count {
             invariant =>
               val (remainder: String, self: List[String], fullSelf: String) = InvUtils.getRemSelf(invariant)
 
@@ -319,15 +319,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     if (arg.toString == remainder) { // Summary says: update remainder
                       if (!InvWithSolver.isValidAfterUpdate(invariant, -increment, 0, updatedLabel, node))
                         issueError(node, "")
+                      true
                     } else if (arg.toString == fullSelf) { // Summary says: update self
                       if (!InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, node))
                         issueError(node, "")
+                      true
                     } else {
                       ignoreWarning(node, "[MethodInvocationTree] Method summary applies changes " +
                         "to a local variable, but that local variable is neither remainder or self " + (arg, remainder, self))
+                      false
                     }
                   case _ =>
                     issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
+                    true
                 }
               } else { // Field of the receiver should be updated, according to method summary
                 findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
@@ -337,14 +341,21 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     if (updatedFldName == fullSelf) {
                       if (!InvWithSolver.isValidAfterUpdate(invariant, 0, increment, updatedLabel, node))
                         issueError(node, "")
+                      true
                     } else {
                       ignoreWarning(node, "Summary specifies a change in a field that is " +
                         "not described by invariant. " + (updatedFldName, fullSelf, summary, invariant))
+                      false
                     }
                   case None =>
                     issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
+                    false
                 }
               }
+          }
+          if (numofUpdates < 1) {
+            println(whichVar, fieldInvs ++ localInvs)
+            // issueWarning(node, LIST_NOT_ANNOTATED)
           }
       }
     } else {
@@ -372,7 +383,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     issueWarning(node, "We don't expect Collection ADD to change remainder")
                   } else if (mst.toString == selfCall) {
                     // Self is changed, e.g. <self>.f.g.add(1)
-                    InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, node)
+                    if (!InvWithSolver.isValidAfterUpdate(invariant, 0, 1, updatedLabel, node))
+                      issueError(node, "")
                   } else {
                     // This update does not influence the current invariant
                     ignoreWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
@@ -471,12 +483,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             // println(node, retAnnos.head, pickedAnno)
           isSubtype
         } else {
-          println(node, retAnnos)
           stmts.foreach {
             case s: ReturnTree =>
               if (s.getExpression != null) {
                 val anno = getExprAnnotations(s.getExpression)
-                println(s.getExpression, anno, TreeUtils.elementFromUse(node) == null)
+                // println(s.getExpression, anno, TreeUtils.elementFromUse(node) == null)
               }
             case _ =>
           }

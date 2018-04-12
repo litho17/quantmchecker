@@ -3,9 +3,9 @@ package plv.colorado.edu
 import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
-import com.sun.source.tree.{CompilationUnitTree, Tree}
+import com.sun.source.tree.{CompilationUnitTree, Tree, VariableTree}
 import com.sun.source.util.SourcePositions
-import org.checkerframework.javacutil.AnnotationUtils
+import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashSet
@@ -45,6 +45,11 @@ object Utils {
     ("java.util.Hashtable", "add"),
     ("java.util.ByteBuffer", "put")
   )
+
+  val DEC_REMAINDER: HashSet[(String, String)] = HashSet(
+    ("java.io.BufferedReader", "readline")
+  )
+
   /**
     *
     * @param anno annotation
