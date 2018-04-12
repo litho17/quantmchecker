@@ -18,11 +18,11 @@ public class WordStatsProcessor extends Processor {
         // count number of sentences
         String input = readInput(inps);
         String words[] = tokenize(input);
-        @Inv("+<self>.results=+22+23+24+25") TCResult result = new  TCResult("Word stats");
-        c22: result.addResult("Word count", words.length);
-        c23: result.addResult("Average word length", meanLen(words));
-        c24: result.addResult("Variance in word length", varLen(words));
-        c25: result.addResult("Longest word: ", longest(words));
+        TCResult result = new  TCResult("Word stats");
+        WordStatsProcessor22: result.addResult("Word count", words.length);
+        WordStatsProcessor23: result.addResult("Average word length", meanLen(words));
+        WordStatsProcessor24: result.addResult("Variance in word length", varLen(words));
+        WordStatsProcessor25: result.addResult("Longest word: ", longest(words));
         return result;
     }
 
@@ -92,12 +92,12 @@ public class WordStatsProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @Inv("br+<self>=+98-96-99") StringBuilder sb = new  StringBuilder();
+        @Inv("br+<self>=+WordStatsProcessor98-WordStatsProcessor96-WordStatsProcessor99") StringBuilder sb = new  StringBuilder();
         String read;
-        c96: read = br.readLine();
+        WordStatsProcessor96: read = br.readLine();
         while (read != null) {
-            c98: sb.append(read);
-            c99: read = br.readLine();
+            WordStatsProcessor98: sb.append(read);
+            WordStatsProcessor99: read = br.readLine();
         }
         String theString = sb.toString();
         return theString;

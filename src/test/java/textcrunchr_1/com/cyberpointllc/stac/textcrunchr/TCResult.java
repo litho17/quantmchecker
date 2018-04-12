@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ public class TCResult {
 
     // user can either give us a string value all at once, or incrementally add
     // values to a List
-    private ArrayList<Component> results;
+    private @Inv("sortedWCs+<self>=+WordStatsProcessor22+WordStatsProcessor23+WordStatsProcessor24+WordStatsProcessor25+WordFrequencyProcessor32-WordFrequencyProcessor31") ArrayList<Component> results;
 
     // Little helper class so we can use a list instead of LinkedHashMap (which is vulnerable) for storing result components
     class Component {
@@ -55,18 +56,22 @@ public class TCResult {
         return value;
     }
 
-    @Summary({"results", "1"}) public void addResult(String key, int val) {
+    @Summary({"results", "1"})
+    public void addResult(String key, int val) {
         addResultHelper(val, key);
     }
 
-    @Summary({"results", "1"}) public void addResult(String key, double val) {
+    @Summary({"results", "1"})
+    public void addResult(String key, double val) {
         results.add(new Component(key, Double.toString(val)));
     }
 
-    @Summary({"results", "1"}) public void addResult(String key, String val) {
+    @Summary({"results", "1"})
+    public void addResult(String key, String val) {
         results.add(new Component(key, val));
     }
 
+    @Summary({"results", "1"})
     private void addResultHelper(int val, String key) {
         results.add(new Component(key, Integer.toString(val)));
     }

@@ -1,6 +1,7 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams;
 
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvTop;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.EnumMap;
@@ -12,17 +13,17 @@ import java.util.Map;
  */
 public class TextScore {
 
-    public EnumMap<NgramType, Ngram.ScoreStats> ngramScores = new  EnumMap(NgramType.class);
+    public @Inv("ngrams+<self>=+TextLanguage50+TextLanguage51-TextLanguage48-TextLanguage48") EnumMap<NgramType, Ngram.ScoreStats> ngramScores = new  EnumMap(NgramType.class);
 
-    public EnumMap<NgramType, Ngram.ScoreStats> getNgramScores() {
+    public @Inv("ngrams+<self>=+TextLanguage50+TextLanguage51-TextLanguage48-TextLanguage48") EnumMap<NgramType, Ngram.ScoreStats> getNgramScores() {
         return ngramScores;
     }
 
     public String toString() {
-        @Inv("ngramScores+<self>=+26-24") StringBuilder sb = new  StringBuilder();
-        c24: for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
+        @Inv("ngramScores+<self>=+TextScore26-TextScore24") StringBuilder sb = new  StringBuilder();
+        TextScore24: for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
             if (entry.getValue() != null) {
-                c26: toStringHelper(entry, sb);
+                TextScore26: toStringHelper(entry, sb);
             }
         }
         return sb.toString();

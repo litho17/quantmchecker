@@ -16,13 +16,13 @@ public class EnigmaProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new InputStreamReader(inps);
-        @Inv("br+<self>=+23-21-24") StringBuilder sb = new StringBuilder();
+        @Inv("br+<self>=+EnigmaProcessor23-EnigmaProcessor21-EnigmaProcessor24") StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(is);
         String read;
-        c21: read = br.readLine();
+        EnigmaProcessor21: read = br.readLine();
         while (read != null) {
-            c23: sb.append(read);
-            c24: read = br.readLine();
+            EnigmaProcessor23: sb.append(read);
+            EnigmaProcessor24: read = br.readLine();
         }
         String theString = sb.toString().toUpperCase();
         // Construct the machine

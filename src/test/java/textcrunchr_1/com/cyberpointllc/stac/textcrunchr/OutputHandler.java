@@ -1,6 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 // import com.cyberpointllc.stac.hashmap.HashMap;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
 import plv.colorado.edu.quantmchecker.qual.Summary;
@@ -14,7 +15,7 @@ import java.util.Map;
 //
 public abstract class OutputHandler {
 
-    protected Map<String, List<TCResult>> results = new HashMap<String, List<TCResult>>();
+    protected @Inv({"INPUTINPUT+<self>=+Driver21+Driver23+Driver25+Driver27+Driver29-Driver16"}) Map<String, List<TCResult>> results = new HashMap<String, List<TCResult>>();
 
     protected String outputForm;
 
@@ -28,22 +29,26 @@ public abstract class OutputHandler {
         addResultHelper(tcr, filename);
     }
 
-    @Summary({"namesToPaths", "results"}) public void conclude() throws OutputHandlerException {
+    @Summary({"namesToPaths", "1"}) public void conclude() throws OutputHandlerException {
         concludeHelper();
     }
 
     protected abstract void do_conclude() throws OutputHandlerException;
 
+    @Summary({"results", "1"})
     private void addResultHelper(TCResult tcr, String filename) {
+        // @Inv("+<self>=+OutputHandler42+OutputHandler44") List<TCResult> newlist;
         if (results.containsKey(filename)) {
-            results.get(filename).add(tcr);
+            @Inv("+<self>=+OutputHandler42+OutputHandler44") List<TCResult> newlist = results.get(filename);
+            OutputHandler42: newlist.add(tcr);
         } else {
-            List<TCResult> newlist = new  ArrayList<TCResult>();
-            newlist.add(tcr);
+            @Inv("+<self>=+OutputHandler42+OutputHandler44") List<TCResult> newlist = new  ArrayList<TCResult>();
+            OutputHandler44: newlist.add(tcr);
             results.put(filename, newlist);
         }
     }
 
+    @Summary({"namesToPaths", "1"})
     private void concludeHelper() throws OutputHandlerException {
         for (String file : results.keySet()) {
             namesToPaths.put(Paths.get(file).getFileName().toString(), file);

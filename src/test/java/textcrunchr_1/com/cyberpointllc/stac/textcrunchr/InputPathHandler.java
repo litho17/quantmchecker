@@ -1,6 +1,8 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 // import com.cyberpointllc.stac.zipdecompression.ZipDecompressor;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -15,7 +17,7 @@ public class InputPathHandler {
 
     private static final class FileVisitor extends SimpleFileVisitor<Path> {
 
-        List<String> filepaths;
+        @Inv("+<self>=+InputPathHandler32") List<String> filepaths;
 
         FileVisitor() {
             filepaths = new  ArrayList<String>();
@@ -27,7 +29,7 @@ public class InputPathHandler {
 
         @Override
         public FileVisitResult visitFile(Path aFile, BasicFileAttributes aAttrs) throws IOException {
-            filepaths.add(aFile.toString());
+            InputPathHandler32: filepaths.add(aFile.toString());
             return FileVisitResult.CONTINUE;
         }
     }

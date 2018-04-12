@@ -19,11 +19,11 @@ public class FindRotorSettings {
         // Save the current time to compute total run time.
         long startTime = System.currentTimeMillis();
         // Read three lines from the source file
-        @Inv("i+<self>=+26-24") String cipherText = new  String();
+        String cipherText = new @Inv("i+<self>=+FindRotorSettings26-FindRotorSettings24") String();
         Scanner scanner = new  Scanner(new  File(args[0]));
-        c24: for (int i = 0; i < NUMBER_OF_LINES; i++) {
+        for (int i = 0; i < NUMBER_OF_LINES; i++) {
             // Preserve the newline from the source text
-            c26: cipherText += scanner.nextLine() + "\n";
+            cipherText += scanner.nextLine() + "\n";
         }
         scanner.close();
         EnigmaMachine machine = EnigmaFactory.buildEnigmaMachine();

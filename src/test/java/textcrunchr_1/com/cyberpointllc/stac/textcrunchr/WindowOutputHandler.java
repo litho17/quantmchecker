@@ -46,11 +46,11 @@ public class WindowOutputHandler extends OutputHandler {
 
             public void mouseClicked(MouseEvent e) {
                 String selected = (String) fileList.getSelectedValue();
-                @Inv("sampleResults+<self>=+53-52") StringBuilder outputString = new  StringBuilder();
+                @Inv("sampleResults+<self>=+WindowOutputHandler53-WindowOutputHandler52") StringBuilder outputString = new  StringBuilder();
                 String path = namesToPaths.get(selected);
                 List<TCResult> sampleResults = results.get(path);
-                c52: for (TCResult result : sampleResults) {
-                    c53: outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
+                WindowOutputHandler52: for (TCResult result : sampleResults) {
+                    WindowOutputHandler53: outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
                 }
                 //Clear the current text
                 textArea.setText(null);

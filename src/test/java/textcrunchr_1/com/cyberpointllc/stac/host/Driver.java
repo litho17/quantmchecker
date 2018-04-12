@@ -13,20 +13,21 @@ public class Driver {
     public static void main(String[] args) throws Exception {
         while(true) {
             int INPUTINPUT = 10000;
-            c16: INPUTINPUT -= 1;
-            @Inv({"INPUTINPUT+<self>.results=+21+23+25+27+29-16"}) OutputHandler outputHandler = new WindowOutputHandler();
+            Driver16: INPUTINPUT -= 1;
+            OutputHandler outputHandler;
+            outputHandler = new WindowOutputHandler();
             String fileName = "";
             InputStream ips = new FileInputStream(fileName);
             TCResult res = new CharacterCountProcessor().process(ips);
-            c21: outputHandler.addResult(fileName, res);
+            Driver21: outputHandler.addResult(fileName, res);
             res = new TextMeterProcessor().process(ips);
-            c23: outputHandler.addResult(fileName, res);
+            Driver23: outputHandler.addResult(fileName, res);
             res = new EnigmaProcessor().process(ips);
-            c25: outputHandler.addResult(fileName, res);
+            Driver25: outputHandler.addResult(fileName, res);
             res = new WordStatsProcessor().process(ips);
-            c27: outputHandler.addResult(fileName, res);
+            Driver27: outputHandler.addResult(fileName, res);
             res = new WordFrequencyProcessor().process(ips);
-            c29: outputHandler.addResult(fileName, res);
+            Driver29: outputHandler.addResult(fileName, res);
             // outputHandler.conclude();
         }
     }

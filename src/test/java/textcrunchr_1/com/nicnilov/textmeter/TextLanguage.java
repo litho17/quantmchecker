@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class TextLanguage {
 
-    private @Inv("+<self>=+41") EnumMap<NgramType, Ngram> ngrams = new  EnumMap(NgramType.class);
+    private @Inv("+<self>=+TextLanguage41") EnumMap<NgramType, Ngram> ngrams = new @Inv("+<self>=+TextLanguage41") EnumMap(NgramType.class);
 
     private final String language;
 
@@ -36,16 +36,19 @@ public class TextLanguage {
 
     public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
         Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
-        c41: ngrams.put(ngramType, ngram);
+        TextLanguage41: ngrams.put(ngramType, ngram);
         return ngram;
     }
 
     public TextScore score(final String text) {
-        @Inv("ngrams+<self>.ngramScores=+50-48") TextScore textScore = new TextScore();
+        TextScore textScore = new TextScore();
         Ngram ngram;
-        c48: for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
+        TextLanguage48: for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {
-                c50: textScore.ngramScores.put(entry.getKey(), ngram.score(text));
+                @Inv("ngrams+<self>=+TextLanguage50+TextLanguage51-TextLanguage48-TextLanguage48") EnumMap<NgramType, Ngram.ScoreStats> map1 = textScore.ngramScores;
+                @Inv("ngrams+<self>=+TextLanguage50+TextLanguage51-TextLanguage48-TextLanguage48") EnumMap<NgramType, Ngram.ScoreStats> map2 = textScore.getNgramScores();
+                TextLanguage50: map1.put(entry.getKey(), ngram.score(text));
+                TextLanguage51: map2.put(entry.getKey(), ngram.score(text));
             }
         }
         return textScore;

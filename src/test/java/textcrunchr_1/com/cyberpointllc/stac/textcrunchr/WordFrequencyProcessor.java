@@ -27,9 +27,9 @@ public class WordFrequencyProcessor extends Processor {
         // sort results by most frequent
         Sorter<WordCount> sorter = new  Sorter<WordCount>(new  DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
-        @Inv("sortedWCs+<self>.results=+32-31") TCResult result = new  TCResult("Word frequencies");
-        c31: for (WordCount wc : sortedWCs) {
-            c32: result.addResult(wc.getWord(), wc.getCount());
+        TCResult result = new  TCResult("Word frequencies");
+        WordFrequencyProcessor31: for (WordCount wc : sortedWCs) {
+            WordFrequencyProcessor32: result.addResult(wc.getWord(), wc.getCount());
         }
         return result;
     }
@@ -45,9 +45,9 @@ public class WordFrequencyProcessor extends Processor {
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
-        @Inv({"words+<self>=+60-50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
-        @Inv("words+<self>=+59-50") HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
-        c50: for (String word : words) {
+        @Inv({"words+<self>=+WordFrequencyProcessor60-WordFrequencyProcessor50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
+        @Inv("words+<self>=+WordFrequencyProcessor59-WordFrequencyProcessor50") HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
+        WordFrequencyProcessor50: for (String word : words) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
             String w = word;
             // increment current count for w
@@ -56,8 +56,8 @@ public class WordFrequencyProcessor extends Processor {
                 count = freqsCounter.get(w);
             } else {
                 count = new  WordCount(w, 0);
-                c59: freqsCounter.put(w, count);
-                c60: freqs.add(count);
+                WordFrequencyProcessor59: freqsCounter.put(w, count);
+                WordFrequencyProcessor60: freqs.add(count);
             }
             count.increment();
         }
@@ -86,12 +86,12 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @Inv("br+<self>=+92-90-91") StringBuilder sb = new  StringBuilder();
+        @Inv("br+<self>=+WordFrequencyProcessor92-WordFrequencyProcessor90-WordFrequencyProcessor91") StringBuilder sb = new  StringBuilder();
         String read;
-        c90: read = br.readLine();
+        WordFrequencyProcessor90: read = br.readLine();
         while (read != null) {
-            c92: sb.append(read);
-            c91: read = br.readLine();
+            WordFrequencyProcessor92: sb.append(read);
+            WordFrequencyProcessor91: read = br.readLine();
         }
         return sb.toString();
     }

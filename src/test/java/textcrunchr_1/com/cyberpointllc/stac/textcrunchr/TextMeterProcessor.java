@@ -22,19 +22,19 @@ public class TextMeterProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        @Inv("br+<self>=+31-28-32") StringBuilder sb = new  StringBuilder();
+        @Inv("br+<self>=+TextMeterProcessor31-TextMeterProcessor28-TextMeterProcessor32") StringBuilder sb = new  StringBuilder();
         BufferedReader br = new  BufferedReader(is);
         String read;
-        c28: read = br.readLine();
+        TextMeterProcessor28: read = br.readLine();
         while (read != null) {
             //System.out.println(read);
-            c31: sb.append(read);
-            c32: read = br.readLine();
+            TextMeterProcessor31: sb.append(read);
+            TextMeterProcessor32: read = br.readLine();
         }
         String theString = sb.toString();
         // set up textmeter
         TextMeter textMeter = new  TextMeter();
-        textMeter.createTextLanguage("en");
+        TextMeterProcessor37: textMeter.createTextLanguage("en");
         TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;

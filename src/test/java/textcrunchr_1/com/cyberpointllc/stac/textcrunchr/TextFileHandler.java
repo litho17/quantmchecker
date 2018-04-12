@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,19 +10,19 @@ import java.util.List;
 
 public class TextFileHandler {
 
-    List<Processor> processors;
+    @Inv("+<self>=+TextFileHandler17+TextFileHandler18+TextFileHandler19+TextFileHandler20+TextFileHandler21") List<Processor> processors;
 
     public TextFileHandler() throws IOException {
         processors = new ArrayList<Processor>();
-        processors.add(new CharacterCountProcessor());
-        processors.add(new TextMeterProcessor());
-        processors.add(new EnigmaProcessor());
+        TextFileHandler17: processors.add(new CharacterCountProcessor());
+        TextFileHandler18: processors.add(new TextMeterProcessor());
+        TextFileHandler19: processors.add(new EnigmaProcessor());
         // Disabling SentenceStatsProcessor since there's a vulnerability in opennlp which is out
         // of scope for us at the moment. Leaving it commented in here because we might want
         // to bring it back someday.
         //processors.add(new SentenceStatsProcessor());
-        processors.add(new WordStatsProcessor());
-        processors.add(new WordFrequencyProcessor());
+        TextFileHandler20: processors.add(new WordStatsProcessor());
+        TextFileHandler21: processors.add(new WordFrequencyProcessor());
     }
 
     public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {

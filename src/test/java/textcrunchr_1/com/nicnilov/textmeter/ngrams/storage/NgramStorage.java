@@ -20,7 +20,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
 
     private long count = 0;
 
-    protected @Inv("inputStream+<self>=+49-43") AbstractMap<String, Float> storage;
+    protected @Inv("inputStream+<self>=+NgramStorage49-NgramStorage43") AbstractMap<String, Float> storage;
 
     public abstract NgramStorageStrategy getStorageStrategy();
 
@@ -38,13 +38,13 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
         String line;
         float ngramFrequency;
         long totalOccurences = 0;
-        c43: while ((line = br.readLine()) != null) {
+        NgramStorage43: while ((line = br.readLine()) != null) {
             lineNo++;
             if (!line.matches(lineRegex)) {
                 throw new  LineFormatException(String.format("Ngram resource line %d doesn't match pattern \"%s\"", lineNo, lineRegex));
             }
             ngramFrequency = Long.parseLong(line.substring(freqStart, line.length()));
-            c49: storage.put(line.substring(0, this.getNgramType().length()), ngramFrequency);
+            NgramStorage49: storage.put(line.substring(0, this.getNgramType().length()), ngramFrequency);
             totalOccurences += ngramFrequency;
         }
         count = lineNo;
