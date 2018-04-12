@@ -44,22 +44,22 @@ public class ChatSerializer extends Serializer<GabChat> {
         String id = in.readUTF();
         Date lastUpdated = DATE.deserialize(in, available);
         int numberOfUsers = in.readInt();
-        @Inv("i+<self>=+c51-c50") Set<String> userIds = new  LinkedHashSet(numberOfUsers);
+        @Inv("i+<self>=+ChatSerializer51-ChatSerializer50") Set<String> userIds = new  LinkedHashSet(numberOfUsers);
         for (int i = 0; i < numberOfUsers; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                c50: for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
-                    c51: deserializeHelper(userIds, in);
+                ChatSerializer50: for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
+                    ChatSerializer51: deserializeHelper(userIds, in);
                 }
             }
         }
         int numberOfMessages = in.readInt();
-        @Inv("j+<self>=+c62-c61") List<String> messageIds = new  ArrayList(numberOfMessages);
+        @Inv("j+<self>=+ChatSerializer62-ChatSerializer61") List<String> messageIds = new  ArrayList(numberOfMessages);
         for (int j = 0; j < numberOfMessages; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; j < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                c61: for (; j < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; j++) {
-                    c62: deserializeHelper1(messageIds, in);
+                ChatSerializer61: for (; j < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; j++) {
+                    ChatSerializer62: deserializeHelper1(messageIds, in);
                 }
             }
         }
@@ -71,12 +71,12 @@ public class ChatSerializer extends Serializer<GabChat> {
     }
 
     @Summary({"userIds", "1"})
-    private void deserializeHelper(@Inv("+<self>=+c75") Set<String> userIds, DataInput in) throws IOException {
+    private void deserializeHelper(Set<String> userIds, DataInput in) throws IOException {
         c75: userIds.add(in.readUTF());
     }
 
     @Summary({"messageIds", "1"})
-    private void deserializeHelper1(@Inv("+<self>=+c79") List<String> messageIds, DataInput in) throws IOException {
+    private void deserializeHelper1(List<String> messageIds, DataInput in) throws IOException {
         c79: messageIds.add(in.readUTF());
     }
 }

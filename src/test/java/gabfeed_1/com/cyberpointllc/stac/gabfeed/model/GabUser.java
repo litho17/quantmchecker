@@ -74,7 +74,7 @@ public class GabUser implements Templated {
     }
 
     @Summary({"messages", "1"})
-    private void getMessagesHelper(String messageId, @Inv("+<self>=+c78") LinkedList<GabMessage> messages) {
+    private void getMessagesHelper(String messageId, LinkedList<GabMessage> messages) {
         c78: messages.add(db.getMessage(messageId));
     }
 }

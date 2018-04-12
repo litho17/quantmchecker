@@ -120,7 +120,7 @@ public class UserHandler extends GabHandler {
     }
 
     @Summary({"links", "1"})
-    private void getChatContentHelper(WebSession webSession, Collection<GabChat> gabChats, @Inv("gabChats+<self>=+c125-c124") List<Link> links) {
+    private void getChatContentHelper(WebSession webSession, Collection<GabChat> gabChats, List<Link> links) {
         c124: for (GabChat gabChat : gabChats) {
             c125: links.add(new  Link(ChatHandler.getPathToChat(gabChat.getId()), "Chat with " + gabChat.getOthers(webSession.getUserId())));
         }

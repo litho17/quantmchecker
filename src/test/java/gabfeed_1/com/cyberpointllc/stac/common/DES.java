@@ -1,5 +1,8 @@
 package gabfeed_1.com.cyberpointllc.stac.common;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.Arrays;
 import java.util.Random;
 
@@ -438,11 +441,11 @@ public class DES {
     }
 
     private static String hex(byte[] bytes) {
-        StringBuilder sb = new  StringBuilder();
+        @Inv("i+<self>=+DES638-DES448") StringBuilder sb = new  StringBuilder();
         for (int i = 0; i < bytes.length; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < bytes.length && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                for (; i < bytes.length && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
+                DES448: for (; i < bytes.length && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
                     hexHelper(bytes, sb, i);
                 }
             }
@@ -630,7 +633,8 @@ public class DES {
         ba[i / 2] = (byte) (charToNibble(s.charAt(i)) << 4 | charToNibble(s.charAt(i + 1)));
     }
 
+    @Summary({"sb", "1"})
     private static void hexHelper(byte[] bytes, StringBuilder sb, int i) {
-        sb.append(String.format("%02X ", bytes[i]));
+        DES638: sb.append(String.format("%02X ", bytes[i]));
     }
 }

@@ -45,8 +45,8 @@ public class TextLanguage {
         Ngram ngram;
         TextLanguage48: for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {
-                @Inv("ngrams+<self>=+TextLanguage50+TextLanguage51-TextLanguage48-TextLanguage48") EnumMap<NgramType, Ngram.ScoreStats> map1 = textScore.ngramScores;
-                @Inv("ngrams+<self>=+TextLanguage50+TextLanguage51-TextLanguage48-TextLanguage48") EnumMap<NgramType, Ngram.ScoreStats> map2 = textScore.getNgramScores();
+                EnumMap<NgramType, Ngram.ScoreStats> map1 = textScore.ngramScores;
+                EnumMap<NgramType, Ngram.ScoreStats> map2 = textScore.getNgramScores();
                 TextLanguage50: map1.put(entry.getKey(), ngram.score(text));
                 TextLanguage51: map2.put(entry.getKey(), ngram.score(text));
             }

@@ -57,7 +57,8 @@ public class NewThreadHandler extends GabHandler {
             return getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Room: " + roomId);
         }
         Map<String, String> fields = MultipartHelper.getMultipartFieldContent(httpExchange);
-        GabThread newThread = room.addThread(fields.get("threadName"), user.getId());
+        GabThread newThread;
+        newthreadhandler61: newThread = room.addThread(fields.get("threadName"), user.getId());
         GabMessage message = newThread.addMessage(fields.get("messageContents"), user.getId());
         user.addMessage(message.getId());
         return getRedirectResponse(ThreadHandler.getPathToThread(newThread.getId()));

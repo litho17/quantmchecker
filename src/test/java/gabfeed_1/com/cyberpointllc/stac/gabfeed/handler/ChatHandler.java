@@ -91,9 +91,9 @@ public class ChatHandler extends GabHandler {
 
     private String getContents(GabChat gabChat, WebSession webSession) {
         String messageContents = getMessageContents(gabChat, webSession);
-        @Inv("+<self>=+c94+c95") Map<String, String> map = gabChat.getTemplateMap();
-        c94: map.put("path", getPath());
-        c95: map.put("threadId", gabChat.getId());
+        @Inv("+<self>=+ChatHandler94+ChatHandler95+GabChat99+GabChat100+ChatHandler113") Map<String, String> map = gabChat.getTemplateMap();
+        ChatHandler94: map.put("path", getPath());
+        ChatHandler95: map.put("threadId", gabChat.getId());
         String newMessage = newMessageTemplate.getEngine().replaceTags(map);
         return messageContents + "<hr>" + newMessage;
     }
@@ -102,15 +102,15 @@ public class ChatHandler extends GabHandler {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
         TemplateEngine engine = suppressTimestamp ? messageListTemplateWithoutTime.getEngine() : messageListTemplate.getEngine();
-        @Inv("messages+<self>=+c110-c109") StringBuilder builder = new  StringBuilder();
+        @Inv("messages+<self>=+ChatHandler110-ChatHandler109") StringBuilder builder = new  StringBuilder();
         // First, add all existing chat messages
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         List<GabMessage> messages = sorter.sort(gabChat.getMessages());
-        c109: for (GabMessage message : messages) {
-            c110: getMessageContentsHelper(message, webSession, engine, builder);
+        ChatHandler109: for (GabMessage message : messages) {
+            ChatHandler110: getMessageContentsHelper(message, webSession, engine, builder);
         }
-        @Inv("+<self>=+c113") Map<String, String> map = gabChat.getTemplateMap();
-        c113: map.put("messages", builder.toString());
+        @Inv("+<self>=+ChatHandler94+ChatHandler95+GabChat99+GabChat100+ChatHandler113") Map<String, String> map = gabChat.getTemplateMap();
+        ChatHandler113: map.put("messages", builder.toString());
         return threadTemplate.getEngine().replaceTags(map);
     }
 

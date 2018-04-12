@@ -95,9 +95,9 @@ public class GabChat implements Templated {
 
     @Override
     public Map<String, String> getTemplateMap() {
-        Map<String, String> templateMap = new  HashMap();
-        templateMap.put("chatId", id);
-        templateMap.put("chatLastUpdated", lastUpdated.toString());
+        @Inv("+<self>=+ChatHandler94+ChatHandler95+GabChat99+GabChat100+ChatHandler113") Map<String, String> templateMap = new  HashMap();
+        GabChat99: templateMap.put("chatId", id);
+        GabChat100: templateMap.put("chatLastUpdated", lastUpdated.toString());
         return templateMap;
     }
 
@@ -122,7 +122,7 @@ public class GabChat implements Templated {
     }
 
     @Summary({"messages", "1"})
-    private void getMessagesHelper(String messageId, @Inv("+<self>=+c126") LinkedList<GabMessage> messages) {
+    private void getMessagesHelper(String messageId, LinkedList<GabMessage> messages) {
         c126: messages.add(db.getMessage(messageId));
     }
 
