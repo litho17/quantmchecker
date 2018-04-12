@@ -7,9 +7,10 @@ import java.lang.annotation.*;
 /**
  * @author Tianhan Lu
  */
-@SubtypeOf({InvTop.class})
+@SubtypeOf({InvBounded.class})
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.PARAMETER})
+// @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
+@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @Documented
 //Check these qualifiers: package org.checkerframework.framework.qual;
 public @interface Inv {

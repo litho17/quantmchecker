@@ -5,6 +5,7 @@ import javax.lang.model.element.AnnotationMirror
 import com.sun.source.tree.Tree
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.QualifierHierarchy
+import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
 import plv.colorado.edu.Utils
@@ -27,6 +28,10 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     // getTypeHierarchy();
   }
 
+  override def createFlowTransferFunction(analysis: CFAbstractAnalysis[CFValue, CFStore, CFTransfer]): CFTransfer = {
+    new QuantmTransfer(analysis)
+  }
+
   // Learned from KeyForAnnotatedTypeFactory.java
   override def createQualifierHierarchy(factory: MultiGraphQualifierHierarchy.MultiGraphFactory): QualifierHierarchy = new QuantmQualifierHierarchy(factory)
 
@@ -47,8 +52,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       if (AnnotationUtils.areSameIgnoringValues(superAnno, INV) && AnnotationUtils.areSameIgnoringValues(subAnno, INV)) {
         val lhsValues = Utils.extractValues(superAnno)
         val rhsValues = Utils.extractValues(subAnno)
-        // return rhsValues.containsAll(lhsValues);
-        return false
+        return lhsValues == rhsValues
       }
       // Ignore annotation values to ensure that annotation is in supertype map.
       val newSuperAnno = if (AnnotationUtils.areSameIgnoringValues(superAnno, INV)) INV else superAnno
@@ -60,4 +64,5 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       super.isSubtype(newSubAnno, newSuperAnno)
     }
   }
+
 }

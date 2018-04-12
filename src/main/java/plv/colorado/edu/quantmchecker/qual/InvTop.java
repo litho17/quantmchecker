@@ -1,17 +1,16 @@
 package plv.colorado.edu.quantmchecker.qual;
 
-import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
-import org.checkerframework.framework.qual.InvisibleQualifier;
-import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.*;
 
 import java.lang.annotation.*;
 
 /**
  * @author Tianhan Lu
  */
-@InvisibleQualifier
-@SubtypeOf({})
 @DefaultQualifierInHierarchy
+@InvisibleQualifier
+// @DefaultFor({TypeUseLocation.UPPER_BOUND, TypeUseLocation.LOWER_BOUND})
+@SubtypeOf({})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
