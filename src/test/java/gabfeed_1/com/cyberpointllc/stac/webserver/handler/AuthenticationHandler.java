@@ -1,9 +1,10 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.TemplateEngine;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -111,6 +112,7 @@ public class AuthenticationHandler extends AbstractHttpHandler {
         }
     }
 
+    @Summary({"contentsTemplateMap", "1"})
     private void handleGetHelper(Map<String, String> contentsTemplateMap) {
         contentsTemplateMap.put("includeTimestamp", "false");
     }

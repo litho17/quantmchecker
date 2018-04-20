@@ -2,6 +2,7 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.handler;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabIndexEntry;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabMessage;
+import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import gabfeed_1.com.cyberpointllc.stac.sort.Sorter;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSession;
@@ -11,17 +12,18 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 
 /**
@@ -81,13 +83,14 @@ public class SearchHandler extends GabHandler {
     private String getContents(GabIndexEntry gabIndexEntry, WebSession webSession, String specialContents) {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
-        @Inv("items+<self>=+c91-c90") StringBuilder builder = new  StringBuilder();
+        StringBuilder builder = new  StringBuilder();
         // get the items in the indexEntry and sort them by the number
         // of times the word appears in the item's associated message
+        List<GabIndexEntry.Item> items = gabIndexEntry.getItems();
         Sorter sorter = new  Sorter(GabIndexEntry.DESCENDING_COMPARATOR);
-        List<GabIndexEntry.Item> items = sorter.sort((gabIndexEntry.getItems()));
-        c90: for (GabIndexEntry.Item item : items) {
-            c91: getContentsHelper(suppressTimestamp, webSession, item, builder);
+        items = sorter.sort(items);
+        for (GabIndexEntry.Item item : items) {
+            getContentsHelper(suppressTimestamp, webSession, item, builder);
         }
         Map<String, String> threadMap = Collections.singletonMap("messages", builder.toString());
         return specialContents + CONTENTS + threadTemplate.getEngine().replaceTags(threadMap);
@@ -128,11 +131,11 @@ public class SearchHandler extends GabHandler {
     }
 
     private List<String> getDailyTerms() {
-        @Inv("reader+<self>=+c135-c134") List<String> terms = new  ArrayList<String>();
+        List<String> terms = new  ArrayList<String>();
         try (BufferedReader reader = new  BufferedReader(new  FileReader(dataPath + File.separator + "special_terms.txt"))) {
             String term;
-            c134: while ((term = reader.readLine()) != null) {
-                c135: terms.add(term);
+            while ((term = reader.readLine()) != null) {
+                terms.add(term);
             }
             return terms;
         } catch (IOException e) {
@@ -149,11 +152,11 @@ public class SearchHandler extends GabHandler {
             String line = "";
             String key = "";
             String val = "";
-            @Inv("reader+<self>=+c156+c169-c153") Map<String, String> textInfo = new  TreeMap<String, String>();
-            c153: while ((line = reader.readLine()) != null) {
+            Map<String, String> textInfo = new  TreeMap<String, String>();
+            while ((line = reader.readLine()) != null) {
                 if (line.contains("=")) {
                     if (key.length() != conditionObj0.getValue()) {
-                        c156: textInfo.put(key, val);
+                        textInfo.put(key, val);
                     }
                     String[] parts = line.split("=");
                     try {
@@ -166,7 +169,7 @@ public class SearchHandler extends GabHandler {
                     val += line;
                 }
             }
-            c169: textInfo.put(key, val);
+            textInfo.put(key, val);
             // now look up the term we're interested in
             return textInfo.get(term);
         } catch (IOException e) {
@@ -188,12 +191,11 @@ public class SearchHandler extends GabHandler {
         }
     }
 
-    @Summary({"builder", "1"})
     private void getContentsHelper(boolean suppressTimestamp, WebSession webSession, GabIndexEntry.Item item, StringBuilder builder) {
         GabMessage message = getDb().getMessage(item.getMessageId());
-        @Inv("+<self>=+c197") Map<String, String> messageMap = message.getTemplateMap();
+        Map<String, String> messageMap = message.getTemplateMap();
         String content = messageMap.get("messageContents");
-        c197: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
+        messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
         if (!suppressTimestamp) {
             messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
         } else {

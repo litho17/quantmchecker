@@ -1,10 +1,9 @@
 package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.LinkedList;
@@ -35,7 +34,7 @@ public class GabUser implements Templated {
         this.messageIds = messageIds;
     }
 
-    @Summary({"messageIds", "1"})
+    @Summary({"this.messageIds", "1"})
     public void addMessage(String messageId) {
         messageIds.add(messageId);
         db.addUser(this);
@@ -58,23 +57,22 @@ public class GabUser implements Templated {
     }
 
     public List<GabMessage> getMessages() {
-        @Inv("+<self>=+c63-c62") LinkedList<GabMessage> messages = new  LinkedList();
-        c62: for (String messageId : getMessageIds()) {
-            c63: getMessagesHelper(messageId, messages);
+        LinkedList<GabMessage> messages = new  LinkedList();
+        for (String messageId : getMessageIds()) {
+            getMessagesHelper(messageId, messages);
         }
         return messages;
     }
 
     @Override
     public Map<String, String> getTemplateMap() {
-        @Inv("+<self>=+c71+c72") Map<String, String> templateMap = new  HashMap();
-        c71: templateMap.put("userId", id);
-        c72: templateMap.put("displayName", StringEscapeUtils.escapeHtml4(displayName));
+        Map<String, String> templateMap = new  HashMap();
+        templateMap.put("userId", id);
+        templateMap.put("displayName", StringEscapeUtils.escapeHtml4(displayName));
         return templateMap;
     }
 
-    @Summary({"messages", "1"})
     private void getMessagesHelper(String messageId, LinkedList<GabMessage> messages) {
-        c78: messages.add(db.getMessage(messageId));
+        messages.add(db.getMessage(messageId));
     }
 }

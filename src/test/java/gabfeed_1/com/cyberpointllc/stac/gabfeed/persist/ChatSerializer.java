@@ -2,7 +2,6 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.persist;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabChat;
 import org.mapdb.Serializer;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.DataInput;
@@ -44,22 +43,22 @@ public class ChatSerializer extends Serializer<GabChat> {
         String id = in.readUTF();
         Date lastUpdated = DATE.deserialize(in, available);
         int numberOfUsers = in.readInt();
-        @Inv("i+<self>=+ChatSerializer51-ChatSerializer50") Set<String> userIds = new  LinkedHashSet(numberOfUsers);
+        Set<String> userIds = new  LinkedHashSet(numberOfUsers);
         for (int i = 0; i < numberOfUsers; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                ChatSerializer50: for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
-                    ChatSerializer51: deserializeHelper(userIds, in);
+                for (; i < numberOfUsers && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
+                    deserializeHelper(userIds, in);
                 }
             }
         }
         int numberOfMessages = in.readInt();
-        @Inv("j+<self>=+ChatSerializer62-ChatSerializer61") List<String> messageIds = new  ArrayList(numberOfMessages);
-        for (int j = 0; j < numberOfMessages; ) {
+        List<String> messageIds = new  ArrayList(numberOfMessages);
+        for (int i = 0; i < numberOfMessages; ) {
             Random randomNumberGeneratorInstance = new  Random();
-            for (; j < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                ChatSerializer61: for (; j < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; j++) {
-                    ChatSerializer62: deserializeHelper1(messageIds, in);
+            for (; i < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
+                for (; i < numberOfMessages && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
+                    deserializeHelper1(messageIds, in);
                 }
             }
         }
@@ -72,11 +71,11 @@ public class ChatSerializer extends Serializer<GabChat> {
 
     @Summary({"userIds", "1"})
     private void deserializeHelper(Set<String> userIds, DataInput in) throws IOException {
-        c75: userIds.add(in.readUTF());
+        userIds.add(in.readUTF());
     }
 
     @Summary({"messageIds", "1"})
     private void deserializeHelper1(List<String> messageIds, DataInput in) throws IOException {
-        c79: messageIds.add(in.readUTF());
+        messageIds.add(in.readUTF());
     }
 }

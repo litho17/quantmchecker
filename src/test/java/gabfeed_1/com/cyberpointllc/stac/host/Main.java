@@ -98,11 +98,11 @@ public class Main {
         DefaultHandler defaultHandler = new  DefaultHandler(roomsHandler.getPath());
         handlers.add(roomsHandler);
         handlers.add(defaultHandler);
-        handlers.add(new RoomHandler(gabDatabase, server.getWebSessionService()));
+        handlers.add(new  RoomHandler(gabDatabase, server.getWebSessionService()));
         handlers.add(new  ThreadHandler(gabDatabase, server.getWebSessionService()));
-        handlers.add(new NewMessageHandler(gabDatabase, server.getWebSessionService()));
+        handlers.add(new  NewMessageHandler(gabDatabase, server.getWebSessionService()));
         handlers.add(new  NewThreadHandler(gabDatabase, server.getWebSessionService()));
-        handlers.add(new UserHandler(gabDatabase, server.getWebSessionService()));
+        handlers.add(new  UserHandler(gabDatabase, server.getWebSessionService()));
         handlers.add(new  WidthHandler(gabDatabase, server.getWebSessionService()));
         handlers.add(new  SearchHandler(gabDatabase, server.getWebSessionService(), dataPath));
         handlers.add(new  ChatHandler(gabDatabase, server.getWebSessionService()));

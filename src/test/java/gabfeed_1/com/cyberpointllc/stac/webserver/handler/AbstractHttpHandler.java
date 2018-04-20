@@ -1,5 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
+import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.apache.http.NameValuePair;

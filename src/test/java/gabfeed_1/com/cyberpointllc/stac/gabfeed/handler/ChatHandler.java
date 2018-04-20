@@ -13,9 +13,6 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.net.HttpURLConnection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,9 +68,9 @@ public class ChatHandler extends GabHandler {
             // First, check and guard against a repeat request
             gabChat = getExistingGabChat(user.getId(), gabUser.getId());
             if (gabChat == null) {
-                @Inv("+<self>=+c74+c75") Set<String> userIds = new  LinkedHashSet();
-                c74: userIds.add(user.getId());
-                c75: userIds.add(gabUser.getId());
+                Set<String> userIds = new  LinkedHashSet();
+                userIds.add(user.getId());
+                userIds.add(gabUser.getId());
                 // Create and add a new chat to the database
                 gabChat = new  GabChat(getDb(), userIds);
                 getDb().addChat(gabChat);
@@ -91,9 +88,9 @@ public class ChatHandler extends GabHandler {
 
     private String getContents(GabChat gabChat, WebSession webSession) {
         String messageContents = getMessageContents(gabChat, webSession);
-        @Inv("+<self>=+ChatHandler94+ChatHandler95+GabChat99+GabChat100+ChatHandler113") Map<String, String> map = gabChat.getTemplateMap();
-        ChatHandler94: map.put("path", getPath());
-        ChatHandler95: map.put("threadId", gabChat.getId());
+        Map<String, String> map = gabChat.getTemplateMap();
+        map.put("path", getPath());
+        map.put("threadId", gabChat.getId());
         String newMessage = newMessageTemplate.getEngine().replaceTags(map);
         return messageContents + "<hr>" + newMessage;
     }
@@ -102,15 +99,15 @@ public class ChatHandler extends GabHandler {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
         TemplateEngine engine = suppressTimestamp ? messageListTemplateWithoutTime.getEngine() : messageListTemplate.getEngine();
-        @Inv("messages+<self>=+ChatHandler110-ChatHandler109") StringBuilder builder = new  StringBuilder();
+        StringBuilder builder = new  StringBuilder();
         // First, add all existing chat messages
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         List<GabMessage> messages = sorter.sort(gabChat.getMessages());
-        ChatHandler109: for (GabMessage message : messages) {
-            ChatHandler110: getMessageContentsHelper(message, webSession, engine, builder);
+        for (GabMessage message : messages) {
+            getMessageContentsHelper(message, webSession, engine, builder);
         }
-        @Inv("+<self>=+ChatHandler94+ChatHandler95+GabChat99+GabChat100+ChatHandler113") Map<String, String> map = gabChat.getTemplateMap();
-        ChatHandler113: map.put("messages", builder.toString());
+        Map<String, String> map = gabChat.getTemplateMap();
+        map.put("messages", builder.toString());
         return threadTemplate.getEngine().replaceTags(map);
     }
 
@@ -157,13 +154,12 @@ public class ChatHandler extends GabHandler {
         }
     }
 
-    @Summary({"builder", "1"})
-    private void getMessageContentsHelper(GabMessage message, WebSession webSession, TemplateEngine engine, @Inv("+<self>=+c166") StringBuilder builder) {
-        @Inv("+<self>=+c163") Map<String, String> messageMap = message.getTemplateMap();
+    private void getMessageContentsHelper(GabMessage message, WebSession webSession, TemplateEngine engine, StringBuilder builder) {
+        Map<String, String> messageMap = message.getTemplateMap();
         // fix up the contents
         String content = messageMap.get("messageContents");
-        c163: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
-        c166: engine.replaceTagsBuilder(messageMap, builder);
+        messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
+        engine.replaceTagsBuilder(messageMap, builder);
     }
 
     private void handlePostHelper(HttpExchange httpExchange) {

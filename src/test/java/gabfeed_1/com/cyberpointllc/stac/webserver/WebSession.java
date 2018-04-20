@@ -1,6 +1,8 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver;
 
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.Map;
 
 /**
@@ -32,6 +34,7 @@ public class WebSession {
         }
     }
 
+    @Summary({"this.propertyMap", "1"})
     public void setProperty(String name, String value) {
         propertyMap.put(name, value);
     }

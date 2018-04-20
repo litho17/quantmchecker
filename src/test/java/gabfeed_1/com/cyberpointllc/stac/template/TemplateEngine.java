@@ -7,7 +7,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Random;
@@ -57,9 +56,9 @@ public class TemplateEngine {
      */
     public List<Pair<Integer, Integer>> findTags() {
         Matcher matcher = pattern.matcher(text);
-        @Inv("+<self>=+c62") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
+        List<Pair<Integer, Integer>> tagsList = new  ArrayList();
         while (matcher.find()) {
-            c62: findTagsHelper(tagsList, matcher);
+            findTagsHelper(tagsList, matcher);
         }
         return tagsList;
     }
@@ -88,9 +87,9 @@ public class TemplateEngine {
      * @param sb
      *            The string builder to put the data in
      */
-    @Summary({"sb", "1"})
+    @Summary({"sb", "1+this.text*2"})
     public void replaceTagsBuilder(Map<String, String> dictionary, StringBuilder sb) {
-        c93: replaceTagsBuilderHelper(sb, dictionary);
+        replaceTagsBuilderHelper(sb, dictionary);
     }
 
     public String replaceTags(Templated templated) {
@@ -128,7 +127,7 @@ public class TemplateEngine {
         tagsList.add(Pair.of(matcher.start(), matcher.end()));
     }
 
-    @Summary({"sb", "1"})
+    @Summary({"sb", "1+this.text*2"})
     private void replaceTagsBuilderHelper(StringBuilder sb, Map<String, String> dictionary) {
         // keep track of where we are on the text string
         int linePointer = 0;
@@ -138,20 +137,20 @@ public class TemplateEngine {
         for (int i = 0; i < tagsList.size(); ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < tagsList.size() && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                c141: for (; i < tagsList.size() && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
+                for (; i < tagsList.size() && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
                     int startTagLocation = tagsList.get(i).getLeft();
                     int endTagLocation = tagsList.get(i).getRight();
                     // append the part of the text that doesn't have tags
-                    c145: sb.append(text.substring(linePointer, startTagLocation));
+                    sb.append(text.substring(linePointer, startTagLocation));
                     // get the dictionary key
                     String key = text.substring(startTagLocation + startTagLength, endTagLocation - endTagLength).trim();
                     // append the value to the text instead of the key
-                    c149: sb.append(dictionary.get(key));
+                    sb.append(dictionary.get(key));
                     linePointer = endTagLocation;
                 }
             }
         }
         // append the last part of the text that doesn't have tags
-        c155: sb.append(text.substring(linePointer, text.length()));
+        sb.append(text.substring(linePointer, text.length()));
     }
 }

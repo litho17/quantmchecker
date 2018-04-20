@@ -1,9 +1,8 @@
 package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Comparator;
@@ -41,6 +40,7 @@ public class GabChat implements Templated {
         this.messageIds = messageIds;
     }
 
+    @Summary({"this.messageIds", "1"})
     public GabMessage addMessage(String contents, String authorId) {
         String messageId = getId() + "_" + messageIds.size();
         Date postDate = new  Date();
@@ -69,9 +69,9 @@ public class GabChat implements Templated {
     }
 
     public List<GabMessage> getMessages() {
-        @Inv("+<self>=+c74-c73") LinkedList<GabMessage> messages = new  LinkedList();
-        c73: for (String messageId : getMessageIds()) {
-            c74: getMessagesHelper(messageId, messages);
+        LinkedList<GabMessage> messages = new  LinkedList();
+        for (String messageId : getMessageIds()) {
+            getMessagesHelper(messageId, messages);
         }
         return messages;
     }
@@ -95,9 +95,9 @@ public class GabChat implements Templated {
 
     @Override
     public Map<String, String> getTemplateMap() {
-        @Inv("+<self>=+ChatHandler94+ChatHandler95+GabChat99+GabChat100+ChatHandler113") Map<String, String> templateMap = new  HashMap();
-        GabChat99: templateMap.put("chatId", id);
-        GabChat100: templateMap.put("chatLastUpdated", lastUpdated.toString());
+        Map<String, String> templateMap = new  HashMap();
+        templateMap.put("chatId", id);
+        templateMap.put("chatLastUpdated", lastUpdated.toString());
         return templateMap;
     }
 
@@ -123,9 +123,10 @@ public class GabChat implements Templated {
 
     @Summary({"messages", "1"})
     private void getMessagesHelper(String messageId, LinkedList<GabMessage> messages) {
-        c126: messages.add(db.getMessage(messageId));
+        messages.add(db.getMessage(messageId));
     }
 
+    @Summary({"sb", "1"})
     private void getOthersHelper(StringBuilder sb) {
         sb.append(" and ");
     }

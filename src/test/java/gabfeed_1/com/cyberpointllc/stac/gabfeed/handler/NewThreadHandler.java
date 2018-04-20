@@ -5,15 +5,19 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabRoom;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
+import gabfeed_1.com.cyberpointllc.stac.webserver.handler.AbstractHttpHandler;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 import java.net.HttpURLConnection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class NewThreadHandler extends GabHandler {
 
@@ -45,8 +49,8 @@ public class NewThreadHandler extends GabHandler {
     }
 
     private String getContents(GabRoom room) {
-        @Inv("+<self>=+c49") Map<String, String> threadMap = room.getTemplateMap();
-        c49: threadMap.put("path", getPath());
+        Map<String, String> threadMap = room.getTemplateMap();
+        threadMap.put("path", getPath());
         return newThreadTemplate.getEngine().replaceTags(threadMap);
     }
 
@@ -57,8 +61,7 @@ public class NewThreadHandler extends GabHandler {
             return getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Room: " + roomId);
         }
         Map<String, String> fields = MultipartHelper.getMultipartFieldContent(httpExchange);
-        GabThread newThread;
-        newthreadhandler61: newThread = room.addThread(fields.get("threadName"), user.getId());
+        GabThread newThread = room.addThread(fields.get("threadName"), user.getId());
         GabMessage message = newThread.addMessage(fields.get("messageContents"), user.getId());
         user.addMessage(message.getId());
         return getRedirectResponse(ThreadHandler.getPathToThread(newThread.getId()));

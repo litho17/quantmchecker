@@ -4,13 +4,13 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabRoom;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.sort.Sorter;
+import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 import java.net.HttpURLConnection;
 import java.util.Collections;
 import java.util.List;
@@ -54,8 +54,8 @@ public class RoomHandler extends GabHandler {
         Sorter sorter = new  Sorter(GabThread.DESCENDING_COMPARATOR);
         threads = sorter.sort(threads);
         String threadContents = threadListTemplate.getEngine().replaceTags(threads);
-        @Inv("+<self>=+c58") Map<String, String> roomMap = room.getTemplateMap();
-        c58: roomMap.put("threads", threadContents);
+        Map<String, String> roomMap = room.getTemplateMap();
+        roomMap.put("threads", threadContents);
         return roomTemplate.getEngine().replaceTags(roomMap);
     }
 }

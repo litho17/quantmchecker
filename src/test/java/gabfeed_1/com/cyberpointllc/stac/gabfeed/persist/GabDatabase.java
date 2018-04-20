@@ -7,12 +7,10 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabMessage;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabRoom;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
-import java.util.HashMap;
-
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.BufferedReader;
@@ -43,13 +41,13 @@ public class GabDatabase {
 
     private final DB db;
 
-    private final @Inv("+<self>=+c104+c135+c231+c262+c344") Map<String, GabRoom> rooms;
+    private final Map<String, GabRoom> rooms;
 
     private final Map<String, GabThread> threads;
 
     private final Map<String, GabMessage> messages;
 
-    private final @Inv("+<self>=+c253+c218") Map<String, GabUser> users;
+    private final Map<String, GabUser> users;
 
     private final Map<String, GabIndexEntry> indices;
 
@@ -78,30 +76,30 @@ public class GabDatabase {
      * Users file format: username,display-name,password
      */
     private Map<String, GabUser> initializeUsers(String dataDir, String passwordKey) {
-        @Inv("br+<self>=+GabDatabase86-GabDatabase85") Map<String, GabUser> _users = new  HashMap();
+        Map<String, GabUser> users = new  HashMap();
         File usersFile = new  File(dataDir, "gabfeed_users.txt");
         try (BufferedReader br = new  BufferedReader(new  FileReader(usersFile))) {
             String line;
-            GabDatabase85: while ((line = br.readLine()) != null) {
-                GabDatabase86: initializeUsersHelper(_users, line, passwordKey);
+            while ((line = br.readLine()) != null) {
+                initializeUsersHelper(users, line, passwordKey);
             }
         } catch (IOException e) {
             System.err.println("Error initializing users in database.");
             e.printStackTrace();
         }
-        return _users;
+        return users;
     }
 
     /**
      * Rooms file format: room-id, Room-name, Room-description
      */
     private Map<String, GabRoom> initializeRooms(String dataDir) {
-        @Inv("br+<self>=+c104-c103") Map<String, GabRoom> rooms = new  HashMap();
+        Map<String, GabRoom> rooms = new  HashMap();
         File roomsFile = new  File(dataDir, "gabfeed_rooms.txt");
         try (BufferedReader br = new  BufferedReader(new  FileReader(roomsFile))) {
             String line;
-            c103: while ((line = br.readLine()) != null) {
-                c104: initializeRoomsHelper(line, rooms);
+            while ((line = br.readLine()) != null) {
+                initializeRoomsHelper(line, rooms);
             }
         } catch (IOException e) {
             System.err.println("Error initializing rooms in database.");
@@ -130,9 +128,9 @@ public class GabDatabase {
                 if (line.startsWith(",")) {
                     //this is a thread
                     String[] parts = line.split(",", 4);
-                    @Inv("+<self>.threadIds=+gabdatabase134+newthreadhandler61") GabRoom room = rooms.get(parts[1]);
-                    gabdatabase134: thread = room.addThread(parts[2], parts[3]);
-                    gabdatabase135: addRoom(room);
+                    GabRoom room = rooms.get(parts[1]);
+                    thread = room.addThread(parts[2], parts[3]);
+                    addRoom(room);
                 } else if (thread != null) {
                     initializeThreadsHelper(users, thread, line);
                 }
@@ -213,55 +211,57 @@ public class GabDatabase {
         return gabChats;
     }
 
-    @Summary({"users", "1"})
+    @Summary({"this.users", "1"})
     public void addUser(GabUser user) {
-        c218: users.put(user.getId(), user);
+        users.put(user.getId(), user);
     }
 
+    @Summary({"this.threads", "1"})
     public void addThread(GabThread thread) {
         addThreadHelper(thread);
     }
 
+    @Summary({"this.rooms", "1", "this.indices", "gabMessage.contents"})
     public void addMessage(GabMessage message) {
         addMessageHelper(message);
     }
 
-    @Summary({"rooms", "1"})
+    @Summary({"this.rooms", "1"})
     public void addRoom(GabRoom room) {
-        c231: addRoomHelper(room);
+        addRoomHelper(room);
     }
 
-    @Summary({"chats", "1"})
+    @Summary({"this.chats", "1"})
     public void addChat(GabChat chat) {
-        c236: addChatHelper(chat);
+        addChatHelper(chat);
     }
 
+    @Summary({"this.indices", "gabMessage.contents"})
     private void indexMessage(GabMessage gabMessage) {
         indexMessageHelper(gabMessage);
     }
 
+    @Summary({"this.indices", "message.contents"})
     private void updateIndexHelper(GabMessage message) {
         indexMessage(message);
     }
 
-    @Summary({"_users", "1"})
-    private void initializeUsersHelper(Map<String, GabUser> _users, String line, String passwordKey) throws IOException {
+    private void initializeUsersHelper(Map<String, GabUser> users, String line, String passwordKey) throws IOException {
         String[] parts = line.split(",", 3);
         String id = parts[0];
         String displayName = parts[1];
         String password = parts[2];
         String encryptedPw = DESHelper.getEncryptedString(password, passwordKey);
         GabUser user = new  GabUser(this, id, displayName, encryptedPw);
-        c253: addUser(user);
-        c254: _users.put(parts[0], user);
+        addUser(user);
+        users.put(parts[0], user);
     }
 
-    @Summary({"_rooms", "1"})
-    private void initializeRoomsHelper(String line, Map<String, GabRoom> _rooms) throws IOException {
+    private void initializeRoomsHelper(String line, Map<String, GabRoom> rooms) throws IOException {
         String[] parts = line.split(",", 3);
         GabRoom room = new  GabRoom(this, parts[0], parts[1], parts[2]);
-        c262: addRoom(room);
-        c263: _rooms.put(parts[0], room);
+        addRoom(room);
+        rooms.put(parts[0], room);
     }
 
     private void initializeThreadsHelper(Map<String, GabUser> users, GabThread thread, String line) throws IOException {
@@ -278,26 +278,26 @@ public class GabDatabase {
         try (BufferedReader br = new  BufferedReader(new  FileReader(file))) {
             String line;
             GabChat chat = null;
-            c281: while ((line = br.readLine()) != null) {
+            while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts[0].trim().equalsIgnoreCase("c")) {
                     // A new chat
-                    @Inv("i+<self>=+c283-c280") Set<String> userIds = new  HashSet();
-                    c280: for (int i = 1; i < parts.length; i++) {
+                    Set<String> userIds = new  HashSet();
+                    for (int i = 1; i < parts.length; i++) {
                         // Skip first value ('c')
                         if (users.containsKey(parts[i])) {
-                            c283: userIds.add(parts[i]);
+                            userIds.add(parts[i]);
                         }
                     }
                     chat = new  GabChat(this, userIds);
-                    c293: addChat(chat);
+                    addChat(chat);
                 } else if (parts[0].trim().equalsIgnoreCase("m") && (chat != null)) {
                     // Add a message to the chat
                     if (users.containsKey(parts[1])) {
                         String message = parts[2];
                         // Manage case where commas are included in the message
-                        for (int j = 3; j < parts.length; j++) {
-                            message += "," + parts[j];
+                        for (int i = 3; i < parts.length; i++) {
+                            message += "," + parts[i];
                         }
                         chat.addMessage(message, parts[1]);
                         try {
@@ -325,46 +325,50 @@ public class GabDatabase {
         db.commit();
     }
 
+    @Summary({"gabChats", "1"})
     private void getChatsHelper(GabChat gabChat, Collection<GabChat> gabChats, Collection<String> setOfUserIds) {
         if (gabChat.getUserIds().containsAll(setOfUserIds)) {
             gabChats.add(gabChat);
         }
     }
 
+    @Summary({"this.threads", "1"})
     private void addThreadHelper(GabThread thread) {
         threads.put(thread.getId(), thread);
     }
 
+    @Summary({"this.messages", "1", "this.indices", "gabMessage.contents"})
     private void addMessageHelper(GabMessage message) {
-        c339: messages.put(message.getId(), message);
+        messages.put(message.getId(), message);
         indexMessage(message);
     }
 
-    @Summary({"rooms", "1"})
+    @Summary({"this.rooms", "1"})
     private void addRoomHelper(GabRoom room) {
-        c344: rooms.put(room.getId(), room);
+        rooms.put(room.getId(), room);
     }
 
-    @Summary({"chats", "1"})
+    @Summary({"this.chats", "1"})
     private void addChatHelper(GabChat chat) {
-        c350: chats.put(chat.getId(), chat);
+        chats.put(chat.getId(), chat);
     }
 
+    @Summary({"this.indices", "gabMessage.contents"})
     private void indexMessageHelper(GabMessage gabMessage) {
         if (gabMessage.isPublicMessage()) {
             String message = gabMessage.getContents();
             Date date = gabMessage.getPostDate();
             String[] words = message.split(" ");
-            @Inv("+<self>=+c362+c364") Map<String, Integer> wordCount = new  HashMap();
+            Map<String, Integer> wordCount = new  HashMap();
             for (String word : words) {
                 word = word.replaceAll("[^a-zA-Z]", "");
                 if (wordCount.containsKey(word)) {
-                    c362: wordCount.put(word, wordCount.get(word) + 1);
+                    wordCount.put(word, wordCount.get(word) + 1);
                 } else {
-                    c364: wordCount.put(word, 1);
+                    wordCount.put(word, 1);
                 }
             }
-            c367: for (String word : wordCount.keySet()) {
+            for (String word : wordCount.keySet()) {
                 String messageId = gabMessage.getId();
                 int count = wordCount.get(word);
                 if (indices.containsKey(word)) {

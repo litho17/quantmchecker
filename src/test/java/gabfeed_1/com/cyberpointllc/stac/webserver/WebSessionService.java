@@ -1,7 +1,9 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver;
 
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,6 +32,7 @@ public class WebSessionService {
      * @param httpExchange
      * @param session containing the userId of the current user
      */
+    @Summary({"this.sessions", "1", "this.times", "1"})
     public void addSession(HttpExchange httpExchange, WebSession session) {
         addSessionHelper(session, httpExchange);
     }
@@ -41,6 +44,7 @@ public class WebSessionService {
      * @return WebSession specifying the user id of the current user; may be null
      * if the sessionId cannot be found or if the WebSession has expired.
      */
+    @Summary({"this.times", "1"})
     public WebSession getSession(HttpExchange httpExchange) {
         String sessionId = getSessionIdFromCookie(httpExchange);
         if (sessionId != null && sessions.containsKey(sessionId)) {
@@ -87,6 +91,7 @@ public class WebSessionService {
         invalidateSessionHelper(httpExchange);
     }
 
+    @Summary({"this.sessions", "1", "this.times", "1"})
     private void addSessionHelper(WebSession session, HttpExchange httpExchange) {
         // create session id
         String sessionId = UUID.randomUUID().toString();

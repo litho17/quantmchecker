@@ -1,10 +1,9 @@
 package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Comparator;
@@ -39,7 +38,7 @@ public class GabRoom implements Templated {
         this.threadIds = threadIds;
     }
 
-    @Summary({"threadIds", "1"})
+    @Summary({"this.threadIds", "1"})
     public GabThread addThread(String name, String authorId) {
         String threadId = getId() + "_" + this.threadIds.size();
         GabThread thread = new  GabThread(db, threadId, name, authorId, new  Date());
@@ -66,19 +65,19 @@ public class GabRoom implements Templated {
     }
 
     public List<GabThread> getThreads() {
-        @Inv("+<self>=+c69-c68") LinkedList<GabThread> threads = new  LinkedList();
-        c68: for (String threadId : getThreadIds()) {
-            c69: threads.add(db.getThread(threadId));
+        LinkedList<GabThread> threads = new  LinkedList();
+        for (String threadId : getThreadIds()) {
+            threads.add(db.getThread(threadId));
         }
         return threads;
     }
 
     @Override
     public Map<String, String> getTemplateMap() {
-        @Inv("+<self>=+c77+c78+c79") Map<String, String> templateMap = new  HashMap();
-        c77: templateMap.put("roomId", id);
-        c78: templateMap.put("roomName", StringEscapeUtils.escapeHtml4(name));
-        c79: templateMap.put("roomDescription", StringEscapeUtils.escapeHtml4(description));
+        Map<String, String> templateMap = new  HashMap();
+        templateMap.put("roomId", id);
+        templateMap.put("roomName", StringEscapeUtils.escapeHtml4(name));
+        templateMap.put("roomDescription", StringEscapeUtils.escapeHtml4(description));
         return templateMap;
     }
 

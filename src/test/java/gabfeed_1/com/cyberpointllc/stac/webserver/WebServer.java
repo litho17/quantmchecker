@@ -78,7 +78,7 @@ public class WebServer {
     }
 
     private void addDefaultAuthHandlersHelper(String userId, UserManager userManager) throws IOException {
-        loginFilter = new NoLoginFilter(userManager, webSessionService, userId);
+        loginFilter = new  NoLoginFilter(userManager, webSessionService, userId);
     }
 
     private void stopHelper(int secondsToWaitToClose) {

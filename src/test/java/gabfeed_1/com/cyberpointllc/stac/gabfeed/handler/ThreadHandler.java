@@ -5,16 +5,14 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabRoom;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
+import gabfeed_1.com.cyberpointllc.stac.linebreak.LineBreak;
 import gabfeed_1.com.cyberpointllc.stac.sort.Sorter;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSession;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
-import gabfeed_1.com.cyberpointllc.stac.webserver.handler.AbstractHttpHandler;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 import java.net.HttpURLConnection;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,36 +57,36 @@ public class ThreadHandler extends GabHandler {
         }
         GabThread thread = getDb().getThread(threadId);
         if (thread == null) {
-            return AbstractHttpHandler.getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Room: " + threadId);
+            return getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Room: " + threadId);
         }
         GabRoom room = thread.getRoom();
-        @Inv("+<self>=+c66+c67") List<Link> menuItems = new  LinkedList();
-        c66: menuItems.add(new  Link(RoomHandler.getPathToRoom(room.getId()), room.getName()));
-        c67: menuItems.add(new  Link(NewMessageHandler.getPathToPostToThread(thread.getId()), "New Message"));
+        List<Link> menuItems = new  LinkedList();
+        menuItems.add(new  Link(RoomHandler.getPathToRoom(room.getId()), room.getName()));
+        menuItems.add(new  Link(NewMessageHandler.getPathToPostToThread(thread.getId()), "New Message"));
         return getTemplateResponse(thread.getName(), getContents(thread, webSession), user, menuItems);
     }
 
     private String getContents(GabThread thread, WebSession webSession) {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
-        @Inv("+<self>=+c84+c86") StringBuilder builder = new  StringBuilder();
+        StringBuilder builder = new  StringBuilder();
         List<GabMessage> messages = thread.getMessages();
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         messages = sorter.sort(messages);
         for (GabMessage message : messages) {
-            @Inv("+<self>=+c82") Map<String, String> messageMap = message.getTemplateMap();
+            Map<String, String> messageMap = message.getTemplateMap();
             // fix up the contents
             String content = messageMap.get("messageContents");
-            c82: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
+            messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
             if (!suppressTimestamp) {
-                c84: messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
+                messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
             } else {
-                c86: messageListTemplateWithoutTime.getEngine().replaceTagsBuilder(messageMap, builder);
+                messageListTemplateWithoutTime.getEngine().replaceTagsBuilder(messageMap, builder);
             }
         }
         String messageContents = builder.toString();
-        @Inv("+<self>=+c91") Map<String, String> threadMap = thread.getTemplateMap();
-        c91: threadMap.put("messages", messageContents);
+        Map<String, String> threadMap = thread.getTemplateMap();
+        threadMap.put("messages", messageContents);
         return threadTemplate.getEngine().replaceTags(threadMap);
     }
 }

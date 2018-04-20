@@ -8,7 +8,6 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
-
 import java.util.List;
 
 public class RoomsHandler extends GabHandler {

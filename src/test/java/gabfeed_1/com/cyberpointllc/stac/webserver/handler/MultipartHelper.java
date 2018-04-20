@@ -1,6 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileItemFactory;
@@ -11,6 +11,8 @@ import org.apache.commons.fileupload.RequestContext;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -338,6 +340,7 @@ public class MultipartHelper {
         }
     }
 
+    @Summary({"fieldNameValues", "1"})
     private static void getMultipartValuesHelper(List<FileItem> items, Map<String, List<String>> fieldNameValues, String fieldName) throws Exception {
         List<String> values = fieldNameValues.get(fieldName);
         if (values == null) {
@@ -353,6 +356,7 @@ public class MultipartHelper {
         newImage.mkdirs();
     }
 
+    @Summary({"itemStrings", "items"})
     private static void getMultipartFieldItemsHelper(List<String> itemStrings, List<FileItem> items) throws Exception {
         for (FileItem item : items) {
             itemStrings.add(item.getString());

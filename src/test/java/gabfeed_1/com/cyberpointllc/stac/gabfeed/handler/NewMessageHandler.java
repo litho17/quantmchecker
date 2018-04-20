@@ -4,15 +4,16 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabMessage;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSession;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
+import gabfeed_1.com.cyberpointllc.stac.webserver.handler.AbstractHttpHandler;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 import java.net.HttpURLConnection;
 import java.util.Map;
 
@@ -52,20 +53,19 @@ public class NewMessageHandler extends GabHandler {
     }
 
     @Override
-    protected HttpHandlerResponse handlePost(HttpExchange httpExchange, String threadId, @Inv("+<self>.messageIds=+c67") GabUser user) {
+    protected HttpHandlerResponse handlePost(HttpExchange httpExchange, String threadId, GabUser user) {
         String query = httpExchange.getRequestURI().getQuery();
         if (!StringUtils.isBlank(query) && query.equals("suppressTimestamp=true")) {
             WebSession webSession = getWebSessionService().getSession(httpExchange);
             webSession.setProperty("suppressTimestamp", "true");
         }
-        @Inv("+<self>.messageIds=+c66") GabThread thread = getDb().getThread(threadId);
+        GabThread thread = getDb().getThread(threadId);
         if (thread == null) {
             return getErrorResponse(HttpURLConnection.HTTP_NOT_FOUND, "Invalid Thread: " + threadId);
         }
         String messageContent = MultipartHelper.getMultipartFieldContent(httpExchange, "messageContents");
-        GabMessage message;
-        c66: message = thread.addMessage(messageContent, user.getId());
-        c67: user.addMessage(message.getId());
+        GabMessage message = thread.addMessage(messageContent, user.getId());
+        user.addMessage(message.getId());
         return getRedirectResponse(ThreadHandler.getPathToThread(threadId));
     }
 }

@@ -11,7 +11,6 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.net.HttpURLConnection;
@@ -74,25 +73,25 @@ public class UserHandler extends GabHandler {
         // eventually we should do our own thing here
         // like just have a snippet of the content
         // and have a link to the original thread/post
-        @Inv("+<self>=+c87+c89") StringBuilder builder = new  StringBuilder();
+        StringBuilder builder = new  StringBuilder();
         List<GabMessage> messages = user.getMessages();
         Sorter sorter = new  Sorter(GabMessage.DESCENDING_COMPARATOR);
         messages = sorter.sort(messages);
         for (GabMessage message : messages) {
-            @Inv("+<self>=+c85") Map<String, String> messageMap = message.getTemplateMap();
+            Map<String, String> messageMap = message.getTemplateMap();
             // fix up the contents
             String content = messageMap.get("messageContents");
-            c85: messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
+            messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
             if (!suppressTimestamp) {
-                c87: getContentsHelper(builder, messageMap);
+                getContentsHelper(builder, messageMap);
             } else {
-                c89: messageListTemplateWithoutTime.getEngine().replaceTagsBuilder(messageMap, builder);
+                messageListTemplateWithoutTime.getEngine().replaceTagsBuilder(messageMap, builder);
             }
         }
         String messageContents = builder.toString();
-        @Inv("+<self>=+c94+c95") Map<String, String> userMap = user.getTemplateMap();
-        c94: userMap.put("chats", getChatContent(user, webSession));
-        c95: userMap.put("messages", messageContents);
+        Map<String, String> userMap = user.getTemplateMap();
+        userMap.put("chats", getChatContent(user, webSession));
+        userMap.put("messages", messageContents);
         return userTemplate.getEngine().replaceTags(userMap);
     }
 
@@ -107,31 +106,31 @@ public class UserHandler extends GabHandler {
         } else {
             getChatContentHelper1(links, user);
         }
-        @Inv("+<self>=+c112") StringBuilder sb = new  StringBuilder();
+        StringBuilder sb = new  StringBuilder();
         if (!links.isEmpty()) {
-            c112: getChatContentHelper2(sb, links);
+            getChatContentHelper2(sb, links);
         }
         return sb.toString();
     }
 
-    @Summary({"builder", "1"})
     private void getContentsHelper(StringBuilder builder, Map<String, String> messageMap) {
         messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
     }
 
     @Summary({"links", "1"})
     private void getChatContentHelper(WebSession webSession, Collection<GabChat> gabChats, List<Link> links) {
-        c124: for (GabChat gabChat : gabChats) {
-            c125: links.add(new  Link(ChatHandler.getPathToChat(gabChat.getId()), "Chat with " + gabChat.getOthers(webSession.getUserId())));
+        for (GabChat gabChat : gabChats) {
+            links.add(new  Link(ChatHandler.getPathToChat(gabChat.getId()), "Chat with " + gabChat.getOthers(webSession.getUserId())));
         }
     }
 
+    @Summary({"links", "1"})
     private void getChatContentHelper1(List<Link> links, GabUser user) {
         // No chat exists
         links.add(new  Link(ChatHandler.getPathToNewChat(user.getId()), "Start a chat with " + user.getDisplayName()));
     }
 
-    @Summary({"sb", "1"})
+    @Summary({"sb", "3"})
     private void getChatContentHelper2(StringBuilder sb, List<Link> links) {
         sb.append("<h2>Chats</h2><ul>");
         sb.append(menuTemplate.getEngine().replaceTags(links));
