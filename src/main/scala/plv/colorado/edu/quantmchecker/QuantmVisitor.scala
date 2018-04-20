@@ -24,7 +24,7 @@ import scala.collection.immutable.{HashMap, HashSet}
   */
 class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnnotatedTypeFactory](checker) {
   private val DEBUG_PATHS = false
-  private val DEBUG_COLLECT_INV = false
+  private val DEBUG_COLLECT_INV = true
   private val DEBUG_WHICH_UNHANDLED_CASE = false
 
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
@@ -33,9 +33,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "NOT SUPPORTED"
-  private val NOT_SUPPORTED_RET = -1
-  private val MISS_CHANGES = "Expression might change variables appearing in lhs" +
-    " of an invariant, but the changes are not described by any invariant"
+  private val MISS_CHANGES = "Expression might change variables appearing in lhs of an invariant, but the changes are not described by any invariant"
   private val MALFORMAT_INVARIANT = "Malformatted invariant annotation"
   private val BAD_LABEL = "Bad label"
   private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
@@ -152,10 +150,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   override def visitVariable(node: VariableTree, p: Void): Void = {
     val initializer = node.getInitializer
     if (initializer != null) {
-      val lhsAnno = node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
-        (acc, t) =>
-          acc ++ atypeFactory.getAnnotatedType(trees.getElement(atypeFactory.getPath(node))).getAnnotations.asScala
-      }
+      val lhsAnno = getAnnotationFromVariableTree(node)
       if (avoidAssignSubtypeCheck(node.getInitializer, lhsAnno))
         return null
     }
@@ -193,6 +188,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
+    val summaryExists = hasSummary(node)
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     // Check if side effects will invalidate invariants
     // TODO: o.f1().f2().f3(): methodinvocation (a.f().g()) -> memberselect (a.f())
@@ -259,7 +255,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 }
               }
           }
-          if (numOfUpdatedInvs == 0)
+          if (numOfUpdatedInvs == 0 && !summaryExists)
             issueWarning(node, LIST_NOT_ANNOTATED)
       }
     } else { // No method summaries found. Translate library methods (e.g. append, add) into numerical updates
@@ -283,7 +279,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 false
               }
           }
-          if (numOfUpdatedInvs == 0)
+          if (numOfUpdatedInvs == 0 && !summaryExists)
             issueWarning(node, LIST_NOT_ANNOTATED)
         } else {
           // A method is invoked, but it does not have a summary and is not Collection ADD
@@ -398,6 +394,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val enclosingClass = getEnclosingClass(node)
     val enclosingMethod = getEnclosingMethod(node)
     val updatedLabel = getLabel(node)
+    if (enclosingClass == null || enclosingMethod == null)
+      logging("Empty enclosing class or method:\n" + node.toString)
     (
       if (enclosingClass == null) HashSet.empty else getClassFieldInvariants(enclosingClass).keySet,
       if (enclosingMethod == null) HashSet.empty else getLocalInvariants(enclosingMethod).keySet,
@@ -414,10 +412,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     classTree.getMembers.asScala.foldLeft(new HashMap[InvLangAST, Tree]) {
       (acc, member) =>
         member match {
-          case member: VariableTree => // Only care about variable declarations in a class
-            /**
-              * Get annotations on class fields
-              */
+          case member: VariableTree =>
+            // Get annotations on class fields
             getAnnotationFromVariableTree(member, INV).foldLeft(acc) {
               case (acc2, a) => acc2 + (a -> classTree)
             }
@@ -441,17 +437,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         (acc, stmt) =>
           stmt match {
             case stmt: VariableTree =>
-
-              /**
-                * Local invariants should only be on variable declarations
-                * Otherwise, invariants are simply ignored
-                */
+              // Local invariants should only be on variable declarations
+              // Otherwise, invariants are simply ignored
               getAnnotationFromVariableTree(stmt, INV).foldLeft(acc) {
                 case (acc2, a) => acc2 + (a -> methodTree)
               }
             case x@_ =>
-              if (x.toString.contains("@Inv"))
-                PrintStuff.printBlueString("Missed an invariant!", x, x.getClass)
+              if (x.toString.contains("@Inv("))
+                logging("Missed an invariant!\n" + x.toString)
               acc
           }
       }
@@ -573,6 +566,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     checker.report(Result.failure(msg), node)
   }
 
+  private def getAnnotationFromVariableTree(node: VariableTree): HashSet[AnnotationMirror] = {
+    node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
+      (acc, t) =>
+        acc ++ atypeFactory.getAnnotatedType(trees.getElement(atypeFactory.getPath(node))).getAnnotations.asScala
+    }
+  }
+
   /**
     *
     * @param node  a variable tree
@@ -580,14 +580,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return collect the specified type of annotations in the variable tree
     */
   private def getAnnotationFromVariableTree(node: VariableTree, annot: AnnotationMirror): HashSet[InvLangAST] = {
-    val annotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
-    /**
-      * Extract annotations of Inv type
-      */
+    // val annotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
+    val annotations = getAnnotationFromVariableTree(node)
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, annot))
     // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     if (listInvAnnotations.nonEmpty) {
-      if (DEBUG_COLLECT_INV) println(listInvAnnotations)
+      if (DEBUG_COLLECT_INV) logging("Collected invariants:\n" + listInvAnnotations.toString() + "\n")
       val invs: List[String] = Utils.extractValues(listInvAnnotations.head)
       invs.foldLeft(new HashSet[InvLangAST]) {
         (acc, str) =>
