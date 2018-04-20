@@ -1,6 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.TemplateEngine;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import com.sun.net.httpserver.HttpExchange;

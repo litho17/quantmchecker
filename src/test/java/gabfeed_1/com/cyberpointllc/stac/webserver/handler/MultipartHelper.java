@@ -1,6 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileItemFactory;
@@ -340,7 +340,7 @@ public class MultipartHelper {
         }
     }
 
-    @Summary({"fieldNameValues", "1"})
+    @Summary({"fieldNameValues", "1+items"})
     private static void getMultipartValuesHelper(List<FileItem> items, Map<String, List<String>> fieldNameValues, String fieldName) throws Exception {
         List<String> values = fieldNameValues.get(fieldName);
         if (values == null) {

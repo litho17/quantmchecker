@@ -2,7 +2,7 @@ package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
 import gabfeed_1.com.cyberpointllc.stac.common.DESHelper;
 import gabfeed_1.com.cyberpointllc.stac.auth.KeyExchangeServer;
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.TemplateEngine;
 import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.UserManager;

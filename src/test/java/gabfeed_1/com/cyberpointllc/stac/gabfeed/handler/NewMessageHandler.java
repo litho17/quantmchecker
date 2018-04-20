@@ -4,7 +4,7 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabMessage;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSession;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;

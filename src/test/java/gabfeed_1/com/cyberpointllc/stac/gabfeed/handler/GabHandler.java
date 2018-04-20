@@ -2,7 +2,7 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.handler;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.linebreak.LineBreak;
 import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebSession;

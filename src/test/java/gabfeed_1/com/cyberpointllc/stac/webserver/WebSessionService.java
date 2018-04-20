@@ -1,6 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver;
 
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import com.sun.net.httpserver.HttpExchange;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 

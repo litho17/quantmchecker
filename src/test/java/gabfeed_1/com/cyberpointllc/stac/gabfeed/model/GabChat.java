@@ -1,7 +1,7 @@
 package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
+import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
