@@ -1,3 +1,3 @@
 #!/bin/sh
 
-grep -ERnIi -- '.add\(|.put\(|.append\(|.offer\(' $1
+grep -ERnIi -- '\.add\(|\.put\(|\.append\(|\.offer\(|\.push\(' $1

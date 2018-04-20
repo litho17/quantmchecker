@@ -3,9 +3,9 @@ package plv.colorado.edu
 import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
-import com.sun.source.tree.{CompilationUnitTree, Tree, VariableTree}
+import com.sun.source.tree.{CompilationUnitTree, Tree}
 import com.sun.source.util.SourcePositions
-import org.checkerframework.javacutil.{AnnotationUtils, TreeUtils}
+import org.checkerframework.javacutil.AnnotationUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashSet
@@ -40,7 +40,7 @@ object Utils {
     ("java.util.PriorityQueue", "offer"),
     ("java.util.Deque", "add"),
     ("java.util.Deque", "offer"),
-    ("java.util.Stack", "add"),
+    ("java.util.Stack", "push"),
     ("java.util.Vector", "add"),
     ("java.util.Hashtable", "add"),
     ("java.util.ByteBuffer", "put")

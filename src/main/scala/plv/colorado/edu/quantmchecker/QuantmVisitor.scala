@@ -354,7 +354,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               }
           }
           if (numofUpdates < 1) {
-            println(whichVar, fieldInvs ++ localInvs)
+            // println(whichVar, fieldInvs ++ localInvs)
             // issueWarning(node, LIST_NOT_ANNOTATED)
           }
       }
