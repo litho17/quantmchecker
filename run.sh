@@ -34,6 +34,6 @@ QUANTMCHECKER="quantmchecker.QuantmChecker"
 LISTADDCHECKER="listaddchecker.ListaddChecker"
 
 classpath=".:$external_lib:$scala_lib:$scala_parser_lib:$scalaz3_lib"
-javac -cp $classpath -AprintErrorStack -processor $fully_qualified_name_prefix$QUANTMCHECKER `find $src_dir -name "*.java"` -d output/
+javac -Xmaxwarns 10000 -Xmaxerrs 10000 -cp $classpath -AprintErrorStack -processor $fully_qualified_name_prefix$QUANTMCHECKER `find $src_dir -name "*.java"` -d output/
 
 #-AignoreRawTypeArguments
