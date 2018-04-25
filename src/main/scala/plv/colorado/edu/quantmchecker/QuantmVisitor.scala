@@ -469,7 +469,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return find the field in the class
     */
   private def findFieldInClass(typ: TypeMirror, fieldName: String): Option[VariableElement] = {
-    Option(ElementUtils.findFieldInType(TypesUtils.getTypeElement(typ), fieldName))
+    val THIS = "this." // E.g. We want to look up a field named "chats", instead of "this.chats"
+    val removeThis = if (fieldName.startsWith(THIS)) fieldName.substring(THIS.length) else fieldName
+    Option(ElementUtils.findFieldInType(TypesUtils.getTypeElement(typ), removeThis))
   }
 
   /**
@@ -680,9 +682,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return if the enclosing method of the node has summary
     */
   private def hasSummary(node: Tree): Boolean = {
-    val method: ExecutableElement = TreeUtils.elementFromDeclaration(getEnclosingMethod(node))
-    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
-    summaries.nonEmpty
+    val enclosingMethod = getEnclosingMethod(node)
+    if (enclosingMethod != null) {
+      val method: ExecutableElement = TreeUtils.elementFromDeclaration(enclosingMethod)
+      val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
+      summaries.nonEmpty
+    } else {
+      false
+    }
   }
 
   @deprecated
