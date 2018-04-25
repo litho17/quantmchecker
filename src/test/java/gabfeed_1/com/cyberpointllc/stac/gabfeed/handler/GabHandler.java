@@ -12,6 +12,8 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.handler.AbstractHttpHandler;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.LogoutHandler;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.net.HttpURLConnection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -80,16 +82,16 @@ public abstract class GabHandler extends AbstractHttpHandler {
         return getBadMethodResponse(httpExchange);
     }
 
-    protected List<Link> getLeftMenuItems() {
-        LinkedList<Link> items = new  LinkedList();
-        items.add(new  Link(RoomsHandler.PATH, RoomsHandler.TITLE));
+    protected @Inv("+<self>=+c87") List<Link> getLeftMenuItems() {
+        @Inv("+<self>=+c87") LinkedList<Link> items = new  LinkedList();
+        c87: items.add(new  Link(RoomsHandler.PATH, RoomsHandler.TITLE));
         return items;
     }
 
-    protected List<Link> getRightMenuItems() {
-        LinkedList<Link> items = new  LinkedList();
-        items.add(new  Link(SearchHandler.PATH, SearchHandler.TITLE));
-        items.add(new  Link(LogoutHandler.PATH, LogoutHandler.TITLE));
+    protected @Inv("+<self>=+c93+c94") List<Link> getRightMenuItems() {
+        @Inv("+<self>=+c93+c94") LinkedList<Link> items = new  LinkedList();
+        c93: items.add(new  Link(SearchHandler.PATH, SearchHandler.TITLE));
+        c94: items.add(new  Link(LogoutHandler.PATH, LogoutHandler.TITLE));
         return items;
     }
 

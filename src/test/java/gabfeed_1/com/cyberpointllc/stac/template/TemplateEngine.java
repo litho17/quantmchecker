@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Random;
@@ -54,11 +55,11 @@ public class TemplateEngine {
      * @return A list of Pairs, where a Pair is the start and end location of a
      *         tag
      */
-    public List<Pair<Integer, Integer>> findTags() {
+    public @Inv({"text+<self>=+c62-c61"}) List<Pair<Integer, Integer>> findTags() {
         Matcher matcher = pattern.matcher(text);
-        List<Pair<Integer, Integer>> tagsList = new  ArrayList();
-        while (matcher.find()) {
-            findTagsHelper(tagsList, matcher);
+        @Inv("matcher+<self>=+c62-c61") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
+        c61: while (matcher.find()) {
+            c62: findTagsHelper(tagsList, matcher);
         }
         return tagsList;
     }
@@ -73,8 +74,8 @@ public class TemplateEngine {
      *         replaced with the keys' corresponding values
      */
     public String replaceTags(Map<String, String> dictionary) {
-        StringBuilder sb = new  StringBuilder();
-        replaceTagsBuilder(dictionary, sb);
+        @Inv("+<self>/(1+this.text*2)=+c78") StringBuilder sb = new  StringBuilder();
+        c78: replaceTagsBuilder(dictionary, sb);
         return sb.toString();
     }
 
@@ -104,10 +105,10 @@ public class TemplateEngine {
      * @return a string representing all of the templated items
      */
     public String replaceTags(List<? extends Templated> templateds, String separator) {
-        StringBuilder sb = new  StringBuilder();
-        for (Templated templated : templateds) {
-            replaceTagsBuilder(templated.getTemplateMap(), sb);
-            sb.append(separator);
+        @Inv("templateds+templateds+<self>+<self>/(1+this.text*2)=+c110+c111-c109-c109") StringBuilder sb = new  StringBuilder();
+        c109: for (Templated templated : templateds) {
+            c110: replaceTagsBuilder(templated.getTemplateMap(), sb);
+            c111: sb.append(separator);
         }
         return sb.toString();
     }
@@ -133,7 +134,7 @@ public class TemplateEngine {
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
         int endTagLength = StringEscapeUtils.unescapeJava(endTag).length();
-        List<Pair<Integer, Integer>> tagsList = findTags();
+        @Inv({"text+<self>=+c62-c61"}) List<Pair<Integer, Integer>> tagsList = findTags();
         for (int i = 0; i < tagsList.size(); ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < tagsList.size() && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {

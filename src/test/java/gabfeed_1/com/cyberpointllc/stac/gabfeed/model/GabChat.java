@@ -3,6 +3,7 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Comparator;
@@ -77,27 +78,27 @@ public class GabChat implements Templated {
     }
 
     public String getOthers(String userId) {
-        StringBuilder sb = new  StringBuilder();
+        @Inv("userIds+userIds+<self>=+c88+c91-c83-c83") StringBuilder sb = new  StringBuilder();
         boolean firstTime = true;
-        for (String user : userIds) {
+        c83: for (String user : userIds) {
             if (!user.equals(userId)) {
                 if (firstTime) {
                     firstTime = false;
                 } else {
-                    getOthersHelper(sb);
+                    c88: getOthersHelper(sb);
                 }
                 GabUser gabUser = db.getUser(user);
-                sb.append((gabUser != null) ? gabUser.getDisplayName() : user);
+                c91: sb.append((gabUser != null) ? gabUser.getDisplayName() : user);
             }
         }
         return sb.toString();
     }
 
     @Override
-    public Map<String, String> getTemplateMap() {
-        Map<String, String> templateMap = new  HashMap();
-        templateMap.put("chatId", id);
-        templateMap.put("chatLastUpdated", lastUpdated.toString());
+    public @Inv("+<self>=+c100+c101") Map<String, String> getTemplateMap() {
+        @Inv("+<self>=+c100+c101") Map<String, String> templateMap = new  HashMap();
+        c100: templateMap.put("chatId", id);
+        c101: templateMap.put("chatLastUpdated", lastUpdated.toString());
         return templateMap;
     }
 

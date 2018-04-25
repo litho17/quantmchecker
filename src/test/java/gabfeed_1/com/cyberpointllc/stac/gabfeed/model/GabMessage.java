@@ -4,6 +4,8 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
 import java.util.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Map;
@@ -56,19 +58,19 @@ public class GabMessage implements Templated {
     }
 
     @Override
-    public Map<String, String> getTemplateMap() {
-        Map<String, String> templateMap = new  HashMap();
-        templateMap.put("messageId", id);
-        templateMap.put("messageContents", StringEscapeUtils.escapeHtml4(contents));
-        templateMap.put("messageAuthorId", authorId);
-        templateMap.put("messagePostDate", postDate.toString());
+    public @Inv("+<self>=+c63+c64+c65+c66+c72+c73") Map<String, String> getTemplateMap() {
+        @Inv("+<self>=+c63+c64+c65+c66+c72+c73") Map<String, String> templateMap = new  HashMap();
+        c63: templateMap.put("messageId", id);
+        c64: templateMap.put("messageContents", StringEscapeUtils.escapeHtml4(contents));
+        c65: templateMap.put("messageAuthorId", authorId);
+        c66: templateMap.put("messagePostDate", postDate.toString());
         String displayName = authorId;
         GabUser user = db.getUser(authorId);
         if (user != null) {
             displayName = user.getDisplayName();
         }
-        templateMap.put("messageAuthorDisplayName", displayName);
-        templateMap.put("publicMessage", Boolean.toString(publicMessage));
+        c72: templateMap.put("messageAuthorDisplayName", displayName);
+        c73: templateMap.put("publicMessage", Boolean.toString(publicMessage));
         return templateMap;
     }
 

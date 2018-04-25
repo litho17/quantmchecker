@@ -1,5 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.common;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Arrays;
@@ -440,12 +441,12 @@ public class DES {
     }
 
     private static String hex(byte[] bytes) {
-        StringBuilder sb = new  StringBuilder();
+        @Inv({"i+<self>=+c449-c448"}) StringBuilder sb = new  StringBuilder();
         for (int i = 0; i < bytes.length; ) {
             Random randomNumberGeneratorInstance = new  Random();
             for (; i < bytes.length && randomNumberGeneratorInstance.nextDouble() < 0.5; ) {
-                for (; i < bytes.length && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
-                    hexHelper(bytes, sb, i);
+                c448: for (; i < bytes.length && randomNumberGeneratorInstance.nextDouble() < 0.5; i++) {
+                    c449: hexHelper(bytes, sb, i);
                 }
             }
         }

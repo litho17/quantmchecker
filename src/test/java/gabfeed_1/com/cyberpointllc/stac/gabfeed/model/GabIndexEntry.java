@@ -29,6 +29,7 @@ public class GabIndexEntry {
         return word;
     }
 
+    @Summary({"this.items", "1"})
     public void addItem(String word, String messageId, int count, Date date) {
         addItemHelper(count, word, messageId, date);
     }

@@ -14,6 +14,8 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.net.HttpURLConnection;
 import java.util.Map;
 
@@ -53,6 +55,7 @@ public class NewMessageHandler extends GabHandler {
     }
 
     @Override
+    @Summary({"user.messageIds", "1", "db.threads.messageIds?", "1"})
     protected HttpHandlerResponse handlePost(HttpExchange httpExchange, String threadId, GabUser user) {
         String query = httpExchange.getRequestURI().getQuery();
         if (!StringUtils.isBlank(query) && query.equals("suppressTimestamp=true")) {
