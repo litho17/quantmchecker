@@ -7,6 +7,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -77,6 +78,7 @@ public class Display {
         }
     }
 
+    @Summary({"permanentCommands", "1"})
     public void addPermanentCommand(Command command) {
         if (command == null) {
             throw new IllegalArgumentException("Command may not be null");
@@ -89,6 +91,7 @@ public class Display {
         }
     }
 
+    @Summary({"inactiveCommands", "1"})
     public void addInactiveCommand(Command command){
         if (command == null) {
             throw new IllegalArgumentException("Command may not be null");
@@ -99,6 +102,7 @@ public class Display {
         }
     }
 
+    @Summary({"currentCommands", "1"})
     public void activateCommand(String cmd){
         Command command = inactiveCommands.get(cmd);
         if (command == null) {
@@ -181,6 +185,7 @@ public class Display {
      * @param addToHistory indicates if the line should be added to history
      * @throws IOException
      */
+    @Summary({"history", "1"})
     public void executeCommand(String line, boolean addToHistory) throws IOException {
         if (line == null) {
             // end of file? must have been a console redirect
@@ -212,6 +217,7 @@ public class Display {
         }
     }
 
+    @Summary({"history", "1"})
     private void executeCommandGuide(String line, boolean addToHistory, String[] items, String name) {
         Command command = getCommand(name);
         try {

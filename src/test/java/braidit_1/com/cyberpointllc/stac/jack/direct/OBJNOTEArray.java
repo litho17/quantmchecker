@@ -4,6 +4,9 @@
  */
 package braidit_1.com.cyberpointllc.stac.jack.direct;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -85,7 +88,8 @@ public class OBJNOTEArray extends ArrayList implements List, OBJNOTEAware, OBJNO
             
 			Object core =iter.next();
 			if(core == null){
-				new OBJNOTEArrayAid(sb).invoke();
+				@Inv("+<self>.sb=+c92") OBJNOTEArrayAid aid = new OBJNOTEArrayAid(sb);
+				c92: aid.invoke();
 				continue;
 			}
 			sb.append(OBJNOTECore.toOBJNOTEString(core));
@@ -110,6 +114,7 @@ public class OBJNOTEArray extends ArrayList implements List, OBJNOTEAware, OBJNO
 			this.sb = sb;
 		}
 
+		@Summary({"sb", "1"})
 		public void invoke() {
 			sb.append("null");
 			return;

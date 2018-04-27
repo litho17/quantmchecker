@@ -4,6 +4,8 @@
  */
 package braidit_1.com.cyberpointllc.stac.jack.direct;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -56,7 +58,8 @@ public class ItemList {
 			this.split(s,sp,append);
 		}
 	}
-	
+
+	@Summary({"append", "sp"})
 	public void split(String s,String sp,List append){
 		if(s==null || sp==null)
 			return;
@@ -76,13 +79,15 @@ public class ItemList {
 	public void setSP(String sp){
 		this.sp=sp;
 	}
-	
+
+	@Summary({"items", "1"})
 	public void add(int j, String item){
 		if(item==null)
 			return;
 		items.add(j,item.trim());
 	}
 
+	@Summary({"items", "1"})
 	public void add(String item){
 		if(item==null)
 			return;
@@ -131,6 +136,7 @@ public class ItemList {
 
 	}
 
+	@Summary({"sb", "2"})
 	private void toStringAid(String sp, StringBuffer sb, int b) {
 		if(b ==0)
             sb.append(items.get(b));
@@ -139,6 +145,7 @@ public class ItemList {
         }
 	}
 
+	@Summary({"sb", "2"})
 	private void toStringAidUtility(String sp, StringBuffer sb, int k) {
 		sb.append(sp);
 		sb.append(items.get(k));

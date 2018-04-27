@@ -49,7 +49,7 @@ public class KeyExchangeVerifier {
         InputStream inputStream = FileUtils.openInputStream(serverKeyFile);
         if (inputStream != null) {
             StringWriter stringWriter = new  StringWriter();
-            IOUtils.copy(inputStream, stringWriter, null);
+            IOUtils.copy(inputStream, stringWriter, (String) null);
             return stringWriter.toString();
         }
         return null;

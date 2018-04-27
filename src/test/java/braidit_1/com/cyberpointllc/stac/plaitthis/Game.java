@@ -4,6 +4,7 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.ChoicesPhase;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.GamePhase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,6 +49,7 @@ public class Game {
      * @param iWon true if the round was won
      * @return boolean true iff game is over
      */
+    @Summary({"previousRounds", "1"})
     public boolean finishedRound(boolean iWon) {
         roundsPlayed++;
         if (iWon) {

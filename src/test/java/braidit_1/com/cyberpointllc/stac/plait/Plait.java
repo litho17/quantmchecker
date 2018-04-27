@@ -2,6 +2,7 @@ package braidit_1.com.cyberpointllc.stac.plait;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -521,6 +522,7 @@ public class Plait {
         return (max - optimum);
     }
 
+    @Summary({"countsMap", "1"})
     private void computePenaltySupervisor(Map<Character, Integer> countsMap, char c1) {
         char c = c1;
         if (countsMap.containsKey(c)) {

@@ -23,6 +23,7 @@ import braidit_1.com.cyberpointllc.stac.communications.CommunicationsException;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsEmpty;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsServer;
 import braidit_1.com.cyberpointllc.stac.console.Display;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
 import java.util.List;
@@ -117,6 +118,7 @@ public class PlaitIt {
         addConnection(connection);
     }
 
+    @Summary({"currentGame.previousRounds", "1"})
     public void disconnect() throws CommunicationsException {
         if (connection != null) {
             disconnectWorker();
@@ -125,17 +127,20 @@ public class PlaitIt {
         setStep(new GamePhase(GamePhase.Phase.IDLE));
     }
 
+    @Summary({"currentGame.previousRounds", "1"})
     private void disconnectWorker() throws CommunicationsException {
         connection.close();
         connection = null;
         gameOver();
     }
 
+    @Summary({"currentGame.previousRounds", "1"})
     public boolean finishedRound(boolean iWon) {
         boolean gameOver = (currentGame != null) && currentGame.finishedRound(iWon);
         return gameOver;
     }
 
+    @Summary({"currentGame.previousRounds", "1"})
     public void gameOver() {
         if (currentGame != null) {
             currentGame.finishedRound(false);
@@ -185,6 +190,7 @@ public class PlaitIt {
         return connection != null;
     }
 
+    @Summary({"currentGame.previousRounds", "1"})
     public boolean removeConnection(CommunicationsConnection conn) throws CommunicationsException {
         if ((conn != null) && conn.equals(connection)) {
             return new PlaitItManager().invoke();
@@ -242,6 +248,7 @@ public class PlaitIt {
     }
 
     private class PlaitItManager {
+        @Summary({"currentGame.previousRounds", "1"})
         public boolean invoke() throws CommunicationsException {
             disconnect();
             return true;

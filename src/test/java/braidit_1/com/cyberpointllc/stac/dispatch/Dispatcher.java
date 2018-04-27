@@ -4,6 +4,7 @@ import braidit_1.com.cyberpointllc.stac.communications.CommunicationsConnection;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsException;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsManager;
 import braidit_1.com.cyberpointllc.stac.console.Display;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -352,6 +353,7 @@ public abstract class Dispatcher implements CommunicationsManager {
         }
 
         @Override
+        @Summary({"queue", "1"})
         protected void afterExecute(Runnable runnable, Throwable throwable) {
             super.afterExecute(runnable, throwable);
 
