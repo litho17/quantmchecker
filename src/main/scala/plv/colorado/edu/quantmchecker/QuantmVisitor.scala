@@ -26,6 +26,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_PATHS = false
   private val DEBUG_COLLECT_INV = true
   private val DEBUG_WHICH_UNHANDLED_CASE = false
+  private val ISSUE_ALL_UNANNOTATED_LISTS = true
 
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val TOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
@@ -189,6 +190,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
     val summaryExists = hasSummary(node)
+    val inLoop = if (ISSUE_ALL_UNANNOTATED_LISTS) true else isInLoop(node)
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     // Check if side effects will invalidate invariants
     // TODO: o.f1().f2().f3(): methodinvocation (a.f().g()) -> memberselect (a.f())
@@ -255,7 +257,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 }
               }
           }
-          if (numOfUpdatedInvs == 0 && !summaryExists)
+          if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
             issueWarning(node, LIST_NOT_ANNOTATED)
       }
     } else { // No method summaries found. Translate library methods (e.g. append, add) into numerical updates
@@ -263,8 +265,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       } else {
         val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
         if (isColAdd) {
-          if (receiverAnno.isEmpty) {
-            issueWarning(node, "Collection ADD found, but the receiver is not annotated with invariant")
+          if (receiverAnno.isEmpty && inLoop) {
+            issueWarning(node, LIST_NOT_ANNOTATED)
           }
 
           val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
@@ -279,7 +281,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 false
               }
           }
-          if (numOfUpdatedInvs == 0 && !summaryExists)
+          if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
             issueWarning(node, LIST_NOT_ANNOTATED)
         } else {
           // A method is invoked, but it does not have a summary and is not Collection ADD
@@ -672,8 +674,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     enclosingMethod.getName.toString == "<init>"
   }
 
-  private def isLibraryInvoke(node: MethodInvocationTree): Boolean = {
-    false
+  private def isInLoop(node: MethodInvocationTree): Boolean = {
+    val path = atypeFactory.getPath(node).asScala
+    path.exists {
+      case t: EnhancedForLoopTree => true
+      case t: ForLoopTree => true
+      case t: WhileLoopTree => true
+      case t: DoWhileLoopTree => true
+      case _ => false
+    }
   }
 
   /**
