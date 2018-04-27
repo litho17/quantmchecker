@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./run.sh ~/Documents/workspace/stac-bug-museum/E5-challenges/braidit_1/challenge_program/lib src/test/java/braidit_1/com
+./run.sh $HOME/Documents/workspace/quantmchecker/src/test/lib/braidit_1 src/test/java/braidit_1/com
