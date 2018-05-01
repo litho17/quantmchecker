@@ -21,7 +21,10 @@ case class LineCounterAST(id: String) extends InvLangAST {
   override def toString: String = id
 }
 
-case class Invariant(remainders: List[RemainderAST], selfs: List[SelfAST], posLines: List[String], negLines: List[String]) extends InvLangAST {
+case class Invariant(remainders: List[RemainderAST],
+                     selfs: List[SelfAST],
+                     posLines: List[String],
+                     negLines: List[String]) extends InvLangAST {
   override def toString: String = {
     selfs.foldLeft("")((acc, self) => acc + "+" + self) +
       "=" +

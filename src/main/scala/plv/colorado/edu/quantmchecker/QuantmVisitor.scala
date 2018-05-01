@@ -43,6 +43,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
   // val methodAnnotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
 
+
+  override def processClassTree(classTree: ClassTree): Unit = {
+    if (classTree.getKind != Tree.Kind.ENUM) {
+      val classType = TreeUtils.typeOf(classTree)
+      val allFlds = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements)
+      allFlds.asScala.foreach { // Print recursive data types
+        ve => if (ve.asType() == classType) Utils.logging("Recursive data type: " + classType.toString)
+      }
+    }
+    super.processClassTree(classTree)
+  }
+
   // User is responsible for encoding remainders into invariant.
   // Therefore, it does not matter if an expression does not change remainder.
   override def visitEnhancedForLoop(node: EnhancedForLoopTree, p: Void): Void = {

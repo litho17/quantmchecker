@@ -15,7 +15,7 @@ import scala.collection.immutable.HashSet
   * @author Tianhan Lu
   */
 object InvUtils {
-  private val DEBUG_COLLECT_INV = true
+  private val DEBUG_COLLECT_INV = false
   private val MALFORMAT_INVARIANT = "Malformatted invariant annotation"
 
   /**
