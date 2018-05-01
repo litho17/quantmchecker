@@ -7,7 +7,7 @@ import java.lang.annotation.*;
 /**
  * @author Tianhan Lu
  */
-@SubtypeOf({InvBounded.class})
+@SubtypeOf({InvTop.class})
 @Retention(RetentionPolicy.RUNTIME)
 // @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})

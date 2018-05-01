@@ -13,23 +13,31 @@ object InvWithSolver {
   val z3 = new Z3Context("MODEL" -> true)
   val solver = z3.mkSolver
 
-  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: String, node: Tree): Boolean = {
+  /**
+    *
+    * @param inv       an invariant
+    * @param remainder the remainder to update and how much to increment
+    * @param self      the self to update and how much to increment
+    * @param label     label of the line that is currently visiting
+    * @param node      the AST node (only for debug)
+    * @return if the invariant holds before visiting current line,
+    *         returns if the invariant still holds after executing current line
+    */
+  def isValidAfterUpdate(inv: InvLangAST,
+                         remainder: (String, Int),
+                         self: (String, Int),
+                         label: String,
+                         node: Tree): Boolean = {
     val result = isValidAfterUpdate(inv, remainder, self, label)
     if (DEBUG && !result)
       PrintStuff.printRedString("Invariant invalidated!", "label: " + label, "code: " + node)
     result
   }
 
-  /**
-    *
-    * @param inv       the invariant
-    * @param remainder the increment of remainder
-    * @param self      the increment of self
-    * @param label      the line number that is currently visiting
-    * @return if the invariant holds before visiting current line,
-    *         returns if the invariant still holds after executing current line
-    */
-  def isValidAfterUpdate(inv: InvLangAST, remainder: Int, self: Int, label: String): Boolean = {
+  def isValidAfterUpdate(inv: InvLangAST,
+                         remainder: (String, Int),
+                         self: (String, Int),
+                         label: String): Boolean = {
     val startTime = System.nanoTime()
     val DEBUG = false
 
@@ -59,10 +67,10 @@ object InvWithSolver {
     /**
       *
       * @param variables a list of Z3 ast nodes
-      * @param op the operator
+      * @param op        the operator
       * @return a linear constraint that connects all ast nodes with the specified operator
       */
-    def listToPred(variables: List[Z3AST], op: OPERATOR): Z3AST = {
+    def listToPredicate(variables: List[Z3AST], op: OPERATOR): Z3AST = {
       variables.foldLeft(mkInt(0): Z3AST) {
         (acc, variable) =>
           op match {
@@ -72,23 +80,41 @@ object InvWithSolver {
       }
     }
 
+    def genLhs(selfs: List[Z3AST]): Z3AST = {
+      z3.simplifyAst(listToPredicate(selfs, ADD))
+    }
+
+    def genRhs(remainders: List[Z3AST], pos: List[Z3AST], neg: List[Z3AST]): Z3AST = {
+      z3.simplifyAst(z3.mkAdd(listToPredicate(remainders, SUB), z3.mkAdd(listToPredicate(pos, ADD), listToPredicate(neg, SUB))))
+    }
+
+    val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(inv)
     val (posLine: List[String], negLine: List[String]) = inv match {
-      case Invariant(_remainder, _self, _posLine, _negLine) => (_posLine, _negLine)
-      case InvNoRem(_self, _posLine, _negLine) => (_posLine, _negLine)
+      case Invariant(_, _, _posLine, _negLine) => (_posLine, _negLine)
       case _ => (List.empty, List.empty)
     }
 
-    val selfSym: Z3Symbol = z3.mkSymbol("self")
-    val posSym: List[Z3Symbol] = posLine.map { l => z3.mkSymbol("l" + l.toString) }
-    val negSym: List[Z3Symbol] = negLine.map { l => z3.mkSymbol("l" + l.toString) }
-    val symbols: List[Z3Symbol] = selfSym :: posSym ::: negSym
+    val selfSym: List[Z3Symbol] = selfs.map { s => z3.mkSymbol(s) }
+    val remSym: List[Z3Symbol] = remainders.map { r => z3.mkSymbol(r) }
+    val posSym: List[Z3Symbol] = posLine.map { l => z3.mkSymbol(l.toString) }
+    val negSym: List[Z3Symbol] = negLine.map { l => z3.mkSymbol(l.toString) }
+    val symbols: List[Z3Symbol] = selfSym ::: remSym ::: posSym ::: negSym
 
-    val oldSelf = z3.mkIntConst(selfSym)
+    val oldSelf: List[Z3AST] = selfSym.map { s => z3.mkIntConst(s) }
+    val oldRem: List[Z3AST] = remSym.map { r => z3.mkIntConst(r) }
     val pos: List[Z3AST] = posSym.map { l => z3.mkIntConst(l) }
     val neg: List[Z3AST] = negSym.map { l => z3.mkIntConst(l) }
-    val rhs: Z3AST = z3.simplifyAst(z3.mkAdd(listToPred(pos, ADD), listToPred(neg, SUB)))
+    val oldLhs: Z3AST = genLhs(oldSelf)
+    val oldRhs: Z3AST = genRhs(oldRem, pos, neg)
 
-    val newSelf: Z3AST = z3.mkAdd(oldSelf, mkInt(self))
+    val newSelf = if (selfs.contains(self._1)) {
+      val idx = selfs.indexOf(self._1)
+      oldSelf.updated(idx, z3.mkAdd(oldSelf(idx), mkInt(self._2)))
+    } else oldSelf
+    val newRem = if (remainders.contains(remainder._1)) {
+      val idx = remainders.indexOf(remainder._1)
+      oldRem.updated(idx, z3.mkAdd(oldRem(idx), mkInt(remainder._2)))
+    } else oldRem
     val newPos: List[Z3AST] = if (posLine.contains(label)) {
       val idx = posLine.indexOf(label)
       pos.updated(idx, z3.mkAdd(pos(idx), mkInt(1)))
@@ -97,22 +123,15 @@ object InvWithSolver {
       val idx = negLine.indexOf(label)
       neg.updated(idx, z3.mkAdd(neg(idx), mkInt(1)))
     } else neg
-    val newRhs: Z3AST = z3.simplifyAst(z3.mkAdd(listToPred(newPos, ADD), listToPred(newNeg, SUB)))
+    val newLhs: Z3AST = genLhs(newSelf)
+    val newRhs: Z3AST = genRhs(newRem, newPos, newNeg)
 
-    val (p, q, newSyms) = inv match {
+    val (p, q) = inv match {
       case Invariant(_, _, _, _) =>
-        val remainderSym = z3.mkSymbol("rem")
-        val oldRemainder = z3.mkIntConst(remainderSym)
-        val newRemainder = z3.mkAdd(oldRemainder, mkInt(remainder))
-
-        val P = z3.mkEq(z3.mkAdd(oldRemainder, oldSelf), rhs)
-        val Q = z3.mkEq(z3.mkAdd(newRemainder, newSelf), newRhs)
-        (P, Q, remainderSym :: symbols)
-      case InvNoRem(_, _, _) =>
-        val P = z3.mkEq(oldSelf, rhs)
-        val Q = z3.mkEq(newSelf, newRhs)
-        (P, Q, symbols)
-      case _ => (z3.mkTrue(), z3.mkTrue(), symbols)
+        val P = z3.mkEq(oldLhs, oldRhs)
+        val Q = z3.mkEq(newLhs, newRhs)
+        (P, Q)
+      case _ => (z3.mkTrue(), z3.mkTrue())
     }
 
     // val imply = z3.mkImplies(p, q)
@@ -121,7 +140,7 @@ object InvWithSolver {
       * then the solver will say SAT, because if p is false, then p=>q will always be SAT
       */
     val constraints = z3.mkAnd(p, q) // z3.mkAnd(p, imply) is same as p /\ q
-    val forall = z3.mkForall(0, Seq.empty, newSyms.map(sym => (sym, z3.mkIntSort())), constraints)
+    val forall = z3.mkForall(0, Seq.empty, symbols.map(sym => (sym, z3.mkIntSort())), constraints)
     // z3.benchmarkToSMTLIBString("name", "logic", "status", "attributes", List.empty, imply)
     if (DEBUG) {
       println("P: " + p)
@@ -131,7 +150,7 @@ object InvWithSolver {
     val result = check(forall)
     val estimatedTime = System.nanoTime - startTime
 
-    println("Time elapsed: " + ("%.2f" format estimatedTime.toDouble/1000000) + "ms" + " [label:" + label + "][" + inv + "]")
+    println("Time elapsed: " + ("%.2f" format estimatedTime.toDouble / 1000000) + "ms" + " [label:" + label + "][" + inv + "]")
     result
   }
 }

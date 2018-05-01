@@ -5,37 +5,28 @@ package plv.colorado.edu.quantmchecker.invlang
   */
 sealed trait InvLangAST
 
-case class SelfAST(id: List[String]) extends InvLangAST
-
-case class RemainderAST(variable: String) extends InvLangAST
-
-case class LineCounterAST(id: String) extends InvLangAST
-
-case class Invariant(remainder: String, self: List[String], posLine: List[String], negLine: List[String]) extends InvLangAST {
+case class SelfAST(_this: String, members: List[String]) extends InvLangAST {
   override def toString: String = {
-    val selfStr = {
-      if (self.isEmpty)
-        "<self>"
-      else
-        self.tail.foldLeft("<self>")((acc, e) => acc + "." + e)
-    }
-    remainder + "+" +
-      selfStr + "=" +
-      posLine.foldLeft("")((acc, p) => acc + "+" + p) +
-      negLine.foldLeft("")((acc, n) => acc + "-" + n)
+    members.foldLeft(_this)((acc, member) => acc + "." + member)
   }
 }
 
-case class InvNoRem(self: List[String], posLine: List[String], negLine: List[String]) extends InvLangAST {
+case class RemainderAST(_this: String, members: List[String]) extends InvLangAST {
   override def toString: String = {
-    val selfStr = {
-      if (self.isEmpty)
-        "<self>"
-      else
-        self.tail.foldLeft("<self>")((acc, e) => acc + "." + e)
-    }
-    "+" + selfStr + "=" +
-      posLine.foldLeft("")((acc, p) => acc + "+" + p) +
-      negLine.foldLeft("")((acc, n) => acc + "-" + n)
+    members.foldLeft(_this)((acc, member) => acc + "." + member)
+  }
+}
+
+case class LineCounterAST(id: String) extends InvLangAST {
+  override def toString: String = id
+}
+
+case class Invariant(remainders: List[RemainderAST], selfs: List[SelfAST], posLines: List[String], negLines: List[String]) extends InvLangAST {
+  override def toString: String = {
+    selfs.foldLeft("")((acc, self) => acc + "+" + self) +
+      "=" +
+      remainders.foldLeft("")((acc, remainder) => acc + "-" + remainder) +
+      posLines.foldLeft("")((acc, p) => acc + "+" + p) +
+      negLines.foldLeft("")((acc, n) => acc + "-" + n)
   }
 }

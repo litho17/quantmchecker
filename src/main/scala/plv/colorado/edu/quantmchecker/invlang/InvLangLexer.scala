@@ -29,10 +29,12 @@ object InvLangLexer extends RegexParsers {
 
   def dot = "." ^^ (_ => DOT)
 
-  def self = "<self>" ^^ (_ => SELF)
+  def div = "/" ^^ (_ => DIV)
+
+  // def self = "<self>" ^^ (_ => SELF)
 
   def tokens: Parser[Seq[InvLangToken]] = {
-    phrase(rep1(self | number | identifier | eq | add | sub | dot))
+    phrase(rep1(number | identifier | eq | add | sub | dot | div))
   }
 
   def apply(code: String): Either[InvLangLexerError, Seq[InvLangToken]] = {

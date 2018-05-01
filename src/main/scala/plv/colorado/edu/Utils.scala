@@ -1,5 +1,7 @@
 package plv.colorado.edu
 
+import java.io.{File, FileOutputStream, PrintWriter}
+import java.nio.file.Paths
 import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
@@ -14,6 +16,10 @@ import scala.collection.immutable.HashSet
   * @author Tianhan Lu
   */
 object Utils {
+  private val DESKTOP_PATH = System.getProperty("user.home") + File.separator + "Desktop"
+  private val LOG_FILE = "log.txt"
+  new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString)) // Clean up
+
   val COLLECTION_ADD: HashSet[(String, String)] = HashSet(
     ("java.lang.StringBuilder", "append"),
     ("java.lang.StringBuffer", "append"),
@@ -79,5 +85,11 @@ object Utils {
     val className = klass.toString
     val methodName = method.getSimpleName.toString
     COLLECTION_ADD.contains((className, methodName))
+  }
+
+  def logging(msg: String): Unit ={
+    val logger = new PrintWriter(new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString), true))
+    logger.println(msg)
+    logger.close()
   }
 }

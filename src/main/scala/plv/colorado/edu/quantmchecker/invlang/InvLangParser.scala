@@ -27,33 +27,36 @@ object InvLangParser extends PackratParsers {
     accept("number", { case coeff@NUMBER(num) => coeff })
   }*/
 
-  def remainder: Parser[RemainderAST] = {
-    identifier ^^ {
-      case IDENTIFIER(variable) => RemainderAST(variable)
-    }
-  }
-
   def linecounter: Parser[LineCounterAST] = {
     identifier ^^ {
       case IDENTIFIER(id) => LineCounterAST(id)
     }
   }
 
+  def remainder: Parser[RemainderAST] = {
+    identifier ~ rep(DOT ~ identifier) ^^ {
+      case id ~ members => RemainderAST(id.variable, members.map {
+        x => x._2.variable
+      })
+    }
+  }
+
   def self: Parser[SelfAST] = {
-    SELF ~ rep(DOT ~ identifier) ^^ {
-      case _ ~ fields => SelfAST(fields.map {
+    identifier ~ rep(DOT ~ identifier) ~ DIV ^^ {
+      case id ~ members ~ _ => SelfAST(id.variable, members.map {
         x => x._2.variable
       })
     }
   }
 
   def invariant: Parser[InvLangAST] = {
-    opt(remainder) ~ ADD ~ self ~ EQ ~ rep(ADD ~ linecounter) ~ rep(SUB ~ linecounter) ^^ {
-      case remainder ~ self ~ _ ~ posLine ~ negLine =>
-        remainder._1 match {
-          case Some(remainderAST) => Invariant(remainderAST.variable, self.id, posLine.map { x => x._2.id }, negLine.map { x => x._2.id })
-          case None => InvNoRem(self.id, posLine.map { x => x._2.id }, negLine.map { x => x._2.id })
-        }
+    rep(ADD ~ self) ~ EQ ~ rep(SUB ~ remainder) ~ rep(ADD ~ linecounter) ~ rep(SUB ~ linecounter) ^^ {
+      case self ~ _ ~ remainder ~ posLine ~ negLine =>
+        val remainders = remainder.map { x => x._2 }
+        val selfs = self.map { x => x._2 }
+        val posLines = posLine.map { x => x._2.id }
+        val negLines = negLine.map { x => x._2.id }
+        Invariant(remainders, selfs, posLines, negLines)
     }
   }
 
