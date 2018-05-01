@@ -2,8 +2,8 @@
 
 credential="litho17:orc19940119"
 
-#curl -u $credential "https://api.github.com/search/code?q=import+org.springframework.boot&type=Code"
-curl -u $credential "https://api.github.com/repos/feynmanliang/bachbot/stargazers"
+curl -u $credential "https://api.github.com/search/code?q=import+org.springframework.boot&type=Code"
+#curl -u $credential "https://api.github.com/repos/feynmanliang/bachbot/stargazers"
 
 # https://github.com/EdmundLeex/learning-java/stargazers
 # https://stackoverflow.com/questions/24132790/how-to-search-for-code-in-github-with-github-api
