@@ -1,7 +1,6 @@
 package plv.colorado.edu.quantmchecker
 
-import javax.lang.model.`type`.TypeMirror
-import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement, VariableElement}
+import javax.lang.model.element._
 
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
@@ -45,10 +44,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
 
   override def processClassTree(classTree: ClassTree): Unit = {
+    val classType = TreeUtils.typeOf(classTree)
+    val allFlds = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala
     if (classTree.getKind != Tree.Kind.ENUM) {
-      val classType = TreeUtils.typeOf(classTree)
-      val allFlds = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements)
-      allFlds.asScala.foreach { // Print recursive data types
+      allFlds.foreach { // Print recursive data types
         ve => if (ve.asType() == classType) Utils.logging("Recursive data type: " + classType.toString)
       }
     }
@@ -243,7 +242,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                         true
                     }
                   } else { // Field of the receiver should be updated, according to method summary
-                    findFieldInClass(receiverTyp.getUnderlyingType, whichVar.right.get) match {
+                    findFieldInClass(receiverTyp, whichVar.right.get) match {
                       case Some(field) =>
                         // If receiver is self and summary updates self's field
                         val updatedFldName = receiverName + "." + field.toString
@@ -406,8 +405,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val enclosingClass = getEnclosingClass(node)
     val enclosingMethod = getEnclosingMethod(node)
     val updatedLabel = getLabel(node)
-    if (enclosingClass == null || enclosingMethod == null)
-      Utils.logging("Empty enclosing class or method:\n" + node.toString)
+    // if (enclosingClass == null || enclosingMethod == null)
+      // Utils.logging("Empty enclosing class or method:\n" + node.toString)
     (
       if (enclosingClass == null) HashSet.empty else getClassFieldInvariants(enclosingClass).keySet,
       if (enclosingMethod == null) HashSet.empty else getLocalInvariants(enclosingMethod).keySet,
@@ -480,10 +479,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param fieldName a field name
     * @return find the field in the class
     */
-  private def findFieldInClass(typ: TypeMirror, fieldName: String): Option[VariableElement] = {
+  private def findFieldInClass(typ: AnnotatedTypeMirror, fieldName: String): Option[VariableElement] = {
+    if (typ == null)
+      return None
     val THIS = "this." // E.g. We want to look up a field named "chats", instead of "this.chats"
     val removeThis = if (fieldName.startsWith(THIS)) fieldName.substring(THIS.length) else fieldName
-    Option(ElementUtils.findFieldInType(TypesUtils.getTypeElement(typ), removeThis))
+    Option(ElementUtils.findFieldInType(TypesUtils.getTypeElement(typ.getUnderlyingType), removeThis))
   }
 
   /**
