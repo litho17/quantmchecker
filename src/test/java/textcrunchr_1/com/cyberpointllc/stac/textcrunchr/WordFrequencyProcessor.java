@@ -1,17 +1,15 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-// import com.cyberpointllc.stac.hashmap.HashMap;
+import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 
 public class WordFrequencyProcessor extends Processor {
 
@@ -28,8 +26,8 @@ public class WordFrequencyProcessor extends Processor {
         Sorter<WordCount> sorter = new  Sorter<WordCount>(new  DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
         TCResult result = new  TCResult("Word frequencies");
-        WordFrequencyProcessor31: for (WordCount wc : sortedWCs) {
-            WordFrequencyProcessor32: result.addResult(wc.getWord(), wc.getCount());
+        for (WordCount wc : sortedWCs) {
+            result.addResult(wc.getWord(), wc.getCount());
         }
         return result;
     }
@@ -39,15 +37,15 @@ public class WordFrequencyProcessor extends Processor {
     }
 
     /**
-     *
+     * 
      * @param words
      * @return List containing number of appearances of each word (words are
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
-        @Inv({"words+<self>=+WordFrequencyProcessor60-WordFrequencyProcessor50"}) List<WordCount> freqs = new  ArrayList<WordCount>();
-        @Inv("words+<self>=+WordFrequencyProcessor59-WordFrequencyProcessor50") HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
-        WordFrequencyProcessor50: for (String word : words) {
+        List<WordCount> freqs = new  ArrayList<WordCount>();
+        HashMap<String, WordCount> freqsCounter = new  HashMap<String, WordCount>();
+        for (String word : words) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
             String w = word;
             // increment current count for w
@@ -56,17 +54,16 @@ public class WordFrequencyProcessor extends Processor {
                 count = freqsCounter.get(w);
             } else {
                 count = new  WordCount(w, 0);
-                WordFrequencyProcessor59: freqsCounter.put(w, count);
-                WordFrequencyProcessor60: freqs.add(count);
+                freqsCounter.put(w, count);
+                freqs.add(count);
             }
             count.increment();
         }
-        // freqs = new ArrayList<WordCount>();
         return freqs;
     }
 
     /**
-     *
+     * 
      * @param input
      * @return array of words in input
      */
@@ -86,12 +83,11 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @Inv("br+<self>=+WordFrequencyProcessor92-WordFrequencyProcessor90-WordFrequencyProcessor91") StringBuilder sb = new  StringBuilder();
-        String read;
-        WordFrequencyProcessor90: read = br.readLine();
+        StringBuilder sb = new  StringBuilder();
+        String read = br.readLine();
         while (read != null) {
-            WordFrequencyProcessor92: sb.append(read);
-            WordFrequencyProcessor91: read = br.readLine();
+            sb.append(read);
+            read = br.readLine();
         }
         return sb.toString();
     }

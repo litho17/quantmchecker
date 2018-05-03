@@ -1,8 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
-// import com.cyberpointllc.stac.zipdecompression.ZipDecompressor;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
+import textcrunchr_1.com.cyberpointllc.stac.zipdecompression.ZipDecompressor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -17,7 +15,7 @@ public class InputPathHandler {
 
     private static final class FileVisitor extends SimpleFileVisitor<Path> {
 
-        @Inv("+<self>=+InputPathHandler32") List<String> filepaths;
+        List<String> filepaths;
 
         FileVisitor() {
             filepaths = new  ArrayList<String>();
@@ -29,13 +27,13 @@ public class InputPathHandler {
 
         @Override
         public FileVisitResult visitFile(Path aFile, BasicFileAttributes aAttrs) throws IOException {
-            InputPathHandler32: filepaths.add(aFile.toString());
+            filepaths.add(aFile.toString());
             return FileVisitResult.CONTINUE;
         }
     }
 
     public List<String> handleInputPath(String path) throws Exception {
-        /* ZipDecompressor zd = new  ZipDecompressor(); */
+        ZipDecompressor zd = new  ZipDecompressor();
         InputPathHandlerHelper0 conditionObj0 = new  InputPathHandlerHelper0(0);
         // assuming path is a file
         try {
@@ -46,7 +44,7 @@ public class InputPathHandler {
             // make temp directory to put files in
             Path directory_name = Files.createTempDirectory("");
             directory_name.toFile().deleteOnExit();
-            boolean decompressedFully = false; /*zd.decompress(path, directory_name.toString());*/
+            boolean decompressedFully = zd.decompress(path, directory_name.toString());
             if (!decompressedFully) {
                 handleInputPathHelper1();
             }

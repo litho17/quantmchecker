@@ -5,7 +5,6 @@ import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorage;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorageFactory;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -31,7 +30,7 @@ public class Ngram {
 
     protected Ngram load(InputStream inputStream) throws IOException, LineFormatException {
         if (ngramStorage == null) {
-            throw new NotInitializedException();
+            throw new  NotInitializedException();
         }
         this.volume = this.ngramStorage.load(inputStream);
         if (volume != 0) {
@@ -47,11 +46,11 @@ public class Ngram {
 
     public ScoreStats score(final String text) {
         if ((text == null) || (text.length() < ngramType.length()))
-            throw new IllegalArgumentException();
+            throw new  IllegalArgumentException();
         if (ngramStorage == null) {
-            throw new NotInitializedException();
+            throw new  NotInitializedException();
         }
-        ScoreStats scoreStats = new ScoreStats();
+        ScoreStats scoreStats = new  ScoreStats();
         Float ngramScore;
         int cnt = text.length() - ngramType.length();
         scoreStats.ngramsTotal = cnt + 1;
@@ -63,7 +62,7 @@ public class Ngram {
             }
         }
         scoreStats.minScore = floor * scoreStats.ngramsTotal;
-        NgramHelper0 conditionObj0 = new NgramHelper0(0);
+        NgramHelper0 conditionObj0 = new  NgramHelper0(0);
         scoreStats.score = scoreStats.ngramsFound == conditionObj0.getValue() ? scoreStats.minScore : scoreStats.ngramsTotal * (scoreStats.score / scoreStats.ngramsFound);
         return scoreStats;
     }
@@ -130,7 +129,7 @@ public class Ngram {
 
     private void calculateLogFrequencesHelper() {
         for (Map.Entry<String, Float> entry : ngramStorage) {
-            entry.setValue(new Float(Math.log10(entry.getValue() / volume)));
+            entry.setValue(new  Float(Math.log10(entry.getValue() / volume)));
         }
     }
 }

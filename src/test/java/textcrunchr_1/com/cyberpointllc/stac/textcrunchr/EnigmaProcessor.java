@@ -1,13 +1,11 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import textcrunchr_1.com.ahancock.enigma.EnigmaFactory;
-import textcrunchr_1.com.ahancock.enigma.EnigmaMachine;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import textcrunchr_1.com.ahancock.enigma.EnigmaFactory;
+import textcrunchr_1.com.ahancock.enigma.EnigmaMachine;
 
 public class EnigmaProcessor extends Processor {
 
@@ -15,14 +13,13 @@ public class EnigmaProcessor extends Processor {
 
     public TCResult process(InputStream inps) throws IOException {
         // read to string
-        InputStreamReader is = new InputStreamReader(inps);
-        @Inv("br+<self>=+EnigmaProcessor23-EnigmaProcessor21-EnigmaProcessor24") StringBuilder sb = new StringBuilder();
-        BufferedReader br = new BufferedReader(is);
-        String read;
-        EnigmaProcessor21: read = br.readLine();
+        InputStreamReader is = new  InputStreamReader(inps);
+        StringBuilder sb = new  StringBuilder();
+        BufferedReader br = new  BufferedReader(is);
+        String read = br.readLine();
         while (read != null) {
-            EnigmaProcessor23: sb.append(read);
-            EnigmaProcessor24: read = br.readLine();
+            sb.append(read);
+            read = br.readLine();
         }
         String theString = sb.toString().toUpperCase();
         // Construct the machine
@@ -32,7 +29,7 @@ public class EnigmaProcessor extends Processor {
         String encodedString = machine.encodeLine(theString);
         String name = "Enigma transformation (5, 9, 14)";
         String value = encodedString;
-        return new TCResult(name, value);
+        return new  TCResult(name, value);
     }
 
     public String getName() {

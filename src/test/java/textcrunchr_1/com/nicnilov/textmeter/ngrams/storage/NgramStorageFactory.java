@@ -25,7 +25,7 @@ public class NgramStorageFactory {
             //            }
             default:
                 {
-                    throw new NotImplementedException();
+                    throw new  NotImplementedException();
                 }
         }
         return ngramStorage;

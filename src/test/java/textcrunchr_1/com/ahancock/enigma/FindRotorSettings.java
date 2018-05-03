@@ -1,7 +1,5 @@
 package textcrunchr_1.com.ahancock.enigma;
 
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
@@ -19,7 +17,7 @@ public class FindRotorSettings {
         // Save the current time to compute total run time.
         long startTime = System.currentTimeMillis();
         // Read three lines from the source file
-        String cipherText = new @Inv("i+<self>=+FindRotorSettings26-FindRotorSettings24") String();
+        String cipherText = new  String();
         Scanner scanner = new  Scanner(new  File(args[0]));
         for (int i = 0; i < NUMBER_OF_LINES; i++) {
             // Preserve the newline from the source text
@@ -29,9 +27,9 @@ public class FindRotorSettings {
         EnigmaMachine machine = EnigmaFactory.buildEnigmaMachine();
         English english = new  English(ERRORS_ALLOWED, MULTIPLIER);
         // Loop through all possible combinations for a three Rotor machine
-        for (int _i = 0; _i < Symbol.MAX; _i++) for (int j = 0; j < Symbol.MAX; j++) for (int k = 0; k < Symbol.MAX; k++) {
+        for (int i = 0; i < Symbol.MAX; i++) for (int j = 0; j < Symbol.MAX; j++) for (int k = 0; k < Symbol.MAX; k++) {
             // Set the machine to the current Rotor positions
-            machine.setRotors(_i, j, k);
+            machine.setRotors(i, j, k);
             // Attempt to decode the ciphertext
             String plainText;
             plainText = machine.encodeLine(cipherText);

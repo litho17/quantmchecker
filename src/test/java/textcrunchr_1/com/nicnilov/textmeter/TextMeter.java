@@ -1,20 +1,14 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
-// import com.cyberpointllc.stac.hashmap.HashMap;
-
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
-import java.util.HashMap;
+import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 
 public class TextMeter {
 
-    private @Inv("+<self>=+TextMeterProcessor37") HashMap<String, TextLanguage> textLanguages = new  HashMap();
+    private HashMap<String, TextLanguage> textLanguages = new  HashMap();
 
     public TextMeter() {
     }
 
-    @Summary({"textLanguages", "1"})
     public TextLanguage createTextLanguage(final String language) {
         if ((language == null) || (language.length() == 0))
             throw new  IllegalArgumentException();

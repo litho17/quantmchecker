@@ -1,9 +1,7 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams.storage;
 
-//import com.cyberpointllc.stac.hashmap.HashMap;
+import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
-
-import java.util.HashMap;
 
 /**
  * Created as part of textmeter project
@@ -13,7 +11,7 @@ final class HashMapStorage extends NgramStorage {
 
     public HashMapStorage(NgramType ngramType, int sizeHint) {
         super(ngramType);
-        this.storage = new HashMap(sizeHint < DEFAULT_SIZE_HINT ? DEFAULT_SIZE_HINT : sizeHint);
+        this.storage = new  HashMap(sizeHint < DEFAULT_SIZE_HINT ? DEFAULT_SIZE_HINT : sizeHint);
     }
 
     @Override

@@ -2,7 +2,6 @@ package textcrunchr_1.com.nicnilov.textmeter.ngrams;
 
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -13,7 +12,7 @@ import java.io.InputStream;
 public class NgramBuilder {
 
     public static Ngram build(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
-        Ngram ngram = new Ngram(ngramType, ngramStorageStrategy, sizeHint);
+        Ngram ngram = new  Ngram(ngramType, ngramStorageStrategy, sizeHint);
         ngram.load(inputStream);
         return ngram;
     }

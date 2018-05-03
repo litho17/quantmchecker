@@ -7,8 +7,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
 
 /**
  * This engine takes a template in the form of a string and possibly a start tag
@@ -55,9 +53,9 @@ public class TemplateEngine {
      */
     public List<Pair<Integer, Integer>> findTags() {
         Matcher matcher = pattern.matcher(text);
-        @Inv("+<self>=+TemplateEngine60-TemplateEngine59") List<Pair<Integer, Integer>> tagsList = new @Inv("+<self>=+TemplateEngine60-TemplateEngine59") ArrayList();
-        TemplateEngine59: while (matcher.find()) {
-            TemplateEngine60: findTagsHelper(tagsList, matcher);
+        List<Pair<Integer, Integer>> tagsList = new  ArrayList();
+        while (matcher.find()) {
+            findTagsHelper(tagsList, matcher);
         }
         return tagsList;
     }
@@ -72,7 +70,7 @@ public class TemplateEngine {
      *         replaced with the keys' corresponding values
      */
     public String replaceTags(Map<String, String> dictionary) {
-        @Inv("i+<self>=+TemplateEngine98+TemplateEngine102+TemplateEngine106+TemplateEngine124-TemplateEngine122-TemplateEngine94-TemplateEngine94") StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new  StringBuilder();
         replaceTagsBuilder(dictionary, sb);
         return sb.toString();
     }
@@ -86,25 +84,25 @@ public class TemplateEngine {
      * @param sb
      *            The string builder to put the data in
      */
-    public void replaceTagsBuilder(Map<String, String> dictionary, @Inv("i+<self>=+TemplateEngine98+TemplateEngine102+TemplateEngine106+TemplateEngine124-TemplateEngine122-TemplateEngine94-TemplateEngine94") StringBuilder sb) {
+    public void replaceTagsBuilder(Map<String, String> dictionary, StringBuilder sb) {
         // keep track of where we are on the text string
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
         int endTagLength = StringEscapeUtils.unescapeJava(endTag).length();
         List<Pair<Integer, Integer>> tagsList = findTags();
-        TemplateEngine94: for (int i = 0; i < tagsList.size(); i++) {
+        for (int i = 0; i < tagsList.size(); i++) {
             int startTagLocation = tagsList.get(i).getLeft();
             int endTagLocation = tagsList.get(i).getRight();
             // append the part of the text that doesn't have tags
-            TemplateEngine98: sb.append(text.substring(linePointer, startTagLocation));
+            sb.append(text.substring(linePointer, startTagLocation));
             // get the dictionary key
             String key = text.substring(startTagLocation + startTagLength, endTagLocation - endTagLength).trim();
             // append the value to the text instead of the key
-            TemplateEngine102: sb.append(dictionary.get(key));
+            sb.append(dictionary.get(key));
             linePointer = endTagLocation;
         }
         // append the last part of the text that doesn't have tags
-        TemplateEngine106: sb.append(text.substring(linePointer, text.length()));
+        sb.append(text.substring(linePointer, text.length()));
     }
 
     public String replaceTags(Templated templated) {
@@ -119,10 +117,10 @@ public class TemplateEngine {
      * @return a string representing all of the templated items
      */
     public String replaceTags(List<? extends Templated> templateds, String separator) {
-        @Inv("i+<self>=+TemplateEngine98+TemplateEngine102+TemplateEngine106+TemplateEngine124-TemplateEngine122-TemplateEngine94-TemplateEngine94") StringBuilder sb = new  StringBuilder();
-        TemplateEngine122: for (Templated templated : templateds) {
+        StringBuilder sb = new  StringBuilder();
+        for (Templated templated : templateds) {
             replaceTagsBuilder(templated.getTemplateMap(), sb);
-            TemplateEngine124: sb.append(separator);
+            sb.append(separator);
         }
         return sb.toString();
     }
@@ -137,7 +135,6 @@ public class TemplateEngine {
         return replaceTags(templateds, "");
     }
 
-    @Summary({"tagsList", "1"})
     private void findTagsHelper(List<Pair<Integer, Integer>> tagsList, Matcher matcher) {
         tagsList.add(Pair.of(matcher.start(), matcher.end()));
     }

@@ -5,8 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
-
-import plv.colorado.edu.quantmchecker.qual.Inv;
+import java.util.Scanner;
+import org.apache.commons.io.IOUtils;
+import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.Processor;
 import textcrunchr_1.com.nicnilov.textmeter.TextMeter;
 import textcrunchr_1.com.nicnilov.textmeter.TextLanguage;
 import textcrunchr_1.com.nicnilov.textmeter.TestUtils;
@@ -22,19 +23,18 @@ public class TextMeterProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        @Inv("br+<self>=+TextMeterProcessor31-TextMeterProcessor28-TextMeterProcessor32") StringBuilder sb = new  StringBuilder();
+        StringBuilder sb = new  StringBuilder();
         BufferedReader br = new  BufferedReader(is);
-        String read;
-        TextMeterProcessor28: read = br.readLine();
+        String read = br.readLine();
         while (read != null) {
             //System.out.println(read);
-            TextMeterProcessor31: sb.append(read);
-            TextMeterProcessor32: read = br.readLine();
+            sb.append(read);
+            read = br.readLine();
         }
         String theString = sb.toString();
         // set up textmeter
         TextMeter textMeter = new  TextMeter();
-        TextMeterProcessor37: textMeter.createTextLanguage("en");
+        textMeter.createTextLanguage("en");
         TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;

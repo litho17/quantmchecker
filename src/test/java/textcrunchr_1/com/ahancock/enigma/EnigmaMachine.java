@@ -1,7 +1,5 @@
 package textcrunchr_1.com.ahancock.enigma;
 
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 public class EnigmaMachine {
 
     private Rotor r1;
@@ -37,19 +35,19 @@ public class EnigmaMachine {
     }
 
     // StringBuilder is used to build the result
-    private @Inv("i+<self>=+EnigmaMachine52-EnigmaMachine46") StringBuilder sb = new  StringBuilder();
+    private StringBuilder sb = new  StringBuilder();
 
     // Encode the input string and return the result
     public String encodeLine(String s) {
         // Reuse the same StringBuilder.
         sb.setLength(0);
-        EnigmaMachine46: for (int i = 0; i < s.length(); i++) {
+        for (int i = 0; i < s.length(); i++) {
             char currentChar = s.charAt(i);
             // Only encode symbols which are not ignored
             if (!Symbol.ignoreSymbol(currentChar))
                 currentChar = encodeChar(currentChar);
             // Append the symbol to the encoded line, even if it was "ignored"
-            EnigmaMachine52: sb.append(currentChar);
+            sb.append(currentChar);
         }
         return sb.toString();
     }

@@ -1,7 +1,6 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams.storage;
 
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
-
 import java.util.TreeMap;
 
 /**
