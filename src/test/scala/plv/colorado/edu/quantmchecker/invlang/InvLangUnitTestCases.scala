@@ -8,11 +8,11 @@ object InvLangUnitTestCases {
     "500",
     "=",
     "+",
-    "+x.f+y.g+z.e.f/=+c10+c29+c41-c11"
+    "+x.f+y.g+z.e.f=+c10+c29+c41-c11"
   )
 
   val parserTests = List(
-    "+z.e.f/=-x.f-y.g+c10+c29+c41-c11",
-    "+z.e.f/=+c10+c29+c41-c11"
+    "+z.e.f=-x.f-y.g+c10+c29+c41-c11",
+    "+z.e.f=+c10+c29+c41-c11"
   )
 }

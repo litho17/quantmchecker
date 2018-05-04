@@ -260,17 +260,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   }
               }
           }
-          if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
-            issueWarning(node, LIST_NOT_ANNOTATED)
+          // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
+            // issueWarning(node, LIST_NOT_ANNOTATED)
       }
     } else { // No method summaries found. Translate library methods (e.g. append, add) into numerical updates
       if (receiverTyp == null) { // Do nothing
       } else {
         val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
         if (isColAdd) {
-          if (receiverAnno.isEmpty && inLoop) {
-            issueWarning(node, LIST_NOT_ANNOTATED)
-          }
+          // if (receiverAnno.isEmpty && inLoop) {
+            // issueWarning(node, LIST_NOT_ANNOTATED)
+          // }
 
           val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
             invariant =>
@@ -287,8 +287,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   }
               }
           }
-          if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
-            issueWarning(node, LIST_NOT_ANNOTATED)
+          // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
+            // issueWarning(node, LIST_NOT_ANNOTATED)
         } else {
           // A method is invoked, but it does not have a summary and is not Collection ADD
         }

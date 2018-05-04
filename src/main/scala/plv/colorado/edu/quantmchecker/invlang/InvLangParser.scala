@@ -42,8 +42,8 @@ object InvLangParser extends PackratParsers {
   }
 
   def self: Parser[SelfAST] = {
-    identifier ~ rep(DOT ~ identifier) ~ DIV ^^ {
-      case id ~ members ~ _ => SelfAST(id.variable, members.map {
+    identifier ~ rep(DOT ~ identifier) ^^ {
+      case id ~ members => SelfAST(id.variable, members.map {
         x => x._2.variable
       })
     }
