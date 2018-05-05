@@ -44,10 +44,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   override def processClassTree(classTree: ClassTree): Unit = {
     val classType = TreeUtils.typeOf(classTree)
-    val allFlds = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala
+    val allFlds: Iterable[VariableElement] = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala
     if (classTree.getKind != Tree.Kind.ENUM) {
       allFlds.foreach { // Print recursive data types
-        ve => if (ve.asType() == classType) Utils.logging("Recursive data type: " + classType.toString)
+        ve =>
+          if (ve.asType() == classType)
+            Utils.logging("Recursive data type: " + classType.toString)
+          types.asElement(ve.asType()) match {
+            case te: TypeElement =>
+              val tree = trees.getTree(te)
+              // println(te.getQualifiedName, te.getSimpleName)
+            case _ =>
+          }
       }
     }
     super.processClassTree(classTree)
@@ -204,7 +212,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         TreeUtils.elementFromDeclaration(getEnclosingClass(node))
       }
     }
-    val receiverAnno: Option[AnnotationMirror] = getExprAnnotations(receiver)
     // elements.getAllAnnotationMirrors(receiverDecl).asScala.toList
     // trees.getTypeMirror()
     // atypeFactory.declarationFromElement(callee)
@@ -333,19 +340,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def avoidAssignSubtypeCheck(node: ExpressionTree, candidateAnnos: Set[AnnotationMirror]): Boolean = {
     if (candidateAnnos.isEmpty)
       return false
-    val pickedAnno = qualifierHierarchy.findAnnotationInHierarchy(candidateAnnos.asJava, qualifierHierarchy.getTopAnnotations.asScala.head)
     node match {
       case t: NewClassTree => // When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
-        val rhsTyp = atypeFactory.getAnnotatedType(t)
-        val rhsAnno = rhsTyp.getAnnotations
+        val rhsAnno = atypeFactory.getTypeAnnotation(t)
         // If rhs's annotation is empty or TOP
-        if (rhsAnno == null
-          || rhsAnno.isEmpty
-          || AnnotationUtils.areSameIgnoringValues(rhsAnno.asScala.head, TOP)) {
-          AnnotationUtils.areSameIgnoringValues(pickedAnno, INV)
-        } else {
-          false
-        }
+        rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, TOP)
       case m: MethodInvocationTree =>
         // list = o.m(), where m's return value is annotated
         val callee: ExecutableElement = getMethodElementFromInvocation(m)
@@ -598,24 +597,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   /**
     *
     * @param node a statement or expression
-    * @param fieldInv invariants on field declarations
-    * @param localInv invariants on local variable declarations
-    * @return all invariants in the enclosing method and class
-    *         Resolve naming conflict for variables between local and field
-    */
-  private def getRelevantInv(node: Tree,
-                             fieldInv: HashMap[InvLangAST, Tree],
-                             localInv: HashMap[InvLangAST, Tree]): HashSet[InvLangAST] = {
-    val enclosingClass = getEnclosingClass(node)
-    val enclosingMethod = getEnclosingMethod(node)
-    val field = fieldInv.filter { case (i, t) => t == enclosingClass }.keySet
-    val local = localInv.filter { case (i, t) => t == enclosingMethod }.keySet
-    new HashSet ++ field ++ local
-  }
-
-  /**
-    *
-    * @param node a statement or expression
     * @return if it is in class constructor
     */
   private def isInConstructor(node: Tree): Boolean = {
@@ -632,22 +613,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case t: WhileLoopTree => true
       case t: DoWhileLoopTree => true
       case _ => false
-    }
-  }
-
-  /**
-    *
-    * @param node an AST node
-    * @return if the enclosing method of the node has summary
-    */
-  private def hasSummary(node: Tree): Boolean = {
-    val enclosingMethod = getEnclosingMethod(node)
-    if (enclosingMethod != null) {
-      val method: ExecutableElement = TreeUtils.elementFromDeclaration(enclosingMethod)
-      val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY))
-      summaries.nonEmpty
-    } else {
-      false
     }
   }
 
