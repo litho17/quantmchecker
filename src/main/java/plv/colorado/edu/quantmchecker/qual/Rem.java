@@ -11,9 +11,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @Documented
-// @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
-//Check these qualifiers: package org.checkerframework.framework.qual;
-public @interface Inv {
-    //@JavaExpression
-    public String[] value();
+public @interface Rem {
+    public String value();
 }

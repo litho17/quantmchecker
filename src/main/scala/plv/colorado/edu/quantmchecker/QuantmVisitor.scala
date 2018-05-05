@@ -31,7 +31,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   private val NOT_SUPPORTED = "NOT SUPPORTED"
   private val MISS_CHANGES = "Expression might change variables appearing in lhs of an invariant, but the changes are not described by any invariant"
-  private val BAD_LABEL = "Bad label"
   private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
 
   private val qualifierHierarchy = atypeFactory.getQualifierHierarchy
@@ -189,8 +188,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
-    val summaryExists = hasSummary(node)
-    val inLoop = if (ISSUE_ALL_UNANNOTATED_LISTS) true else isInLoop(node)
+    // val summaryExists = hasSummary(node)
+    // val inLoop = if (ISSUE_ALL_UNANNOTATED_LISTS) true else isInLoop(node)
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     // Check if side effects will invalidate invariants
     // TODO: o.f1().f2().f3(): methodinvocation (a.f().g()) -> memberselect (a.f())
@@ -216,8 +215,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         summary =>
           val increment: Integer = summary match {
             case MethodSummaryI(_, i) => i
-            case MethodSummaryV(_, _) => 1
-            // TODO: Not yet support describing changes via variable name in a method summary
             case _ => 0
           }
           val whichVar = MethodSumUtils.whichVar(summary, callee)
@@ -338,8 +335,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       return false
     val pickedAnno = qualifierHierarchy.findAnnotationInHierarchy(candidateAnnos.asJava, qualifierHierarchy.getTopAnnotations.asScala.head)
     node match {
-      case t: NewClassTree =>
-        // When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
+      case t: NewClassTree => // When it is an assignment (e.g. x = new C, where x has explicit annotation and C doesn't), don't type check.
         val rhsTyp = atypeFactory.getAnnotatedType(t)
         val rhsAnno = rhsTyp.getAnnotations
         // If rhs's annotation is empty or TOP
@@ -496,7 +492,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val invokedMethod: ExecutableElement = getMethodElementFromInvocation(node)
     val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
     if (summaries.size == 1) {
-      val summaryList = Utils.extractValues(summaries.head)
+      val summaryList = Utils.extractArrayValues(summaries.head, "value")
       if (summaryList.size % 2 != 0) {
         issueWarning(invokedMethod, "Method summary should have even number of arguments")
         new HashSet[MethodSummary]
@@ -654,12 +650,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       false
     }
   }
-
-  @deprecated
-  private def getTypeQualifiers: HashSet[AnnotationMirror] = new HashSet[AnnotationMirror] ++ atypeFactory.getQualifierHierarchy.getTypeQualifiers.asScala
-
-  @deprecated
-  private def getAnnotationMirror(node: Tree): HashSet[AnnotationMirror] = new HashSet() ++ atypeFactory.getAnnotatedType(node).getAnnotations.asScala
 
   /** Places to look for help:
     * 1. TreeUtils.xxx

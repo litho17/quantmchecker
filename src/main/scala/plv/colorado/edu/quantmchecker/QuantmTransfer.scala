@@ -10,7 +10,7 @@ import org.checkerframework.dataflow.cfg.node.{AssignmentNode, ReturnNode, Varia
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
 import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
 import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
-import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvBounded, InvTop}
+import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop}
 
 import scala.collection.JavaConverters._
 /**
@@ -22,7 +22,6 @@ class QuantmTransfer(analysis: CFAbstractAnalysis[CFValue, CFStore, CFTransfer])
   private val elements = analysis.getEnv.getElementUtils
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
-  protected val INVBOUNDED: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBounded])
   protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
 
   override def visitReturn(n: ReturnNode, p: TransferInput[CFValue, CFStore]): TransferResult[CFValue, CFStore] = {

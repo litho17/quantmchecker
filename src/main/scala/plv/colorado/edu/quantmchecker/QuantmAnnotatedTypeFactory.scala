@@ -9,7 +9,7 @@ import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTrans
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvBounded}
+import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, Rem}
 
 /**
   * @author Tianhan Lu
@@ -17,8 +17,8 @@ import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvBounded}
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  protected val REM: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Rem])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
-  protected val INVBOUNDED: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBounded])
 
   // disable flow inference
   // super(checker, false);
@@ -49,15 +49,26 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {
     override def isSubtype(subAnno: AnnotationMirror, superAnno: AnnotationMirror): Boolean = {
-      if (AnnotationUtils.areSameIgnoringValues(superAnno, INV) && AnnotationUtils.areSameIgnoringValues(subAnno, INV)) {
-        val lhsValues = Utils.extractValues(superAnno)
-        val rhsValues = Utils.extractValues(subAnno)
+      val isSubInv = AnnotationUtils.areSameIgnoringValues(subAnno, INV)
+      val isSubRem = AnnotationUtils.areSameIgnoringValues(subAnno, REM)
+      val isSuperInv = AnnotationUtils.areSameIgnoringValues(superAnno, INV)
+      val isSuperRem = AnnotationUtils.areSameIgnoringValues(superAnno, REM)
+
+      if (isSubInv && isSuperInv) {
+        val lhsValues = Utils.extractArrayValues(superAnno, "value")
+        val rhsValues = Utils.extractArrayValues(subAnno, "value")
         return lhsValues == rhsValues
       }
-      // Ignore annotation values to ensure that annotation is in supertype map.
-      val newSuperAnno = if (AnnotationUtils.areSameIgnoringValues(superAnno, INV)) INV else superAnno
-      val newSubAnno = if (AnnotationUtils.areSameIgnoringValues(subAnno, INV)) INV else subAnno
-      if (DEBUG && !super.isSubtype(newSubAnno, newSuperAnno)) {
+
+      if (isSubRem && isSuperRem) {
+        val lhsValues = Utils.extractValue(superAnno, "value")
+        val rhsValues = Utils.extractValue(subAnno, "value")
+        return lhsValues == rhsValues
+      }
+
+      val newSuperAnno = if (isSuperInv) INV else if (isSuperRem) REM else superAnno
+      val newSubAnno = if (isSubInv) INV else if (isSubRem) REM else subAnno
+      if (DEBUG) {
         println(subAnno, newSubAnno)
         println(superAnno, newSuperAnno)
       }

@@ -61,14 +61,20 @@ object Utils {
     * @param anno annotation
     * @return the value stored in string array (as type arguments)
     */
-  def extractValues(anno: AnnotationMirror): List[String] = {
+  def extractArrayValues(anno: AnnotationMirror, valueName: String): List[String] = {
     val valMap = anno.getElementValues
-    if (valMap.isEmpty) {
+    if (valMap.isEmpty)
       List()
-    } else {
-      // TODO: hardcoded "value"
-      AnnotationUtils.getElementValueArray(anno, "value", classOf[String], true).asScala.toList
-    }
+    else
+      AnnotationUtils.getElementValueArray(anno, valueName, classOf[String], true).asScala.toList
+  }
+
+  def extractValue(anno: AnnotationMirror, valueName: String): String = {
+    val valMap = anno.getElementValues
+    if (valMap.isEmpty)
+      ""
+    else
+      AnnotationUtils.getElementValue(anno, valueName, classOf[String], true)
   }
 
   def getLineNumber(node: Tree, positions: SourcePositions, root: CompilationUnitTree): Long = {

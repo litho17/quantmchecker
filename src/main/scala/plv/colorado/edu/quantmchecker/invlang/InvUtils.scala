@@ -16,13 +16,13 @@ import scala.collection.immutable.HashSet
   */
 object InvUtils {
   private val DEBUG_COLLECT_INV = false
-  private val MALFORMAT_INVARIANT = "Malformatted invariant annotation"
+  private val MALFORMAT_INVARIANT = "Malformat invariant"
 
   /**
     *
     * @param invariant an invariant
-    * @return 1. A list of remainders's
-    *         2. A list of selfs'
+    * @return 1. A list of remainders
+    *         2. A list of selfs
     *
     */
   def extractInv(invariant: InvLangAST): (List[String], List[String]) = {
@@ -64,8 +64,8 @@ object InvUtils {
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, annot))
     // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     if (listInvAnnotations.nonEmpty) {
-      if (DEBUG_COLLECT_INV) Utils.logging("Collected invariants:\n" + listInvAnnotations.toString() + "\n")
-      val invs: List[String] = Utils.extractValues(listInvAnnotations.head)
+      if (DEBUG_COLLECT_INV) Utils.logging("Collected invariants:\n" + node + "\n" + listInvAnnotations.toString() + "\n")
+      val invs: List[String] = Utils.extractArrayValues(listInvAnnotations.head, "value")
       invs.foldLeft(new HashSet[InvLangAST]) {
         (acc, str) =>
           // Before parsing, replace multiple spaces with a single space

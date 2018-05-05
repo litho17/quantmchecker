@@ -9,7 +9,6 @@ import java.lang.annotation.*;
  */
 @DefaultQualifierInHierarchy
 @InvisibleQualifier
-// @DefaultFor({TypeUseLocation.UPPER_BOUND, TypeUseLocation.LOWER_BOUND})
 @SubtypeOf({})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
