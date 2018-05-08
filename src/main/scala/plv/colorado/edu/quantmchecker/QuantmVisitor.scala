@@ -271,6 +271,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       if (receiverTyp == null) { // Do nothing
       } else {
         val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
+        val isIterNext = Utils.isIterNext(types.erasure(receiverTyp.getUnderlyingType), callee)
+        // println(node, fieldInvs ++ localInvs, getEnclosingMethod(node).getName, isColAdd)
         if (isColAdd) {
           // if (receiverAnno.isEmpty && inLoop) {
             // issueWarning(node, LIST_NOT_ANNOTATED)
@@ -278,7 +280,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
           val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
             invariant =>
-              val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(invariant)
+              val (_, selfs: List[String]) = InvUtils.extractInv(invariant)
               selfs.exists {
                 self =>
                   val selfCall = self + "." + callee.getSimpleName // E.g. x.f.g.add(1)
@@ -293,9 +295,27 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           }
           // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
             // issueWarning(node, LIST_NOT_ANNOTATED)
-        } else {
-          // A method is invoked, but it does not have a summary and is not Collection ADD
         }
+
+        if (isIterNext) {
+          val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
+            invariant =>
+              val (remainders: List[String], _) = InvUtils.extractInv(invariant)
+              remainders.exists {
+                remainder =>
+                  val remainderCall = remainder + "." + callee.getSimpleName // E.g. x.f.g.add(1)
+                  if (node.getMethodSelect.toString == remainderCall) {
+                    if (!InvWithSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
+                      issueError(node, "")
+                    true
+                  } else {
+                    false
+                  }
+              }
+          }
+        }
+
+        // A method is invoked, but it does not have a summary and is not Collection ADD
       }
     }
     super.visitMethodInvocation(node, p)
@@ -402,11 +422,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val updatedLabel = getLabel(node)
     // if (enclosingClass == null || enclosingMethod == null)
       // Utils.logging("Empty enclosing class or method:\n" + node.toString)
-    (
-      if (enclosingClass == null) HashSet.empty else getClassFieldInvariants(enclosingClass).keySet,
-      if (enclosingMethod == null) HashSet.empty else getLocalInvariants(enclosingMethod).keySet,
-      updatedLabel
-    )
+    val fldInv =
+      if (enclosingClass == null)
+        Set.empty.asInstanceOf[Set[InvLangAST]]
+      else
+        getClassFieldInvariants(enclosingClass).keySet
+    val localInv =
+      if (enclosingMethod == null)
+        Set.empty.asInstanceOf[Set[InvLangAST]]
+      else
+        getLocalInvariants(enclosingMethod).keySet
+    (fldInv, localInv, updatedLabel)
   }
 
   /**

@@ -64,7 +64,6 @@ object InvUtils {
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, annot))
     // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     if (listInvAnnotations.nonEmpty) {
-      if (DEBUG_COLLECT_INV) Utils.logging("Collected invariants:\n" + node + "\n" + listInvAnnotations.toString() + "\n")
       val invs: List[String] = Utils.extractArrayValues(listInvAnnotations.head, "value")
       invs.foldLeft(new HashSet[InvLangAST]) {
         (acc, str) =>
@@ -77,6 +76,8 @@ object InvUtils {
               case Invariant(remainders, selfs, posLines, negLines) =>
                 val invariant = Invariant(remainders, selfs, posLines, negLines)
                 // assert(invariant.toString != invStr)
+                if (DEBUG_COLLECT_INV)
+                  Utils.logging("Collected invariants:\n\t" + invariant + "\n\t" + node + "\n")
                 acc + invariant
               case _ => println(node, MALFORMAT_INVARIANT); acc
             }

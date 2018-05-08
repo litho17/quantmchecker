@@ -4,6 +4,8 @@ import com.sun.source.tree.Tree
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import z3.scala.{Z3AST, Z3Context, Z3Symbol}
 
+import scala.collection.immutable.HashSet
+
 /**
   * @author Tianhan Lu
   */
@@ -88,6 +90,23 @@ object InvWithSolver {
       z3.simplifyAst(z3.mkAdd(listToPredicate(remainders, SUB), z3.mkAdd(listToPredicate(pos, ADD), listToPredicate(neg, SUB))))
     }
 
+    /**
+      *
+      * @param oldList    a list of z3 ast node
+      * @param names      the name of each z3 ast node
+      * @param updateName the name of the z3 ast node that needs to be updated
+      * @param increment  the increment
+      * @return a list of updated z3 ast node
+      */
+    def update(oldList: List[Z3AST], names: List[String], updateName: String, increment: Int): List[Z3AST] = {
+      val idxs = names.zipWithIndex.foldLeft(new HashSet[Int]) {
+        case (acc, (name, idx)) => if (name == updateName) acc + idx else acc
+      }
+      oldList.zipWithIndex.map {
+        case (e, idx) => if (idxs.contains(idx)) z3.mkAdd(e, mkInt(increment)) else e
+      }
+    }
+
     val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(inv)
     val (posLine: List[String], negLine: List[String]) = inv match {
       case Invariant(_, _, _posLine, _negLine) => (_posLine, _negLine)
@@ -107,28 +126,18 @@ object InvWithSolver {
     val oldLhs: Z3AST = genLhs(oldSelf)
     val oldRhs: Z3AST = genRhs(oldRem, pos, neg)
 
-    val newSelf = if (selfs.contains(self._1)) {
-      val idx = selfs.indexOf(self._1)
-      oldSelf.updated(idx, z3.mkAdd(oldSelf(idx), mkInt(self._2)))
-    } else oldSelf
-    val newRem = if (remainders.contains(remainder._1)) {
-      val idx = remainders.indexOf(remainder._1)
-      oldRem.updated(idx, z3.mkAdd(oldRem(idx), mkInt(remainder._2)))
-    } else oldRem
-    val newPos: List[Z3AST] = if (posLine.contains(label)) {
-      val idx = posLine.indexOf(label)
-      pos.updated(idx, z3.mkAdd(pos(idx), mkInt(1)))
-    } else pos
-    val newNeg: List[Z3AST] = if (negLine.contains(label)) {
-      val idx = negLine.indexOf(label)
-      neg.updated(idx, z3.mkAdd(neg(idx), mkInt(1)))
-    } else neg
+    val newSelf = update(oldSelf, selfs, self._1, self._2)
+    val newRem = update(oldRem, remainders, remainder._1, remainder._2)
+    val newPos = update(pos, posLine, label, 1)
+    val newNeg = update(neg, negLine, label, 1)
     val newLhs: Z3AST = genLhs(newSelf)
     val newRhs: Z3AST = genRhs(newRem, newPos, newNeg)
 
     val (p, q) = inv match {
       case Invariant(_, _, _, _) =>
         val P = z3.mkEq(oldLhs, oldRhs)
+        println(oldSelf, oldRem, pos, neg)
+        println(newSelf, newRem, newPos, newNeg)
         val Q = z3.mkEq(newLhs, newRhs)
         (P, Q)
       case _ => (z3.mkTrue(), z3.mkTrue())

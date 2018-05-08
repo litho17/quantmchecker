@@ -7,7 +7,7 @@ import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
 import com.sun.source.tree.{CompilationUnitTree, Tree}
 import com.sun.source.util.SourcePositions
-import org.checkerframework.javacutil.AnnotationUtils
+import org.checkerframework.javacutil.{AnnotationUtils, TypeAnnotationUtils}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashSet
@@ -52,8 +52,15 @@ object Utils {
     ("java.util.ByteBuffer", "put")
   )
 
-  val DEC_REMAINDER: HashSet[(String, String)] = HashSet(
-    ("java.io.BufferedReader", "readline")
+  val ITER_NEXT: HashSet[(String, String)] = HashSet(
+    ("java.util.Iterator", "next"),
+    ("java.util.regex.Matcher", "find"),
+    ("java.util.StringTokenizer", "hasMoreElements"),
+    ("java.util.StringTokenizer", "hasMoreTokens"),
+    ("java.util.Enumeration", "hasMoreElements"),
+    ("java.io.BufferedReader", "readLine"),
+    ("java.io.InputStreamReader", "read"),
+    ("java.util.Queue", "poll")
   )
 
   /**
@@ -83,17 +90,34 @@ object Utils {
 
   /**
     *
-    * @param klass receiver type of the method invocation site
+    * @param klass  receiver type of the method invocation site
     * @param method method invocation
     * @return if the invocation is a collection add
     */
   def isCollectionAdd(klass: TypeMirror, method: ExecutableElement): Boolean = {
-    val className = klass.toString
+    val className = TypeAnnotationUtils.unannotatedType(klass).toString
     val methodName = method.getSimpleName.toString
     COLLECTION_ADD.contains((className, methodName))
   }
 
-  def logging(msg: String): Unit ={
+  /**
+    *
+    * @param klass receiver type of the method invocation site
+    * @param method method invocation
+    * @return if the invocation is conceptually a next method on the iterator
+    */
+  def isIterNext(klass: TypeMirror, method: ExecutableElement): Boolean = {
+    val className = TypeAnnotationUtils.unannotatedType(klass).toString
+    val methodName = method.getSimpleName.toString
+    ITER_NEXT.contains((className, methodName))
+  }
+
+  /**
+    *
+    * @param msg a message
+    *            write a message into the logging file
+    */
+  def logging(msg: String): Unit = {
     val logger = new PrintWriter(new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString), true))
     logger.println(msg)
     logger.close()
