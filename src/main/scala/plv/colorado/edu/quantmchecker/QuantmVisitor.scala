@@ -499,11 +499,26 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return find the field in the class
     */
   private def findFieldInClass(typ: AnnotatedTypeMirror, fieldName: String): Option[VariableElement] = {
+    def _findFldInCls(typ: TypeElement, fldName: List[String]): Option[VariableElement] = {
+      if (fldName.isEmpty) {
+        None
+      } else {
+        val f = ElementUtils.findFieldInType(typ, fldName.head)
+        if (f == null) {
+          None
+        } else {
+          if (fldName.tail.nonEmpty)
+            _findFldInCls(TypesUtils.getTypeElement(f.asType()), fldName.tail)
+          else
+            Option(f)
+        }
+      }
+    }
+
     if (typ == null)
       return None
-    val THIS = "this." // E.g. We want to look up a field named "chats", instead of "this.chats"
-    val removeThis = if (fieldName.startsWith(THIS)) fieldName.substring(THIS.length) else fieldName
-    Option(ElementUtils.findFieldInType(TypesUtils.getTypeElement(typ.getUnderlyingType), removeThis))
+    val names = fieldName.split("\\.").toList.filterNot(s => s == "this")
+    _findFldInCls(TypesUtils.getTypeElement(typ.getUnderlyingType), names)
   }
 
   /**
