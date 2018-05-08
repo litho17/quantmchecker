@@ -30,8 +30,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "NOT SUPPORTED"
-  private val MISS_CHANGES = "Expression might change variables appearing in lhs of an invariant, but the changes are not described by any invariant"
-  private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
+  // private val MISS_CHANGES = "Expression might change variables appearing in lhs of an invariant, but the changes are not described by any invariant"
+  // private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
 
   private val qualifierHierarchy = atypeFactory.getQualifierHierarchy
 
@@ -39,8 +39,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
   }
-  // val methodAnnotations = elements.getAllAnnotationMirrors(TreeUtils.elementFromDeclaration(node)).asScala
-
 
   override def processClassTree(classTree: ClassTree): Unit = {
     val classType = TreeUtils.typeOf(classTree)
@@ -53,7 +51,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           types.asElement(ve.asType()) match {
             case te: TypeElement =>
               val tree = trees.getTree(te)
-              // println(te.getQualifiedName, te.getSimpleName)
+            // println(te.getQualifiedName, te.getSimpleName)
             case _ =>
           }
       }
@@ -185,10 +183,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 case _ => issueWarning(node, "[CompoundAssignmentTree] Non-literal is " + NOT_SUPPORTED); true
               }
             } else {
-              ignoreWarning(node, "[CompoundAssignmentTree] LHS being not remainder " + NOT_SUPPORTED)
+              ignoreWarning(node, "[CompoundAssignmentTree] LHS is not remainder")
             }
         }
-      case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant is " + NOT_SUPPORTED); true
+      case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant"); true
     }
     super.visitCompoundAssignment(node, p)
   }
@@ -214,9 +212,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // trees.getTypeMirror()
     // atypeFactory.declarationFromElement(callee)
 
-    val summaries = getMethodSummaries(node)
-    if (summaries.nonEmpty) {
-      summaries.foreach {
+    val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
+    val calleeSummary = getMethodSummaries(getMethodElementFromInvocation(node))
+    if (calleeSummary.nonEmpty) {
+      calleeSummary.foreach {
         summary =>
           val increment: Integer = summary match {
             case MethodSummaryI(_, i) => i
@@ -262,18 +261,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   }
               }
           }
-          // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
-            // issueWarning(node, LIST_NOT_ANNOTATED)
+        // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
+        // issueWarning(node, LIST_NOT_ANNOTATED)
       }
     } else { // No method summaries found. Translate library methods (e.g. append, add) into numerical updates
       if (receiverTyp == null) { // Do nothing
       } else {
         val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
         val isIterNext = Utils.isIterNext(types.erasure(receiverTyp.getUnderlyingType), callee)
-        // println(node, fieldInvs ++ localInvs, getEnclosingMethod(node).getName, isColAdd)
         if (isColAdd) {
           // if (receiverAnno.isEmpty && inLoop) {
-            // issueWarning(node, LIST_NOT_ANNOTATED)
+          // issueWarning(node, LIST_NOT_ANNOTATED)
           // }
 
           val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
@@ -281,8 +279,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               val (_, selfs: List[String]) = InvUtils.extractInv(invariant)
               selfs.exists {
                 self =>
+                  // If a Collection Add's effect is already described in summary,
+                  // then there is no need to check if it will invalidate some invariant
+                  val isDescribedInSummary = callerSummary.exists {
+                    case MethodSummaryI(target, _) =>
+                      if (target.contains(self)) true else false
+                    case _ => false
+                  }
                   val selfCall = self + "." + callee.getSimpleName // E.g. x.f.g.add(1)
-                  if (node.getMethodSelect.toString == selfCall) {
+                  if (node.getMethodSelect.toString == selfCall && !isDescribedInSummary) {
                     if (!InvWithSolver.isValidAfterUpdate(invariant, ("", 0), (self, 1), updatedLabel, node))
                       issueError(node, "")
                     true
@@ -292,7 +297,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               }
           }
           // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
-            // issueWarning(node, LIST_NOT_ANNOTATED)
+          // issueWarning(node, LIST_NOT_ANNOTATED)
         }
 
         if (isIterNext) {
@@ -419,17 +424,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val enclosingMethod = getEnclosingMethod(node)
     val updatedLabel = getLabel(node)
     // if (enclosingClass == null || enclosingMethod == null)
-      // Utils.logging("Empty enclosing class or method:\n" + node.toString)
-    val fldInv =
+    // Utils.logging("Empty enclosing class or method:\n" + node.toString)
+    val fldInv = {
       if (enclosingClass == null)
         Set.empty.asInstanceOf[Set[InvLangAST]]
       else
         getClassFieldInvariants(enclosingClass).keySet
-    val localInv =
+    }
+    val localInv = {
       if (enclosingMethod == null)
         Set.empty.asInstanceOf[Set[InvLangAST]]
       else
         getLocalInvariants(enclosingMethod).keySet
+    }
     (fldInv, localInv, updatedLabel)
   }
 
@@ -482,14 +489,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       new HashMap[InvLangAST, Tree]
     }
   }
-
-  /**
-    *
-    * @param node a method invocation
-    * @return the element of the callee
-    */
+  
   private def getMethodElementFromInvocation(node: MethodInvocationTree): ExecutableElement = {
     atypeFactory.methodFromUse(node).first.getElement
+  }
+
+  private def getMethodElementFromDecl(node: MethodTree): ExecutableElement = {
+    if (node == null)
+      return null
+    TreeUtils.elementFromDeclaration(node)
   }
 
   /**
@@ -523,16 +531,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param node a method invocation tree
-    * @return the summary of the invoked method
+    * @param method a method
+    * @return the summary of the method
     */
-  private def getMethodSummaries(node: MethodInvocationTree): HashSet[MethodSummary] = {
-    val invokedMethod: ExecutableElement = getMethodElementFromInvocation(node)
-    val summaries = atypeFactory.getDeclAnnotations(invokedMethod).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
+  private def getMethodSummaries(method: ExecutableElement): HashSet[MethodSummary] = {
+    if (method == null)
+      return new HashSet[MethodSummary]
+    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
     if (summaries.size == 1) {
       val summaryList = Utils.extractArrayValues(summaries.head, "value")
       if (summaryList.size % 2 != 0) {
-        issueWarning(invokedMethod, "Method summary should have even number of arguments")
+        issueWarning(method, "Method summary should have even number of arguments")
         new HashSet[MethodSummary]
       } else {
         summaryList.grouped(2).foldLeft(new HashSet[MethodSummary]) {
@@ -547,7 +556,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
       }
     } else if (summaries.size > 1) {
-      issueWarning(invokedMethod, "Method should have exactly 1 summary")
+      issueWarning(method, "Method should have exactly 1 summary")
       new HashSet[MethodSummary]
     } else {
       new HashSet[MethodSummary]
