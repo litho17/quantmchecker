@@ -110,13 +110,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val lhsAnno = lhsTyp.getAnnotations
 
     /**
-      * Check if there is any destructive update (reassignment) that will invalidate an invariant
-      * TODO: Currently if assignment invalidate any invariant, type check will fail
-      * because we do not support destructively update either <remainder> or <self>
-      * via any form of assignment
-      */
-
-    /**
       * TODO: Assume that any two variables won't have a same name. Otherwise,
       * if variable a is used in an invariant in one scope, but not used
       * in an invariant in the other scope, type check will fail.
@@ -127,15 +120,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
         // Don't issue error if destructive update in class constructor
         val inConstructor = isInConstructor(node)
-        // check if name of the expression is same as self or remainder
+        /**
+          * Check if there is any destructive update (reassignment) that will invalidate an invariant
+          * Currently if assignment invalidate any invariant, type check will fail
+          * because we do not support destructively update either <remainder> or <self>
+          * via any form of assignment
+          */
         remainders.foreach {
           remainder =>
-            if (lhs.toString == remainder && inConstructor)
+            if (lhs.toString == remainder && !inConstructor)
               issueError(node, "[AssignmentTree][Destructive update] is " + NOT_SUPPORTED)
         }
         selfs.foreach {
           self =>
-            if (lhs.toString == self && inConstructor)
+            if (lhs.toString == self && !inConstructor)
               issueError(node, "[AssignmentTree][Destructive update] is " + NOT_SUPPORTED)
         }
       // TODO: Otherwise, we assume lhs of assignment is side effect free

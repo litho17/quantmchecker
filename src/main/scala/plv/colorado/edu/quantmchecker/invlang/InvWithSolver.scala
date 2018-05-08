@@ -136,8 +136,6 @@ object InvWithSolver {
     val (p, q) = inv match {
       case Invariant(_, _, _, _) =>
         val P = z3.mkEq(oldLhs, oldRhs)
-        println(oldSelf, oldRem, pos, neg)
-        println(newSelf, newRem, newPos, newNeg)
         val Q = z3.mkEq(newLhs, newRhs)
         (P, Q)
       case _ => (z3.mkTrue(), z3.mkTrue())
