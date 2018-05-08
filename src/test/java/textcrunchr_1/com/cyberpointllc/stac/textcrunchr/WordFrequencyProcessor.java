@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
 import java.io.BufferedReader;
@@ -25,9 +26,9 @@ public class WordFrequencyProcessor extends Processor {
         // sort results by most frequent
         Sorter<WordCount> sorter = new  Sorter<WordCount>(new  DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
-        TCResult result = new  TCResult("Word frequencies");
-        for (WordCount wc : sortedWCs) {
-            result.addResult(wc.getWord(), wc.getCount());
+        @Inv("+result.results=-sortedWCs+c31-c30") TCResult result = new  TCResult("Word frequencies");
+        c30: for (WordCount wc : sortedWCs) {
+            c31: result.addResult(wc.getWord(), wc.getCount());
         }
         return result;
     }
@@ -43,9 +44,9 @@ public class WordFrequencyProcessor extends Processor {
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
-        List<WordCount> freqs = new  ArrayList<WordCount>();
+        @Inv("+freqs=-words+c59-c49") List<WordCount> freqs = new  ArrayList<WordCount>();
         HashMap<String, WordCount> freqsCounter = new  HashMap<String, WordCount>();
-        for (String word : words) {
+        c49: for (String word : words) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
             String w = word;
             // increment current count for w
@@ -55,7 +56,7 @@ public class WordFrequencyProcessor extends Processor {
             } else {
                 count = new  WordCount(w, 0);
                 freqsCounter.put(w, count);
-                freqs.add(count);
+                c59: freqs.add(count);
             }
             count.increment();
         }
@@ -83,11 +84,12 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        StringBuilder sb = new  StringBuilder();
-        String read = br.readLine();
+        @Inv("+sb=-br+c91-c89-c92") StringBuilder sb = new  StringBuilder();
+        String read;
+        c89: read = br.readLine();
         while (read != null) {
-            sb.append(read);
-            read = br.readLine();
+            c91: sb.append(read);
+            c92: read = br.readLine();
         }
         return sb.toString();
     }

@@ -1,5 +1,7 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams.storage;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
 import java.io.*;
 import java.util.AbstractMap;
@@ -18,7 +20,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
 
     private long count = 0;
 
-    protected AbstractMap<String, Float> storage;
+    protected @Inv("+storage=-br+c48-c41-c50") AbstractMap<String, Float> storage;
 
     public abstract NgramStorageStrategy getStorageStrategy();
 
@@ -36,14 +38,16 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
         String line;
         float ngramFrequency;
         long totalOccurences = 0;
-        while ((line = br.readLine()) != null) {
+        c41: line = br.readLine();
+        while (line != null) {
             lineNo++;
             if (!line.matches(lineRegex)) {
                 throw new  LineFormatException(String.format("Ngram resource line %d doesn't match pattern \"%s\"", lineNo, lineRegex));
             }
             ngramFrequency = Long.parseLong(line.substring(freqStart, line.length()));
-            storage.put(line.substring(0, this.getNgramType().length()), ngramFrequency);
+            c48: storage.put(line.substring(0, this.getNgramType().length()), ngramFrequency);
             totalOccurences += ngramFrequency;
+            c50: line = br.readLine();
         }
         count = lineNo;
         return totalOccurences;

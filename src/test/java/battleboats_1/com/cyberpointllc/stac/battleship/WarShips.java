@@ -20,6 +20,8 @@ import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersEmpty;
 import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersServer;
 import battleboats_1.com.cyberpointllc.stac.command.Console;
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.Hit;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -197,6 +199,7 @@ public class WarShips {
         return amIFirst;
     }
 
+    @Summary({"this.console.currentCommands", "Stage.CONNECTED.commands"})
     protected void competitionOver() {
         if (currentCompetition != null) {
             competitionOverAssist();
@@ -210,6 +213,7 @@ public class WarShips {
         printUsrMsg("Game Over");
     }
 
+    @Summary({"this.console.currentCommands", "Stage.IDLE.commands"})
     public void disconnect() throws TalkersDeviation {
         if (connection != null) {
             disconnectHelp();
@@ -218,6 +222,7 @@ public class WarShips {
         assignStage(Stage.IDLE);
     }
 
+    @Summary({"this.console.currentCommands", "Stage.CONNECTED.commands"})
     private void disconnectHelp() throws TalkersDeviation {
         connection.close();
         connection = null;
@@ -236,6 +241,7 @@ public class WarShips {
         return stage;
     }
 
+    @Summary({"this.console.currentCommands", "stage.commands"})
     public void assignStage(Stage stage) {
         this.previousStage = this.stage;
         this.stage = stage;
@@ -248,6 +254,7 @@ public class WarShips {
         }
     }
 
+    @Summary({"this.console.currentCommands", "this.previousStage.commands"})
     public void revertStage() {
         if (previousStage != null) {
             assignStage(previousStage);
@@ -255,6 +262,7 @@ public class WarShips {
         }
     }
 
+    @Summary({"this.currentCompetition.ocean.ships", "this.currentCompetition.placedShips.keySet"})
     public void defineUpCompetition() {
         currentCompetition.setUpCompetition();
     }
@@ -278,8 +286,8 @@ public class WarShips {
     }
 
     private void defineStrikeReportsTarget(List<Hit> strikes) {
-        Map<Square, Pin> squaresStrike = new HashMap<>();
-        strikes.forEach(strike -> {
+        @Inv("strikes+<self>=+c293-c283") Map<Square, Pin> squaresStrike = new HashMap<>();
+        c283: for (Hit strike: strikes) {
             int x = strike.getX();
             int y = strike.getY();
             Pin pin = Pin.fromName(strike.getPeg());
@@ -289,10 +297,9 @@ public class WarShips {
                 } else {
                     printUsrMsg("X: " + x + " Y: " + y + " sunk the " + pin.takeName());
                 }
-                squaresStrike.put(new Square(x, y), pin);
+                c293: squaresStrike.put(new Square(x, y), pin);
             }
-
-        });
+        }
         assignHitonRadar(squaresStrike);
     }
 
@@ -345,6 +352,7 @@ public class WarShips {
         return currentCompetition.iWon();
     }
 
+    @Summary({"this.console.inactiveCommands", "16"})
     private void initConsole() {
         console.addInactiveCommand(new PrintBoardCommand(this));
 

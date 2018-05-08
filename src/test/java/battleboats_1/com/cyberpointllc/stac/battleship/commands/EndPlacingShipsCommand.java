@@ -7,6 +7,7 @@ import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersDeviation;
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.BattleBoatsMessage;
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.BattleBoatsMessage.Type;
 import org.apache.commons.cli.CommandLine;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -23,6 +24,7 @@ public class EndPlacingShipsCommand extends Command {
     }
 
     @Override
+    @Summary({"this.warShips.console.currentCommands", "Stage.IM_READY.commands+Stage.WAIT_FOR_FIRE.commands"})
     public void execute(PrintStream out, CommandLine cmdLine) {
         Stage stage = warShips.pullStage();
         if (stage != Stage.LAY_SHIPS_AND_FINISH) {
@@ -43,6 +45,7 @@ public class EndPlacingShipsCommand extends Command {
 
     }
 
+    @Summary({"this.warShips.console.currentCommands", "Stage.IM_READY.commands+Stage.WAIT_FOR_FIRE.commands"})
     private void executeEntity() throws TalkersDeviation {
         BattleBoatsMessage message = BattleBoatsMessage.newBuilder()
                 .setType(Type.BOATS_PLACED)

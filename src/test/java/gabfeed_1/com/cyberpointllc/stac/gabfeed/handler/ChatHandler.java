@@ -106,7 +106,7 @@ public class ChatHandler extends GabHandler {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
         TemplateEngine engine = suppressTimestamp ? messageListTemplateWithoutTime.getEngine() : messageListTemplate.getEngine();
-        @Inv({"messages+<self>/(1+engine.text*2)=+c114-c113"}) StringBuilder builder = new  StringBuilder();
+        @Inv({"messages+<self>/(engine.text+engine.text+1)=+c114-c113"}) StringBuilder builder = new  StringBuilder();
         // First, add all existing chat messages
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         List<GabMessage> messages = sorter.sort(gabChat.getMessages());

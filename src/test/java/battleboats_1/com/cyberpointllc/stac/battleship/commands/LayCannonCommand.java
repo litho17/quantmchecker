@@ -4,6 +4,7 @@ import battleboats_1.com.cyberpointllc.stac.battleship.WarShips;
 import battleboats_1.com.cyberpointllc.stac.battleship.stages.Stage;
 import battleboats_1.com.cyberpointllc.stac.command.Command;
 import org.apache.commons.cli.CommandLine;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -20,6 +21,7 @@ public class LayCannonCommand extends Command {
     }
 
     @Override
+    @Summary({"this.warShips.console.currentCommands", "Stage.LAY_SHIPS_AND_FINISH.commands"})
     public void execute(PrintStream out, CommandLine cmdLine) {
         Stage stage = warShips.pullStage();
         if ((stage != Stage.LAY_SHIPS) && (stage != Stage.LAY_SHIPS_AND_FINISH)) {
@@ -29,6 +31,7 @@ public class LayCannonCommand extends Command {
         }
     }
 
+    @Summary({"this.warShips.console.currentCommands", "Stage.LAY_SHIPS_AND_FINISH.commands"})
     private void executeExecutor(CommandLine cmdLine) {
         try {
             List<String> argList = cmdLine.getArgList();
@@ -42,6 +45,7 @@ public class LayCannonCommand extends Command {
         }
     }
 
+    @Summary({"this.warShips.console.currentCommands", "Stage.LAY_SHIPS_AND_FINISH.commands"})
     private void executeExecutorManager(List<String> argList) {
         int x = Integer.parseInt(argList.get(0));
         int y = Integer.parseInt(argList.get(1));

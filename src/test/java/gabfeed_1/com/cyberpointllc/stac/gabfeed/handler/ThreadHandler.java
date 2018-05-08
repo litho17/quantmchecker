@@ -71,7 +71,7 @@ public class ThreadHandler extends GabHandler {
     private String getContents(GabThread thread, WebSession webSession) {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
-        @Inv("messages+<self>/(1+this.messageListTemplate.engine.text*2)+<self>/(1+this.messageListTemplateWithoutTime.engine.text*2)=+c84+c86-c78") StringBuilder builder = new  StringBuilder();
+        @Inv("messages+<self>/(1+this.messageListTemplate.engine.text+this.messageListTemplate.engine.text)+<self>/(1+this.messageListTemplateWithoutTime.engine.text+this.messageListTemplateWithoutTime.engine.text)=+c84+c86-c78") StringBuilder builder = new  StringBuilder();
         List<GabMessage> messages = thread.getMessages();
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         messages = sorter.sort(messages);

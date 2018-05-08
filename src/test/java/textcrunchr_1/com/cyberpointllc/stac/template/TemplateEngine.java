@@ -7,6 +7,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 /**
  * This engine takes a template in the form of a string and possibly a start tag
@@ -53,9 +56,12 @@ public class TemplateEngine {
      */
     public List<Pair<Integer, Integer>> findTags() {
         Matcher matcher = pattern.matcher(text);
-        List<Pair<Integer, Integer>> tagsList = new  ArrayList();
-        while (matcher.find()) {
-            findTagsHelper(tagsList, matcher);
+        @Inv("+tagsList=-matcher+c62-c63-c60") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
+        boolean find;
+        c60: find = matcher.find();
+        while (find) {
+            c62: findTagsHelper(tagsList, matcher);
+            c63: find = matcher.find();
         }
         return tagsList;
     }
@@ -70,7 +76,7 @@ public class TemplateEngine {
      *         replaced with the keys' corresponding values
      */
     public String replaceTags(Map<String, String> dictionary) {
-        StringBuilder sb = new  StringBuilder();
+        @InvUnk StringBuilder sb = new  StringBuilder();
         replaceTagsBuilder(dictionary, sb);
         return sb.toString();
     }
@@ -135,6 +141,7 @@ public class TemplateEngine {
         return replaceTags(templateds, "");
     }
 
+    @Summary({"tagsList", "1"})
     private void findTagsHelper(List<Pair<Integer, Integer>> tagsList, Matcher matcher) {
         tagsList.add(Pair.of(matcher.start(), matcher.end()));
     }

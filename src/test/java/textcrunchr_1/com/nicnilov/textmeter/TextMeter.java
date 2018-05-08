@@ -1,5 +1,6 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 
 public class TextMeter {

@@ -1,5 +1,8 @@
 package battleboats_1.com.cyberpointllc.stac.battleship;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -43,15 +46,16 @@ public class Competition {
      * The boats have already been set.
      * Set up the ocean board to allow the game to start.
      */
+    @Summary({"this.ocean.ships", "this.placedShips.keySet"})
     public void setUpCompetition() {
         if (!areAllShipsPlaced()) {
             throw new IllegalStateException("Ships and cannon must be positioned before game can be set up.");
         }
 
-        List<Ship> ships = new ArrayList<>();
+        @Inv("placedShips.keySet+<self>=+c54-c53") List<Ship> ships = new ArrayList<>();
 
-        for (String name : placedShips.keySet()) {
-            ships.add(new Ship(name, placedShips.get(name)));
+        c53: for (String name : placedShips.keySet()) {
+            c54: ships.add(new Ship(name, placedShips.get(name)));
         }
 
         ocean.fixShipsAndCannon(ships, cannonSquare);

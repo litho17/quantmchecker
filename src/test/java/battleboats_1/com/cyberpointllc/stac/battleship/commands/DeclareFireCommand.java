@@ -7,6 +7,7 @@ import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.BattleBoatsMessage
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.BattleBoatsMessage.Type;
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.ShotMadeMessage;
 import org.apache.commons.cli.CommandLine;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -24,6 +25,7 @@ public class DeclareFireCommand extends Command {
     }
 
     @Override
+    @Summary({"this.warShips.console.currentCommands", "Stage.WAIT_FOR_REPORT.commands"})
     public void execute(PrintStream out, CommandLine cmdLine) {
         Stage stage = warShips.pullStage();
         if (stage != Stage.DECLARE_FIRE) {

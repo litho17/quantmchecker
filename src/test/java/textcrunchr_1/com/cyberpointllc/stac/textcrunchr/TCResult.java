@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.ArrayList;
 
 public class TCResult {
@@ -53,18 +55,22 @@ public class TCResult {
         return value;
     }
 
+    @Summary({"this.results", "1"})
     public void addResult(String key, int val) {
         addResultHelper(val, key);
     }
 
+    @Summary({"this.results", "1"})
     public void addResult(String key, double val) {
         results.add(new  Component(key, Double.toString(val)));
     }
 
+    @Summary({"this.results", "1"})
     public void addResult(String key, String val) {
         results.add(new  Component(key, val));
     }
 
+    @Summary({"this.results", "1"})
     private void addResultHelper(int val, String key) {
         results.add(new  Component(key, Integer.toString(val)));
     }

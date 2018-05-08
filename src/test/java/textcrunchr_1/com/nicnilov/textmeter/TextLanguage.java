@@ -1,5 +1,7 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.Ngram;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramBuilder;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
@@ -33,6 +35,7 @@ public class TextLanguage {
         throw new  NotInitializedException(String.format("Ngrams of type %s have not been loaded", ngramType));
     }
 
+    @Summary({"this.ngrams", "1"})
     public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
         Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
         ngrams.put(ngramType, ngram);
@@ -40,11 +43,11 @@ public class TextLanguage {
     }
 
     public TextScore score(final String text) {
-        TextScore textScore = new  TextScore();
+        @Inv("+textScore.ngramScores=-ngrams.entrySet+c50-c48") TextScore textScore = new  TextScore();
         Ngram ngram;
-        for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
+        c48: for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
             if ((ngram = entry.getValue()) != null) {
-                textScore.getNgramScores().put(entry.getKey(), ngram.score(text));
+                c50: textScore.add(entry.getKey(), ngram.score(text));
             }
         }
         return textScore;

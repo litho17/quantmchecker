@@ -1,5 +1,7 @@
 package battleboats_1.com.cyberpointllc.stac.battleship;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +64,7 @@ public class OceanBoard {
      * @param cannonCoordinates Square where the player placed the opponent's cannon
      * @throws IllegalStateException if there are no boats specified or the cannon location is <code>null</code>
      */
+    @Summary({"this.ships", "ships"})
     public void fixShipsAndCannon(List<Ship> ships, Square cannonCoordinates) {
         if ((ships == null) || ships.isEmpty()) {
             throw new IllegalStateException("There must exist at least one boat");

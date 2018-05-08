@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.util.Locale;
 import java.util.Scanner;
 import org.apache.commons.io.IOUtils;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Rem;
 import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.Processor;
 import textcrunchr_1.com.nicnilov.textmeter.TextMeter;
 import textcrunchr_1.com.nicnilov.textmeter.TextLanguage;
@@ -23,13 +25,14 @@ public class TextMeterProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        StringBuilder sb = new  StringBuilder();
-        BufferedReader br = new  BufferedReader(is);
-        String read = br.readLine();
+        @Inv("+sb=-br+c34-c35-c31") StringBuilder sb = new  StringBuilder();
+        @Rem("inps") BufferedReader br = new  BufferedReader(is);
+        String read;
+        c31: read = br.readLine();
         while (read != null) {
             //System.out.println(read);
-            sb.append(read);
-            read = br.readLine();
+            c34: sb.append(read);
+            c35: read = br.readLine();
         }
         String theString = sb.toString();
         // set up textmeter
@@ -39,7 +42,7 @@ public class TextMeterProcessor extends Processor {
         long mark = System.currentTimeMillis();
         String message;
         try {
-            en.getNgram(NgramType.UNIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_UNIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_UNIGRAMS_EXCNT);
+            c45: en.getNgram(NgramType.UNIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_UNIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_UNIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.BIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_BIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_BIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.TRIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_TRIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_TRIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.QUADGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_QUADGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_QUADGRAMS_EXCNT);

@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
@@ -44,11 +46,11 @@ public class WindowOutputHandler extends OutputHandler {
 
             public void mouseClicked(MouseEvent e) {
                 String selected = (String) fileList.getSelectedValue();
-                StringBuilder outputString = new  StringBuilder();
+                @Inv("+outputString=-sampleResults+c53-c52") StringBuilder outputString = new  StringBuilder();
                 String path = namesToPaths.get(selected);
                 List<TCResult> sampleResults = results.get(path);
-                for (TCResult result : sampleResults) {
-                    outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
+                c52: for (TCResult result : sampleResults) {
+                    c53: outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
                 }
                 //Clear the current text
                 textArea.setText(null);

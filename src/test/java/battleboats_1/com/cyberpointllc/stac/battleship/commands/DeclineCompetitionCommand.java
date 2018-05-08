@@ -7,6 +7,7 @@ import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersDeviation;
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.BattleBoatsMessage;
 import battleboats_1.com.cyberpointllc.stac.proto.Battleboats.BattleBoatsMessage.Type;
 import org.apache.commons.cli.CommandLine;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -23,6 +24,7 @@ public class DeclineCompetitionCommand extends Command {
     }
 
     @Override
+    @Summary({"this.warShips.console.currentCommands", "Stage.CONNECTED.commands"})
     public void execute(PrintStream out, CommandLine cmdLine) {
         Stage stage = warShips.pullStage();
         if (stage != Stage.OFFER_RECEIVED) {
@@ -41,6 +43,7 @@ public class DeclineCompetitionCommand extends Command {
         }
     }
 
+    @Summary({"this.warShips.console.currentCommands", "Stage.CONNECTED.commands"})
     private void executeSupervisor() throws TalkersDeviation {
         BattleBoatsMessage message = BattleBoatsMessage.newBuilder()
                 .setType(Type.GAME_DECLINE)

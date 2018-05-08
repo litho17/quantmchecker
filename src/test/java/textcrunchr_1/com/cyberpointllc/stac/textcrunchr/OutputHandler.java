@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
@@ -17,10 +19,11 @@ public abstract class OutputHandler {
 
     protected Sorter<String> sorter = new  Sorter(DefaultComparator.STRING);
 
-    protected Map<String, String> namesToPaths = new  HashMap<String, String>();
+    protected @InvUnk Map<String, String> namesToPaths = new  HashMap<String, String>();
 
     protected List<String> sortedFiles;
 
+    @Summary({"results", "1"})
     public void addResult(String filename, TCResult tcr) {
         addResultHelper(tcr, filename);
     }
@@ -35,7 +38,7 @@ public abstract class OutputHandler {
         if (results.containsKey(filename)) {
             results.get(filename).add(tcr);
         } else {
-            List<TCResult> newlist = new  ArrayList<TCResult>();
+            @InvUnk List<TCResult> newlist = new  ArrayList<TCResult>();
             newlist.add(tcr);
             results.put(filename, newlist);
         }
