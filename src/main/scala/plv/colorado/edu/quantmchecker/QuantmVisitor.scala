@@ -116,14 +116,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // where the update is neither null or new class (because these two cases will
     // decrease memory usage and not lead to unsoundness if we only care over-approximation)
     if (lhs != null && TreeUtils.isFieldAccess(lhs) && !isInConstructor(node)) {
-      val isRhsNull = node.getExpression.toString == "null"
+      val rhsStr = node.getExpression.toString
+      val isRhsNull = rhsStr == "null"
       val isRhsNewClass = node.getExpression.isInstanceOf[NewClassTree]
+      val isRhsEmp = rhsStr.startsWith("Collections.empty") || rhsStr.startsWith("Collections.unmodifiable")
+      val isInit = if (getEnclosingMethod(node) != null) getEnclosingMethod(node).toString.contains("init") else false
+      val isClone = rhsStr == "clone"
+      val dontCare = isRhsNull || isRhsNewClass || isRhsEmp || isInit || isClone
       Utils.COLLECTION_ADD.foreach {
         case (klass, method) =>
           types.asElement(types.erasure(lhsTyp.getUnderlyingType)) match {
             case te: TypeElement =>
-              if (klass == te.getQualifiedName.toString && !isRhsNull && !isRhsNewClass)
-                Utils.logging("Destructive update: " + node.toString + " (" + getEnclosingMethod(node) + ")")
+              if (klass == te.getQualifiedName.toString && !dontCare) {
+                Utils.logging("Destructive update: " + node.toString + "\n" + getEnclosingMethod(node))
+              }
             case _ =>
           }
       }
