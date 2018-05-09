@@ -48,10 +48,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         ve =>
           if (ve.asType() == classType)
             Utils.logging("Recursive data type: " + classType.toString)
+          // Print user defined classes with list field
           types.asElement(ve.asType()) match {
             case te: TypeElement =>
               val tree = trees.getTree(te)
-            // println(te.getQualifiedName, te.getSimpleName)
+              Utils.COLLECTION_ADD.foreach {
+                case (klass, method) =>
+                  if (klass == te.getQualifiedName.toString)
+                    Utils.logging("Class with list field: " + classType)
+              }
             case _ =>
           }
       }
@@ -106,6 +111,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val lhs = node.getVariable
     val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     val lhsAnno = lhsTyp.getAnnotations
+
+    // Print destructive update to list field that are not in class constructors,
+    // where the update is neither null or new class (because these two cases will
+    // decrease memory usage and not lead to unsoundness if we only care over-approximation)
+    if (lhs != null && TreeUtils.isFieldAccess(lhs) && !isInConstructor(node)) {
+      val isRhsNull = node.getExpression.toString == "null"
+      val isRhsNewClass = node.getExpression.isInstanceOf[NewClassTree]
+      Utils.COLLECTION_ADD.foreach {
+        case (klass, method) =>
+          types.asElement(types.erasure(lhsTyp.getUnderlyingType)) match {
+            case te: TypeElement =>
+              if (klass == te.getQualifiedName.toString && !isRhsNull && !isRhsNewClass)
+                Utils.logging("Destructive update: " + node.toString + " (" + getEnclosingMethod(node) + ")")
+            case _ =>
+          }
+      }
+    }
 
     /**
       * TODO: Assume that any two variables won't have a same name. Otherwise,
@@ -489,7 +511,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       new HashMap[InvLangAST, Tree]
     }
   }
-  
+
   private def getMethodElementFromInvocation(node: MethodInvocationTree): ExecutableElement = {
     atypeFactory.methodFromUse(node).first.getElement
   }
@@ -650,6 +672,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def isInConstructor(node: Tree): Boolean = {
     // val enclosingClass = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
     val enclosingMethod = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
+    if (enclosingMethod == null)
+      return false
     enclosingMethod.getName.toString == "<init>"
   }
 
