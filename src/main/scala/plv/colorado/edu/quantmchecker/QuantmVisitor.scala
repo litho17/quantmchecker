@@ -119,7 +119,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val rhsStr = node.getExpression.toString
       val isRhsNull = rhsStr == "null"
       val isRhsNewClass = node.getExpression.isInstanceOf[NewClassTree]
-      val isRhsEmp = rhsStr.startsWith("Collections.empty") || rhsStr.startsWith("Collections.unmodifiable")
+      val isRhsEmp = rhsStr.startsWith("Collections.empty") // || rhsStr.startsWith("Collections.unmodifiable")
       val isInit = if (getEnclosingMethod(node) != null) getEnclosingMethod(node).toString.contains("init") else false
       val isClone = rhsStr == "clone"
       val dontCare = isRhsNull || isRhsNewClass || isRhsEmp || isInit || isClone
