@@ -1,4 +1,4 @@
-### Compile
+## Compile
 1. Compile [Scala Z3](https://github.com/epfl-lara/ScalaZ3)
 
     1. Copy native libraries into `lib/`
@@ -13,17 +13,20 @@
     3. Set `scalaz3_lib` to `lib/scalaz3_2.12-3.0.jar`
     4. Set `checker_framework_bin` to the path of `checker/bin`
     
-##### Dependencies
+#### Dependencies
 - [Scala Parser Combinator](https://github.com/scala/scala-parser-combinators)
 - [Scala Z3](https://github.com/epfl-lara/ScalaZ3)
 - [Checker framework](https://checkerframework.org/manual/#installation)
 
 
-### Intergrate with building systems
+## Intergrate with building systems
 
 #### Prepration step
 1. Compile the checker into class files
-2. Use command `jar -cvf qc.jar some_dir` to create a jar file containing the class files
+2. Setup and run `./scripts/setup.sh` to set up the environment variables and create a jar file containing the class files.
+
+    1. Set `checkerdir` to the absolute path of the source code root directory of the customized checker
+    2. The created jar file is by default on the desktop, named as `qc.jar`
 
 #### Maven
 
