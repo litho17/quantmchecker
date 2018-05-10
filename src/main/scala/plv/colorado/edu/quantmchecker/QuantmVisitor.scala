@@ -33,6 +33,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   // private val MISS_CHANGES = "Expression might change variables appearing in lhs of an invariant, but the changes are not described by any invariant"
   // private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
 
+  private val EMP_COLLECTION_PREFIX = "Collections.empty"
+
   private val qualifierHierarchy = atypeFactory.getQualifierHierarchy
 
   if (DEBUG_PATHS) {
@@ -119,7 +121,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val rhsStr = node.getExpression.toString
       val isRhsNull = rhsStr == "null"
       val isRhsNewClass = node.getExpression.isInstanceOf[NewClassTree]
-      val isRhsEmp = rhsStr.startsWith("Collections.empty") // || rhsStr.startsWith("Collections.unmodifiable")
+      val isRhsEmp = rhsStr.startsWith(EMP_COLLECTION_PREFIX) // || rhsStr.startsWith("Collections.unmodifiable")
       val isInit = if (getEnclosingMethod(node) != null) getEnclosingMethod(node).toString.contains("init") else false
       val isClone = rhsStr == "clone"
       val dontCare = isRhsNull || isRhsNewClass || isRhsEmp || isInit || isClone
@@ -144,8 +146,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       invariant =>
         val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(invariant)
 
-        // Don't issue error if destructive update in class constructor
+        // Don't issue error if destructive update is in class constructor
         val inConstructor = isInConstructor(node)
+        // Don't issue error if destructive update is at declaration
+        val isDeclaration = trees.getPath(TreeUtils.elementFromTree(node)).getLeaf.isInstanceOf[VariableTree]
+
         /**
           * Check if there is any destructive update (reassignment) that will invalidate an invariant
           * Currently if assignment invalidate any invariant, type check will fail
@@ -154,12 +159,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           */
         remainders.foreach {
           remainder =>
-            if (lhs.toString == remainder && !inConstructor)
+            if (lhs.toString == remainder && !inConstructor && !isDeclaration)
               issueError(node, "[AssignmentTree][Destructive update] is " + NOT_SUPPORTED)
         }
         selfs.foreach {
           self =>
-            if (lhs.toString == self && !inConstructor)
+            if (lhs.toString == self && !inConstructor && !isDeclaration)
               issueError(node, "[AssignmentTree][Destructive update] is " + NOT_SUPPORTED)
         }
       // TODO: Otherwise, we assume lhs of assignment is side effect free
@@ -397,6 +402,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // If rhs's annotation is empty or TOP
         rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, TOP)
       case m: MethodInvocationTree =>
+        if (m.toString.startsWith(EMP_COLLECTION_PREFIX))
+          return true
+
         // list = o.m(), where m's return value is annotated
         val callee: ExecutableElement = getMethodElementFromInvocation(m)
         val methodTree: MethodTree = trees.getTree(callee)

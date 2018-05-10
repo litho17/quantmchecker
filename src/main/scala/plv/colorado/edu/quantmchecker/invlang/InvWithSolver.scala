@@ -17,6 +17,21 @@ object InvWithSolver {
 
   /**
     *
+    * @param constraint a constraint
+    * @return if the constraint is SAT
+    */
+  def check(constraint: Z3AST): Boolean = {
+    solver.assertCnstr(constraint)
+    solver.check() match {
+      case Some(v) =>
+        // if (DEBUG && v) println(solver.getModel())
+        v
+      case None => false
+    }
+  }
+
+  /**
+    *
     * @param inv       an invariant
     * @param remainder the remainder to update and how much to increment
     * @param self      the self to update and how much to increment
@@ -50,21 +65,6 @@ object InvWithSolver {
     solver.reset()
 
     def mkInt(i: Int): Z3AST = z3.mkInt(i, z3.mkIntSort())
-
-    /**
-      *
-      * @param constraint a constraint
-      * @return if the constraint is SAT
-      */
-    def check(constraint: Z3AST): Boolean = {
-      solver.assertCnstr(constraint)
-      solver.check() match {
-        case Some(v) =>
-          if (DEBUG && v) println(solver.getModel())
-          v
-        case None => false
-      }
-    }
 
     /**
       *
