@@ -1,5 +1,6 @@
 package plv.colorado.edu.quantmchecker
 
+import java.io.File
 import javax.lang.model.element._
 
 import com.sun.source.tree._
@@ -149,7 +150,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // Don't issue error if destructive update is in class constructor
         val inConstructor = isInConstructor(node)
         // Don't issue error if destructive update is at declaration
-        val isDeclaration = trees.getPath(TreeUtils.elementFromTree(node)).getLeaf.isInstanceOf[VariableTree]
+        val isDeclaration = {
+          val element = TreeUtils.elementFromTree(node)
+          val path = trees.getPath(element)
+          if (path == null)
+            false
+          else
+            path.getLeaf.isInstanceOf[VariableTree]
+        }
 
         /**
           * Check if there is any destructive update (reassignment) that will invalidate an invariant
@@ -300,12 +308,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     } else { // No method summaries found. Translate library methods (e.g. append, add) into numerical updates
       if (receiverTyp == null) { // Do nothing
       } else {
+        val absPath = root.getSourceFile.getName
+        val relativePath = if (absPath.startsWith(Utils.DESKTOP_PATH + File.separator)) absPath.substring(Utils.DESKTOP_PATH.length + 1) else absPath
+
         val isColAdd = Utils.isCollectionAdd(types.erasure(receiverTyp.getUnderlyingType), callee)
         val isIterNext = Utils.isIterNext(types.erasure(receiverTyp.getUnderlyingType), callee)
+        val isColRem = Utils.isCollectionRemove(types.erasure(receiverTyp.getUnderlyingType), callee)
+        if (isColRem)
+          Utils.logging("list.remove: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
         if (isColAdd) {
           // if (receiverAnno.isEmpty && inLoop) {
           // issueWarning(node, LIST_NOT_ANNOTATED)
           // }
+          Utils.logging("list.add: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
 
           val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
             invariant =>
@@ -402,7 +417,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // If rhs's annotation is empty or TOP
         rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, TOP)
       case m: MethodInvocationTree =>
-        if (m.toString.startsWith(EMP_COLLECTION_PREFIX))
+        if (m.toString.startsWith(EMP_COLLECTION_PREFIX)) // E.g. List x = Collection.emptyList()
           return true
 
         // list = o.m(), where m's return value is annotated
@@ -444,7 +459,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           false
         }*/
         false
-      case _ => false
+      case _ =>
+        if (node.toString == "null") // if rhs is null
+          true
+        else
+          false
     }
   }
 
@@ -670,6 +689,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return label of the enclosing statement of node, if any
     */
   private def getLabel(node: Tree): String = {
+    // trees.getPath(root, node)
     val enclosingLabel = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.LABELED_STATEMENT).asInstanceOf[LabeledStatementTree]
     if (enclosingLabel != null) {
       enclosingLabel.getLabel.toString

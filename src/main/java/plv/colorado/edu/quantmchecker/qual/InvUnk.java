@@ -12,4 +12,5 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @Documented
 public @interface InvUnk {
+    public String[] value();
 }

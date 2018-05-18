@@ -16,8 +16,8 @@ import scala.collection.immutable.HashSet
   * @author Tianhan Lu
   */
 object Utils {
-  private val DESKTOP_PATH = System.getProperty("user.home") + File.separator + "Desktop"
-  private val LOG_FILE = "log.txt"
+  val DESKTOP_PATH: String = System.getProperty("user.home") + File.separator + "Desktop"
+  val LOG_FILE: String = "log.txt"
   new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString)) // Clean up
 
   val COLLECTION_ADD: HashSet[(String, String)] = HashSet(
@@ -50,6 +50,35 @@ object Utils {
     ("java.util.Vector", "add"),
     ("java.util.Hashtable", "add"),
     ("java.util.ByteBuffer", "put")
+  )
+
+  val COLLECTION_REMOVE: HashSet[(String, String)] = HashSet(
+    ("java.lang.ArrayList", "remove"),
+    ("java.util.List", "remove"),
+    ("java.util.LinkedList", "remove"),
+    ("java.util.AbstractList", "remove"),
+    ("java.util.Set", "remove"),
+    ("java.util.HashSet", "remove"),
+    ("java.util.EnumSet", "remove"),
+    ("java.util.TreeSet", "remove"),
+    ("java.util.Map", "remove"),
+    ("java.util.HashMap", "remove"),
+    ("java.util.EnumMap", "remove"),
+    ("java.util.ConcurrentHashMap", "remove"),
+    ("java.util.AbstractMap", "remove"),
+    ("java.util.TreeMap", "remove"),
+    ("java.util.LinkedHashMap", "remove"),
+    ("java.util.IdentityHashMap", "remove"),
+    ("java.util.Collection", "remove"),
+    ("java.util.Queue", "remove"),
+    ("java.util.Queue", "poll"),
+    ("java.util.PriorityQueue", "remove"),
+    ("java.util.PriorityQueue", "poll"),
+    ("java.util.Deque", "remove"),
+    ("java.util.Deque", "poll"),
+    ("java.util.Stack", "pop"),
+    ("java.util.Vector", "remove"),
+    ("java.util.Hashtable", "remove")
   )
 
   val ITER_NEXT: HashSet[(String, String)] = HashSet(
@@ -98,6 +127,12 @@ object Utils {
     val className = TypeAnnotationUtils.unannotatedType(klass).toString
     val methodName = method.getSimpleName.toString
     COLLECTION_ADD.contains((className, methodName))
+  }
+
+  def isCollectionRemove(klass: TypeMirror, method: ExecutableElement): Boolean = {
+    val className = TypeAnnotationUtils.unannotatedType(klass).toString
+    val methodName = method.getSimpleName.toString
+    COLLECTION_REMOVE.contains((className, methodName))
   }
 
   /**
