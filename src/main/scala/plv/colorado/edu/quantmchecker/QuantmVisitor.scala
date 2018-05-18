@@ -78,7 +78,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           remainder =>
             // Remainder's name should be exactly the same as in invariant
             if (remainder == node.getExpression.toString) {
-              if (!InvWithSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
+              if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
                 issueError(node, "")
             } else {
               // ignoreWarning(node, "[EnhancedForLoopTree] Not iterating over remainder is " + NOT_SUPPORTED)
@@ -214,7 +214,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       val increment = rhs.getValue.asInstanceOf[Integer]
                       node.getKind match {
                         case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
-                          if (!InvWithSolver.isValidAfterUpdate(invariant, (remainder, -increment), ("", 0), updatedLabel, node))
+                          if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -increment), ("", 0), updatedLabel, node))
                             issueError(node, "")
                         case _ => // All other compound assignments are not supported
                           issueWarning(node, "[CompoundAssignmentTree] Operator " + node.getKind + " is " + NOT_SUPPORTED)
@@ -273,7 +273,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     node.getArguments.get(argIdx) match {
                       case arg: IdentifierTree =>
                         if (arg.toString == self) { // Summary says: update self
-                          if (!InvWithSolver.isValidAfterUpdate(invariant, ("", 0), (self, increment), updatedLabel, node))
+                          if (!InvSolver.isValidAfterUpdate(invariant, ("", 0), (self, increment), updatedLabel, node))
                             issueError(node, "")
                           true
                         } else {
@@ -289,7 +289,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                         // If receiver is self and summary updates self's field
                         val updatedFldName = receiverName + "." + field.toString
                         if (updatedFldName == self) {
-                          if (!InvWithSolver.isValidAfterUpdate(invariant, ("", 0), (self, increment), updatedLabel, node))
+                          if (!InvSolver.isValidAfterUpdate(invariant, ("", 0), (self, increment), updatedLabel, node))
                             issueError(node, "")
                           true
                         } else {
@@ -336,7 +336,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   }
                   val selfCall = self + "." + callee.getSimpleName // E.g. x.f.g.add(1)
                   if (node.getMethodSelect.toString == selfCall && !isDescribedInSummary) {
-                    if (!InvWithSolver.isValidAfterUpdate(invariant, ("", 0), (self, 1), updatedLabel, node))
+                    if (!InvSolver.isValidAfterUpdate(invariant, ("", 0), (self, 1), updatedLabel, node))
                       issueError(node, "")
                     true
                   } else {
@@ -356,7 +356,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 remainder =>
                   val remainderCall = remainder + "." + callee.getSimpleName // E.g. x.f.g.add(1)
                   if (node.getMethodSelect.toString == remainderCall) {
-                    if (!InvWithSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
+                    if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
                       issueError(node, "")
                     true
                   } else {
@@ -390,7 +390,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                      | Tree.Kind.PREFIX_INCREMENT
                      | Tree.Kind.POSTFIX_DECREMENT
                      | Tree.Kind.PREFIX_DECREMENT =>
-                  if (!InvWithSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
+                  if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
                     issueError(node, "")
                 case _ => issueWarning(node, "[UnaryTree] Unknown unary operator is " + NOT_SUPPORTED); true
               }

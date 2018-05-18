@@ -9,7 +9,7 @@ import scala.collection.immutable.HashSet
 /**
   * @author Tianhan Lu
   */
-object InvWithSolver {
+object InvSolver {
   private val DEBUG = true
 
   val z3 = new Z3Context("MODEL" -> true)
@@ -28,6 +28,14 @@ object InvWithSolver {
         v
       case None => false
     }
+  }
+
+  def parseStringAndCheck(s: String): Boolean = {
+    check(z3.parseSMTLIB2String(s))
+  }
+
+  def parseFileAndCheck(fileName: String): Boolean = {
+    check(z3.parseSMTLIB2File(fileName))
   }
 
   /**
