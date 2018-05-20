@@ -27,6 +27,11 @@ keyword = 'import org.springframework.stereotype.Controller'
 # keyword = 'import io.dropwizard.Application'
 # http://www.dropwizard.io/0.9.2/docs/getting-started.html
 
+# Simple JSON: yylex()
+# https://github.com/fangyidong/json-simple/blob/master/src/main/java/org/json/simple/parser/Yylex.java
+
+keyword = 'import okhttp3'
+
 username = 'litho17'
 password = 'orc19940119'
 auth = (username, password)
