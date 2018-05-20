@@ -2,7 +2,8 @@ package plv.colorado.edu.quantmchecker.verification
 
 import net.sf.javailp._
 import org.scalatest.{FlatSpec, Matchers}
-import collection.JavaConverters._
+
+import scala.collection.JavaConverters._
 
 /**
   * @author Tianhan Lu
@@ -12,6 +13,7 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     problem.getConstraints.asScala.foreach(c => println(c))
     println(problem.getObjective, problem.getOptType)
   }
+
   /**
     * Remember to Edit Configuration of this test:
     * Set DYLD_LIBRARY_PATH to the absolute path of the path that contains liblpsolve55.dylib, liblpsolve55.a
@@ -83,7 +85,7 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     System.out.println(result)
   }
 
-  it should "work as well" in {
+  "lp solver" should "work as well" in {
     val factory = new SolverFactoryLpSolve()
     factory.setParameter(Solver.VERBOSE, 0)
     factory.setParameter(Solver.TIMEOUT, 100)
@@ -93,21 +95,21 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     symbols.foreach(sym => problem.setVarLowerBound(sym, 0))
     /**
       *
-      (assert (= c3 (+ c1 c2)))
-      (assert (= c3 c6))
-      (assert (= c3 1))
-      (assert (= c6 1))
-      (assert (= c7 (* c6 1000)))
-      (assert (= c7 c4))
-      (assert (= c7 c5))
-      (assert (>= c1 0))
-      (assert (>= c2 0))
-      (assert (>= c3 0))
-      (assert (>= c4 0))
-      (assert (>= c5 0))
-      (assert (>= c6 0))
-      (assert (>= c7 0))
-      (maximize (- (+ c1 c4) c5))
+      * (assert (= c3 (+ c1 c2)))
+      * (assert (= c3 c6))
+      * (assert (= c3 1))
+      * (assert (= c6 1))
+      * (assert (= c7 (* c6 1000)))
+      * (assert (= c7 c4))
+      * (assert (= c7 c5))
+      * (assert (>= c1 0))
+      * (assert (>= c2 0))
+      * (assert (>= c3 0))
+      * (assert (>= c4 0))
+      * (assert (>= c5 0))
+      * (assert (>= c6 0))
+      * (assert (>= c7 0))
+      * (maximize (- (+ c1 c4) c5))
       */
     val cons1 = new Linear
     cons1.add(1, symbols(0))
@@ -156,32 +158,28 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     println(result)
   }
 
-  it should "work?" in {
-    val factory = new SolverFactoryLpSolve()
-    factory.setParameter(Solver.VERBOSE, 0)
-    factory.setParameter(Solver.TIMEOUT, 100) // set timeout to 100 seconds
-    val problem = new Problem()
-    val symbols = List("c1", "c2" ,"c3")
-    symbols.foreach(sym => problem.setVarType(sym, classOf[Integer]))
-    symbols.foreach(sym => problem.setVarLowerBound(sym, 0))
+  "lp solver" should "work?" in {
+    val symbols = List("c1", "c2", "c3")
 
     val cons1 = new Linear
     cons1.add(1, symbols(0))
     cons1.add(1, symbols(1))
     cons1.add(-1, symbols(2))
-    problem.add(cons1, "=", 0)
 
     val cons3 = new Linear
     cons3.add(1, symbols(2))
-    problem.add(cons3, "=", 1)
 
     val obj = new Linear
     obj.add(1, symbols(0))
-    problem.setObjective(obj, OptType.MAX)
 
-    // debug(problem)
-
-    val result = factory.get.solve(problem)
+    val result = VerifyUtils.solveLp(
+      List(LpCons(cons1, "=", 0), LpCons(cons3, "=", 1)),
+      obj,
+      symbols,
+      classOf[Integer],
+      0,
+      OptType.MAX
+    )
     println(result)
   }
 }

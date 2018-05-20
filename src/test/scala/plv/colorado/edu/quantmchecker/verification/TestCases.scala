@@ -1,30 +1,10 @@
-package plv.colorado.edu.quantmchecker.solver
-
-import org.scalatest.{FunSuite, Matchers}
-import plv.colorado.edu.quantmchecker.invlang.InvSolver
-import z3.scala.dsl.{Val, findAll}
+package plv.colorado.edu.quantmchecker.verification
 
 /**
   * @author Tianhan Lu
   */
-class SolverUnitTest extends FunSuite with Matchers {
-
-  def isPrime(i: Int): Boolean = {
-    !(2 to i - 1).exists(i % _ == 0)
-  }
-
-  test("ForComprehension") {
-    // println(System.getProperty("java.class.path"))
-    val results = for (
-      (x, y) <- findAll[Int, Int]((x: Val[Int], y: Val[Int]) => x > 0 && y > x && x * 2 + y * 3 <= 40);
-      if (isPrime(y));
-      z <- findAll((z: Val[Int]) => z * x === 3 * y * y))
-      yield (x, y, z)
-
-    results.size should equal(8)
-  }
-
-  private val queries = List[String](
+object TestCases {
+  val queries: List[String] = List[String](
     """
       (assert
               (forall
@@ -75,8 +55,16 @@ class SolverUnitTest extends FunSuite with Matchers {
     """.stripMargin
   )
 
-  queries.foreach(s => println(InvSolver.parseStringAndCheck(s)))
+  val counters: List[String] = List(
+    "- (+ c1 c4) c5",
+    "- (+ c2 c3) (- c5 c6)"
+  )
 
+  val remainders: List[String] = List(
+    "+ r1 r2 r3"
+  )
 
-  // println(InvSolver.parseFileAndCheck(Utils.DESKTOP_PATH + "/z3_capability.txt"))
+  val coefficients: List[String] = List(
+    "(* (-e f) (* (+ a b) (- c d)))"
+  )
 }
