@@ -6,17 +6,40 @@
         `find ScalaZ3/ -iname "*.dylib" -print0 | xargs -0 -I {} cp {} lib/`
     
     2. Copy `scalaz3_2.12-3.0.jar` into `lib/`
-2. Download and unzip [Checker framework](https://checkerframework.org/manual/#installation)
+2. Download and unzip [Checker framework](https://checkerframework.org/manual/#installation). Set checker/dist/*.jar as project libraries.
 3. Configure the following paths in `run.sh`
     1. Set `scala_lib` to the path to `scala-library.jar`
     2. Set `scala_parser_lib` to the path to `scala-parser-combinators_2.12-1.1.0.jar`
     3. Set `scalaz3_lib` to `lib/scalaz3_2.12-3.0.jar`
     4. Set `checker_framework_bin` to the path of `checker/bin`
+4. Build and install lpsolver
+     1. Download `lp_solve_5.5.2.5_java.zip` and `lp_solve_5.5.2.5_source.tar.gz` from http://lpsolve.sourceforge.net/5.5/
+     2. Build native library
+         1. Unzip `lp_solve_5.5.2.5_source.tar.gz`
+         2. `cd lp_solve_5.5/lpsolve55`
+         3. `sh ccc.osx` 
+         4. The output will be `liblpsolve55.dylib` and `liblpsolve55.a` under directory `lp_solve_5.5/lpsolve55/bin/`. Copy them to some place (e.g. `path_to_native/`)
+     3. Build Java bindings
+         1. Unzip `lp_solve_5.5.2.5_java.zip`
+         2. Configure `lib/mac/build-osx`
+            1. Set `LPSOLVE_DIR` to the path of t
+            2. Set `JDK_DIR` to the directory of jdk (e.g. On Mac, it will look like `/Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/include`)
+            3. Set `JDK_DIR2` to the directory that contains `jni_md.h` and add `-I $JDK_DIR2` to the line that sets `INCL` (e.g. On Mac, it will look like `/Library/Java/JavaVirtualMachines/jdk1.8.0_121.jdk/Contents/Home/include/darwin`)
+            4. Add `-Lpath_to_native/` to the line that links the library `-llpsolve55`
+            5. Run `build-osx`
+            6. The output will be `liblpsolve55j.jnilib`. Rename it as `liblpsolve55j.dylib`
+     4. Copy `lpsolve55j.jar` (from `lp_solve_5.5.2.5_java/`), `liblpsolve55.dylib`, `liblpsolve55.a` and `liblpsolve55j.dylib` into `lib/`
+     5. Note: The above steps are for unfortunate people who use Mac OS (me as well). Otherwise, if you are using Linux or Windows, you will only need to follow instructions in section "Using lpsolve from Java" on [this](http://lpsolve.sourceforge.net/5.5/) website
+5. Install Java ILP
+
+    Copy `javailp-1.2a.jar` into `lib/`
     
 #### Dependencies
 - [Scala Parser Combinator](https://github.com/scala/scala-parser-combinators)
 - [Scala Z3](https://github.com/epfl-lara/ScalaZ3)
 - [Checker framework](https://checkerframework.org/manual/#installation)
+- [lpsolver](http://lpsolve.sourceforge.net/5.5/)
+- [Java ILP](http://javailp.sourceforge.net/)
 
 
 ## Intergrate with building systems
