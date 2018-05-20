@@ -11,6 +11,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @Documented
-public @interface Rem {
+public @interface Inc {
     public String value();
 }

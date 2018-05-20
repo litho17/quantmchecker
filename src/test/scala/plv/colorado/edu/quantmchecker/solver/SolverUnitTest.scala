@@ -28,10 +28,10 @@ class SolverUnitTest extends FunSuite with Matchers {
     """
       (assert
               (forall
-                ((a Int) (b Int) (c Int) (d Int) (e Int) (f Int))
+                ((a Int) (b Int) (c Int) (d Int) (e Int) (f.g Int))
                 (implies
-                  (= (+ a (* d (+ b (* b f)))) (* (- c e) (+ b (* b f))))
-                  (= (+ (+ a (+ b (* b f))) (* d (+ b (* b f)))) (* (- (+ c 1) e) (+ b (* b f))))
+                  (= (+ a (* d (+ b (* b f.g)))) (* (- c e) (+ b (* b f.g))))
+                  (= (+ (+ a (+ b (* b f.g))) (* d (+ b (* b f.g)))) (* (- (+ c 1) e) (+ b (* b f.g))))
                 )
               )
             )
@@ -46,6 +46,32 @@ class SolverUnitTest extends FunSuite with Matchers {
                 )
               )
             )
+    """.stripMargin,
+    """
+      (declare-const c1 Int)
+      (declare-const c2 Int)
+      (declare-const c3 Int)
+      (declare-const c4 Int)
+      (declare-const c5 Int)
+      (declare-const c6 Int)
+      (declare-const c7 Int)
+      (assert (= c3 (+ c1 c2)))
+      (assert (= c3 c6))
+      (assert (= c3 1))
+      (assert (= c6 1))
+      (assert (= c7 (* c6 1000)))
+      (assert (= c7 c4))
+      (assert (= c7 c5))
+      (assert (>= c1 0))
+      (assert (>= c2 0))
+      (assert (>= c3 0))
+      (assert (>= c4 0))
+      (assert (>= c5 0))
+      (assert (>= c6 0))
+      (assert (>= c7 0))
+      (maximize (- (+ c1 c4) c5))
+      (check-sat)
+      (get-objectives)
     """.stripMargin
   )
 
