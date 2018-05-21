@@ -4,9 +4,9 @@ import java.io.StringReader
 
 import com.sun.source.tree._
 import net.sf.javailp._
-import smtlib.lexer.Tokens.{CParen, OParen, SymbolLit, Token}
-import smtlib.trees.Commands.Command
-import smtlib.trees.Terms.{FunctionApplication, QualifiedIdentifier}
+import smtlib.lexer.Tokens._
+import smtlib.trees.Commands.{Assert, Command, DeclareFun}
+import smtlib.trees.Terms.{FunctionApplication, QualifiedIdentifier, Term}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashSet
@@ -17,6 +17,7 @@ import scala.collection.mutable.ListBuffer
   */
 object VerifyUtils {
   val DEFAULT_LOOP_BOUND = 1000
+  val ONE = "ONE" // Used in annotations to replace (= c7 1) with (- c7 ONE)
 
   /**
     *
@@ -50,20 +51,30 @@ object VerifyUtils {
   }
 
   def solveLp[T](constraints: Iterable[LpCons],
-                 obj: Linear,
-                 vars: Iterable[String],
-                 varType: Class[T],
-                 lowerBound: Number,
-                 optType: OptType): Result = {
-    val factory = new SolverFactoryLpSolve()
-    factory.setParameter(Solver.VERBOSE, 0)
-    factory.setParameter(Solver.TIMEOUT, 100) // set timeout to 100 seconds
-    val problem = new Problem()
-    constraints.foreach(c => problem.add(c.cons, c.op, c.rhs))
-    problem.setObjective(obj, optType)
-    vars.foreach(v => problem.setVarType(v, varType))
-    vars.foreach(v => problem.setVarLowerBound(v, lowerBound))
-    factory.get.solve(problem)
+                 obj: Option[Linear],
+                 // vars: Iterable[String],
+                 // varType: Class[T] = classOf[Integer].asInstanceOf,
+                 lowerBound: Number = 0,
+                 optType: OptType = OptType.MAX): Option[Result] = {
+    val DEBUG = false
+    obj match {
+      case Some(obj) =>
+        val factory = new SolverFactoryLpSolve()
+        factory.setParameter(Solver.VERBOSE, 0)
+        // set timeout to 100 seconds
+        factory.setParameter(Solver.TIMEOUT, 100)
+        val problem = new Problem()
+        constraints.foreach(c => problem.add(c.cons, c.op, c.rhs))
+        problem.setObjective(obj, optType)
+        val vars = constraints.foldLeft(new HashSet[String]) {
+          (acc, c) => acc ++ LpCons.getVars(c)
+        }
+        vars.foreach(v => problem.setVarType(v, classOf[Integer]))
+        vars.foreach(v => problem.setVarLowerBound(v, lowerBound))
+        if (DEBUG) println(problem)
+        Option(factory.get.solve(problem))
+      case None => if (DEBUG) println("Empty obj"); None
+    }
   }
 
   /**
@@ -71,7 +82,7 @@ object VerifyUtils {
     * @param term a SMTLIB2 linear prefix expression, e.g. (- (+ c1 c4) c5)
     * @return a list of pairs (coefficient and variable name), to be constructed as infix expression
     */
-  def linearPrefixToInfix(term: FunctionApplication): List[(Int, String)] = {
+  private def linearPrefixToInfix(term: FunctionApplication): List[(Int, String)] = {
     val subterms: Seq[List[(Int, String)]] = term.terms.map {
       case subterm: FunctionApplication => linearPrefixToInfix(subterm) // recursive case
       case subterm: QualifiedIdentifier => List((1, subterm.toString())) // base case
@@ -79,11 +90,14 @@ object VerifyUtils {
     }
     val lhs: List[(Int, String)] = subterms.head
     val rhs: List[(Int, String)] = term.fun.toString() match {
-      case "-" => subterms(1).map {
-        case (num, str) =>
-          (-Integer.parseInt(num.toString), str)
-      }
-      case "+" => subterms(1)
+      case "-" =>
+        subterms.tail.flatMap {
+          subterm: List[(Int, String)] =>
+            subterm.map {
+              case (num, str) => (-Integer.parseInt(num.toString), str)
+            }
+        }.toList
+      case "+" => subterms.tail.flatten.toList
       case x@_ => println("Discarded function: " + x); List.empty // discarded
     }
     lhs ::: rhs // only the first two terms are kept in result
@@ -209,15 +223,12 @@ object VerifyUtils {
     val cons: Set[LpCons] = cons1.map(l => LpCons(l, "=", 0)) + LpCons(cons2, "=", 1)
 
     val vars = cons.foldLeft(new HashSet[String]) {
-      (acc, c) =>
-        c.cons.getVariables.asScala.foldLeft(acc) {
-          (acc2, v) => acc2 + v.toString
-        }
+      (acc, c) => acc ++ LpCons.getVars(c)
     }
 
     val ifEveryObjVarIsConstrained = obj.getVariables.asScala.forall(v => vars.contains(v.toString))
     if (ifEveryObjVarIsConstrained)
-      Some(VerifyUtils.solveLp(cons, obj, vars, classOf[Integer], 0, OptType.MAX))
+      VerifyUtils.solveLp(cons, Some(obj))
     else
       None
   }
@@ -252,5 +263,38 @@ object VerifyUtils {
         else
           acc + t.toString() + " "
     }
+  }
+
+  /**
+    *
+    * @param str a SMTLIB2 string that is a linear expression, e.g. - (+ c2 c3) (- c5 c6)
+    * @return a linear expression in Java ILP
+    */
+  def parseSmtlibStrToLpCons(str: String): Option[Linear] = {
+    val transformedStr = {
+      if (str.contains(" "))
+        "(assert (" + str + "))"
+      else
+        "(declare-fun " + str + " () Int)"
+    }
+    // println(transformedStr)
+    val cmds = VerifyUtils.parseSmtlibToAST(transformedStr)
+    if (cmds.nonEmpty) {
+      cmds.head match {
+        case Assert(term: Term) =>
+          term match {
+            case app: FunctionApplication =>
+              // println(app.fun, app.terms)
+              Some(toLinearCons(linearPrefixToInfix(app)))
+            case _ => None
+          }
+        case fun: DeclareFun =>
+          val l = new Linear
+          l.add(1, fun.name.name)
+          Some(l)
+        case _ => None
+      }
+    } else
+      None
   }
 }

@@ -57,7 +57,9 @@ object TestCases {
 
   val counters: List[String] = List(
     "- (+ c1 c4) c5",
-    "- (+ c2 c3) (- c5 c6)"
+    "- (+ c2 c3) (- c5 c6)",
+    "- (+ c104 c108 c113) (+ c110 c110)",
+    "c151"
   )
 
   val remainders: List[String] = List(
@@ -68,7 +70,16 @@ object TestCases {
     "(* (- ee f) (* (+ e b) (- c d)))"
   )
 
-  val increment: List[Array[String]] = List(
-    Array("- (+ c104 c108 c113) (+ c110 c110)", "+ i i", "1", "= i this.text")
+  val selfIncrement: List[(Array[String], Array[String], Array[String])] = List(
+    (
+      Array("- (+ c104 c108 c113) (+ c110 c110)", "+ i i", "1", "= i tagsList", "= tagsList this.text"),
+      Array("- loop c104", "- loop c108", "- loop c110", "- c113 ONE", "- loop ONE"),
+      Array("- c134 c135", "it", "+ (* 2 this.text) 1", "= it templateds")
+    ),
+    (
+      Array("c151", "", "1"),
+      Array("- c151 ONE"),
+      Array("- c65 c66", "matcher", "1", "= matcher this.text", "= c65 c66")
+    )
   )
 }

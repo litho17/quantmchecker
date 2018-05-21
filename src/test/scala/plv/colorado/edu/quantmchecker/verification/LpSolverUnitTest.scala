@@ -72,7 +72,7 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     // you should use this solver only once for one problem
     var result = solver.solve(problem)
 
-    System.out.println(result)
+    System.out.println(result, assert(result.getObjective.intValue() == 6266))
 
     /**
       * Extend the problem with x <= 16 and solve it again
@@ -82,7 +82,7 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     solver = factory.get
     result = solver.solve(problem)
 
-    System.out.println(result)
+    System.out.println(result, assert(result.getObjective.intValue() == 5828))
   }
 
   "lp solver" should "work as well" in {
@@ -155,7 +155,7 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     debug(problem)
 
     val result = factory.get.solve(problem)
-    println(result)
+    println(result, assert(result.getObjective.intValue() == 1))
   }
 
   "lp solver" should "work?" in {
@@ -174,12 +174,14 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
 
     val result = VerifyUtils.solveLp(
       List(LpCons(cons1, "=", 0), LpCons(cons3, "=", 1)),
-      obj,
-      symbols,
-      classOf[Integer],
+      Some(obj),
       0,
       OptType.MAX
     )
+    result match {
+      case Some(res) => assert(res.getObjective.intValue() == 1)
+      case None => assert(false)
+    }
     println(result)
   }
 }
