@@ -65,6 +65,10 @@ object TestCases {
   )
 
   val coefficients: List[String] = List(
-    "(* (-e f) (* (+ a b) (- c d)))"
+    "(* (- ee f) (* (+ e b) (- c d)))"
+  )
+
+  val increment: List[Array[String]] = List(
+    Array("- (+ c104 c108 c113) (+ c110 c110)", "+ i i", "1", "= i this.text")
   )
 }

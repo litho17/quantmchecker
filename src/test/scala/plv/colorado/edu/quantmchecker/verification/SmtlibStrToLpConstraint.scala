@@ -11,7 +11,7 @@ class SmtlibStrToLpConstraint extends FlatSpec with Matchers {
   "lp constraint generation" should "be successful" in {
     TestCases.counters.foreach {
       str =>
-        VerifyUtils.parseSmtlibStr("(assert (" + str + "))").foreach {
+        VerifyUtils.parseSmtlibToAST("(assert (" + str + "))").foreach {
           case Assert(term: Term) =>
             // println(term, term.getClass)
             term match {
