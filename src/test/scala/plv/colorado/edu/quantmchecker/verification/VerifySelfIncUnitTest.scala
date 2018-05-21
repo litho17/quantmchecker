@@ -40,18 +40,24 @@ class VerifySelfIncUnitTest extends FlatSpec with Matchers {
         }
         val _old = List(x._4)
         val _new = List("(+ " + x._4 + " 1)")
-        val query = SmtlibUtils.genForallImpQuery(
+        val fullQuery = SmtlibUtils.genFullQuery(
           IncStruct.genSmtlibStr(callerStruct),
           _old,
           _new,
           listIncStr,
           calleeStruct.remCons
         )
-        println(query, InvSolver.parseStringAndCheck(query))
+        val partialQuery = SmtlibUtils.genPartialQuery(
+          callerStruct.coefficient,
+          listIncStr,
+          calleeStruct.remCons
+        )
+        println(fullQuery, assert(InvSolver.parseStringAndCheck(fullQuery)))
+        println(partialQuery, assert(InvSolver.parseStringAndCheck(partialQuery)))
 
-        println(IncStruct.genSmtlibStr(calleeStruct))
-        println(IncStruct.genSmtlibStr(callerStruct))
-        println(listIncStr)
+        // println(IncStruct.genSmtlibStr(calleeStruct))
+        // println(IncStruct.genSmtlibStr(callerStruct))
+        // println(listIncStr)
     }
   }
 }

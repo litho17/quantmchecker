@@ -24,7 +24,9 @@ class ScalaZ3UnitTest extends FunSuite with Matchers {
     results.size should equal(8)
   }
 
-  TestCases.queries.foreach(s => println(InvSolver.parseStringAndCheck(s)))
+  TestCases.queries.zipWithIndex.foreach{
+    case(s, idx) => println(idx, InvSolver.parseStringAndCheck(s))
+  }
 
 
   // println(InvSolver.parseFileAndCheck(Utils.DESKTOP_PATH + "/z3_capability.txt"))

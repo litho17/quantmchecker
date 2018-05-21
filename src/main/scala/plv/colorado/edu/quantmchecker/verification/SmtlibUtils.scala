@@ -188,34 +188,110 @@ object SmtlibUtils {
     } + ")"
   }
 
-  def genForallImpQuery(p: String,
-                        _old: List[String],
-                        _new: List[String],
-                        inc: String,
-                        cons: Iterable[String]): String = {
+  /**
+    *
+    * @param p    the SMTLIB2 string representing the size of a list
+    * @param _old tokens in p
+    * @param _new new tokens that replace old tokens in p
+    * @param inc  the increment of the list
+    * @param cons additional constraints that help proving the query
+    * @return a SMTLIB2 query
+    */
+  def genFullQuery(p: String,
+                   _old: List[String],
+                   _new: List[String],
+                   inc: String,
+                   cons: Iterable[String]): String = {
+    val ret =
+      """
+        (assert
+          (forall (? Int) (? Int) ... )
+          (implies
+            (and (= LLL p) (cons))
+            (= (+ LLL inc) (p[old/new])))
+          )
+        )
+      """.stripMargin
+
     val q = SmtlibUtils.substituteStmlib(p, _old, _new)
 
     val uniqueSym = "LLL"
     assert(!p.contains(uniqueSym) && !q.contains(uniqueSym)) // this symbol has to be unique
     val prefix = "(assert\n\t(forall\n"
-
     val implies = "\t\t(implies\n"
     val suffix = "\n\t\t)\n\t)\n)"
-    val _p = "(= " + uniqueSym + " " + p + ")"
+    val _p = {
+      val tmp = "(= " + uniqueSym + " " + p + ")"
+      if (cons.nonEmpty)
+        "(and " + tmp + " " + genAndSmtlibStr(cons) + ")"
+      else
+        tmp
+    }
     val _q = {
       val update = "(+ " + uniqueSym + " " + inc + ")"
-      val inv = "(= " + update + " " + q + ")"
-      if (cons.nonEmpty)
-        "(and " + inv + " " + genAndSmtlibStr(cons) + ")"
-      else
-        inv
+      "(= " + update + " " + q + ")"
     }
     val syms = extractSyms(_p) ++ extractSyms(_q)
     val intTypedSyms = syms.foldLeft("") {
-      (acc, sym) => acc + " ("  +sym + " Int)"
+      (acc, sym) => acc + " (" + sym + " Int)"
     }
     val defSyms = "\t\t(" + intTypedSyms + ")\n"
 
+    prefix + defSyms + implies + "\t\t\t" + _p + "\n" + "\t\t\t" + _q + suffix
+  }
+
+  /**
+    *
+    * @param coefficient the coefficient that describes the size of a list
+    * @param inc         the increment of the list
+    * @param cons        additional constraints that help proving the query
+    * @return a SMTLIB2 query
+    */
+  @deprecated
+  def genPartialQuery(coefficient: String,
+                      inc: String,
+                      cons: Iterable[String]): String = {
+    val ret =
+      """
+        (assert
+          (forall (? Int) (? Int) ... )
+           (implies
+            cons
+            (= (* 1 coefficient) inc)
+           )
+         )
+        )
+      """.stripMargin
+
+    val prefix = "(assert\n\t(forall\n"
+    val implies = "\t\t(implies\n"
+    val suffix = "\n\t\t)\n\t)\n)"
+    val _p = {
+      if (cons.nonEmpty)
+        genAndSmtlibStr(cons)
+      else
+        "true"
+    }
+
+    val _q = {
+      val lhs = "(* 1 " + smtlibAddParen(coefficient) + ")"
+      "(= " + lhs + " " + inc + ")"
+    }
+    val syms = {
+      val uniqueSym = "LLL"
+      if (cons.nonEmpty) {
+        cons.foldLeft(new HashSet[String]) {
+          (acc, s) => acc ++ extractSyms(s)
+        }
+      } else {
+        assert(!_p.contains(uniqueSym) && !_q.contains(uniqueSym)) // this symbol has to be unique
+        HashSet(uniqueSym)
+      }
+    }
+    val intTypedSyms = syms.foldLeft("") {
+      (acc, sym) => acc + " (" + sym + " Int)"
+    }
+    val defSyms = "\t\t(" + intTypedSyms + ")\n"
     prefix + defSyms + implies + "\t\t\t" + _p + "\n" + "\t\t\t" + _q + suffix
   }
 }

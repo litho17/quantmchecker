@@ -14,7 +14,7 @@ object TestCases {
                   (= (+ (+ a (+ b (* b f.g))) (* d (+ b (* b f.g)))) (* (- (+ c 1) e) (+ b (* b f.g))))
                 )
               )
-            )
+      )
     """.stripMargin,
     """
       (assert
@@ -25,7 +25,7 @@ object TestCases {
                   (= (+ a (* (- d 1) (+ b (* b f)))) (* (- c (+ e 1)) (+ b (* b f))))
                 )
               )
-            )
+      )
     """.stripMargin,
     """
       (assert
@@ -36,8 +36,23 @@ object TestCases {
                  (= a (* (- c (+ e 1) (- d 1)) (+ b (* b f))))
                )
              )
-             )
+      )
       (check-sat)
+    """.stripMargin,
+    """
+      |(assert
+      |       (forall
+      |         ((this.text Int) (i Int) (tagsList Int))
+      |         (implies
+      |           (and (= i tagsList) (= tagsList this.text))
+      |           (=
+      |             (+ (* 2 this.text) 1)
+      |             (* (+ 1 (+ i i)) 1)
+      |           )
+      |         )
+      |       )
+      )
+      |(check-sat)
     """.stripMargin,
     """
       (declare-const c1 Int)
