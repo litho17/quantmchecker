@@ -4,6 +4,7 @@ import java.io.StringReader
 
 import com.sun.source.tree._
 import net.sf.javailp._
+import smtlib.lexer.Tokens.{CParen, OParen, SymbolLit, Token}
 import smtlib.trees.Commands.Command
 import smtlib.trees.Terms.{FunctionApplication, QualifiedIdentifier}
 
@@ -22,7 +23,7 @@ object VerifyUtils {
     * @param str a SMTLIB2 string
     * @return a list of command
     */
-  def parseSmtlibStr(str: String): List[Command] = {
+  def parseSmtlibToAST(str: String): List[Command] = {
     val reader = new StringReader(str)
     // val is = new java.io.FileReader("INPUT")
     val lexer = new smtlib.lexer.Lexer(reader)
@@ -34,6 +35,18 @@ object VerifyUtils {
       cmd = parser.parseCommand
     }
     cmds.toList
+  }
+
+  def parseSmtlibToToken(str: String): List[Token] = {
+    val reader = new StringReader(str)
+    val lexer = new smtlib.lexer.Lexer(reader)
+    var tokens = new ListBuffer[Token]
+    var token = lexer.nextToken
+    while (token != null) {
+      tokens.append(token)
+      token = lexer.nextToken
+    }
+    tokens.toList
   }
 
   def solveLp[T](constraints: Iterable[LpCons],
@@ -130,7 +143,7 @@ object VerifyUtils {
       case stmt: WhileLoopTree => genLoopCons(stmt, stmt.getStatement)
       case stmt: ForLoopTree =>
         val initCons = genEqCons(stmt.getInitializer.asScala.toSet + tree) // this = init1 = init2 = ...
-        val cons = new Linear // DEFAULT_LOOP_BOUND * this = block
+      val cons = new Linear // DEFAULT_LOOP_BOUND * this = block
         cons.add(-DEFAULT_LOOP_BOUND, thisHashcode)
         cons.add(1, stmt.getStatement.hashCode().toString)
         initCons ++ treeToCons(stmt.getStatement) + cons
@@ -184,10 +197,10 @@ object VerifyUtils {
   /**
     *
     * @param methodTree a method
-    * @param obj an optimization object
+    * @param obj        an optimization object
     * @return max value of the object under the constraints generated from the method
     */
-  def solve(methodTree: MethodTree, obj: Linear): Option[Result] = {
+  def optimizeWithinMethod(methodTree: MethodTree, obj: Linear): Option[Result] = {
     val cons1 = treeToCons(methodTree.getBody)
     val cons2 = new Linear // body = 1
     if (methodTree.getBody != null)
@@ -196,9 +209,10 @@ object VerifyUtils {
     val cons: Set[LpCons] = cons1.map(l => LpCons(l, "=", 0)) + LpCons(cons2, "=", 1)
 
     val vars = cons.foldLeft(new HashSet[String]) {
-      (acc, c) => c.cons.getVariables.asScala.foldLeft(acc) {
-        (acc2, v) => acc2 + v.toString
-      }
+      (acc, c) =>
+        c.cons.getVariables.asScala.foldLeft(acc) {
+          (acc2, v) => acc2 + v.toString
+        }
     }
 
     val ifEveryObjVarIsConstrained = obj.getVariables.asScala.forall(v => vars.contains(v.toString))
@@ -206,5 +220,37 @@ object VerifyUtils {
       Some(VerifyUtils.solveLp(cons, obj, vars, classOf[Integer], 0, OptType.MAX))
     else
       None
+  }
+
+  /**
+    *
+    * @param str  a SMTLIB2 string
+    * @param _old a list of old tokens
+    * @param _new a list of new tokens
+    * @return replace every old token in the SMTLIB2 string with a corresponding new one
+    */
+  def substituteStmlib(str: String, _old: List[String], _new: List[String]): String = {
+    assert(_old.size == _new.size)
+    val tokens = parseSmtlibToToken(str)
+    val newTokens = tokens.map {
+      case t: SymbolLit =>
+        val idx = _old.indexOf(t.content)
+        if (idx != -1)
+          SymbolLit(_new(idx))
+        else
+          t
+      case x@_ => x
+    }
+    // tokens.foreach(t => println(t, t.getClass))
+    // newTokens.foreach(t => println(t, t.getClass))
+    newTokens.foldLeft("") {
+      (acc, t) =>
+        if (t.kind == OParen)
+          acc + "( "
+        else if (t.kind == CParen)
+          acc + ") "
+        else
+          acc + t.toString() + " "
+    }
   }
 }

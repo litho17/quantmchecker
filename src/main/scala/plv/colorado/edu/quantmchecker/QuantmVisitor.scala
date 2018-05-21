@@ -51,7 +51,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     obj.add(-1, "c63")
     obj.add(1, "c60")
 
-    PrintStuff.printRedString(node.getName, VerifyUtils.solve(node, obj))
+    PrintStuff.printRedString(node.getName, VerifyUtils.optimizeWithinMethod(node, obj))
     super.visitMethod(node, p)
   }
 
