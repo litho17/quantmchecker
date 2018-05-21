@@ -166,13 +166,16 @@ object SmtlibUtils {
     val reserved = List("+", "-", "*", "/", "=", "and")
     parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
       (acc, t) =>
-        t match {
-          case t: SymbolLit =>
-            if (!reserved.contains(t.content))
+        t.kind match {
+          case SymbolLitKind =>
+            if (!reserved.contains(t.asInstanceOf[SymbolLit].content))
               acc + t.toString
-            else
+            else {
+              // println("Discarded symbol: " + t)
               acc
-          case x@_ => acc // discarded
+            }
+          case NumeralLitKind | OParen | CParen => acc
+          case x@_ => println("Discarded symbol: " + x); acc // discarded
         }
     }
   }

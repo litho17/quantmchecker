@@ -55,6 +55,18 @@ object TestCases {
       |(check-sat)
     """.stripMargin,
     """
+      |(assert
+      |	(forall
+      |		( (c66 Int) (LLL Int) (matcher Int) (c65 Int))
+      |		(implies
+      |			(= LLL (* (+ (- c65 c66) matcher) 1))
+      |			(= (+ LLL (* 1 1)) ( * ( + ( - (+ c65 1) c66 ) matcher ) 1 ) )
+      |		)
+      |	)
+      |)
+      |(check-sat)
+    """.stripMargin,
+    """
       (declare-const c1 Int)
       (declare-const c2 Int)
       (declare-const c3 Int)
