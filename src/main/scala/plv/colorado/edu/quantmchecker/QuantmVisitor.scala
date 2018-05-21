@@ -4,6 +4,7 @@ import java.io.File
 import javax.lang.model.element._
 
 import com.sun.source.tree._
+import net.sf.javailp.Linear
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
@@ -13,6 +14,7 @@ import plv.colorado.edu.quantmchecker.invlang._
 import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, Summary}
 import plv.colorado.edu.quantmchecker.summarylang.{MethodSumUtils, MethodSummary, MethodSummaryI, MethodSummaryV}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
+import plv.colorado.edu.quantmchecker.verification.VerifyUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -41,6 +43,16 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   if (DEBUG_PATHS) {
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
+  }
+
+  override def visitMethod(node: MethodTree, p: Void): Void = {
+    val obj = new Linear
+    obj.add(1, "c62")
+    obj.add(-1, "c63")
+    obj.add(1, "c60")
+
+    PrintStuff.printRedString(node.getName, VerifyUtils.solve(node, obj))
+    super.visitMethod(node, p)
   }
 
   override def processClassTree(classTree: ClassTree): Unit = {
