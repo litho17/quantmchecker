@@ -26,17 +26,15 @@ object InvSolver {
       case Some(v) =>
         // if (DEBUG && v) println(solver.getModel())
         v
-      case None => false
+      case None => PrintStuff.printRedString("Z3: Unknown"); false
     }
   }
 
-  def parseStringAndCheck(s: String): Boolean = {
-    check(z3.parseSMTLIB2String(s))
-  }
+  def parseString(s: String): Z3AST = z3.parseSMTLIB2String(s)
 
-  def parseFileAndCheck(fileName: String): Boolean = {
-    check(z3.parseSMTLIB2File(fileName))
-  }
+  def parseStringAndCheck(s: String): Boolean = check(parseString(s))
+
+  def parseFileAndCheck(fileName: String): Boolean = check(parseString(fileName))
 
   /**
     *

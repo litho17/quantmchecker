@@ -11,10 +11,10 @@ class SubstituteSmtlibUnitTest extends FlatSpec with Matchers {
     val _new = List("(+ c d)", "(* m n)")
     TestCases.coefficients.foreach {
       str =>
-        val newStr = VerifyUtils.substituteStmlib(str, _old, _new)
+        val newStr = SmtlibUtils.substituteStmlib(str, _old, _new)
         println(str)
         println(newStr)
-        println(VerifyUtils.parseSmtlibToToken(newStr))
+        println(SmtlibUtils.parseSmtlibToToken(newStr))
     }
   }
 }

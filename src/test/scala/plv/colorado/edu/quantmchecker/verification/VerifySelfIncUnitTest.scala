@@ -2,6 +2,7 @@ package plv.colorado.edu.quantmchecker.verification
 
 import net.sf.javailp.Linear
 import org.scalatest.{FlatSpec, Matchers}
+import plv.colorado.edu.quantmchecker.invlang.InvSolver
 
 import scala.collection.immutable.HashSet
 
@@ -14,18 +15,43 @@ class VerifySelfIncUnitTest extends FlatSpec with Matchers {
       x =>
         val calleeStruct = IncStruct.genIncStruct(x._1)
         val callerStruct = IncStruct.genIncStruct(x._3)
-        println("counters: " + calleeStruct.counters)
-        val obj = VerifyUtils.parseSmtlibStrToLpCons(calleeStruct.counters)
+        // println("counters: " + calleeStruct.counters)
+        val obj = SmtlibUtils.parseSmtlibStrToLpCons(calleeStruct.counters)
         val one = new Linear
-        one.add(1, VerifyUtils.ONE)
+        one.add(1, SmtlibUtils.ONE)
         val constraints = x._2.foldLeft(HashSet[LpCons](LpCons(one, "=", 1))) {
           (acc, s) =>
-            VerifyUtils.parseSmtlibStrToLpCons(s) match {
+            SmtlibUtils.parseSmtlibStrToLpCons(s) match {
               case Some(cons) => acc + LpCons(cons, "=", 0)
               case None => acc
             }
         }
-        println("res: " + VerifyUtils.solveLp(constraints, obj))
+        val maxInc = SolveLP.solveLp(constraints, obj) match {
+          case Some(res) => res.getObjective.intValue()
+          case None => 0
+        }
+        val listIncStr = IncStruct.genSmtlibStr(calleeStruct, maxInc)
+        val remCons = calleeStruct.remCons.map(s => SmtlibUtils.parseSmtlibStrToLpCons(s)).foldLeft(new HashSet[LpCons]) {
+          (acc, c) =>
+            c match {
+              case Some(c) => acc + LpCons(c, "=", 0)
+              case None => acc
+            }
+        }
+        val _old = List(x._4)
+        val _new = List("(+ " + x._4 + " 1)")
+        val query = SmtlibUtils.genForallImpQuery(
+          IncStruct.genSmtlibStr(callerStruct),
+          _old,
+          _new,
+          listIncStr,
+          calleeStruct.remCons
+        )
+        println(query, InvSolver.parseStringAndCheck(query))
+
+        println(IncStruct.genSmtlibStr(calleeStruct))
+        println(IncStruct.genSmtlibStr(callerStruct))
+        println(listIncStr)
     }
   }
 }

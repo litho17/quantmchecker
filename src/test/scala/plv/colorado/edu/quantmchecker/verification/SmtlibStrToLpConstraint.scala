@@ -8,7 +8,7 @@ import org.scalatest.{FlatSpec, Matchers}
 class SmtlibStrToLpConstraint extends FlatSpec with Matchers {
   "lp constraint generation" should "be successful" in {
     TestCases.counters.foreach {
-      str => println(VerifyUtils.parseSmtlibStrToLpCons(str))
+      str => println(SmtlibUtils.parseSmtlibStrToLpCons(str))
     }
   }
 }

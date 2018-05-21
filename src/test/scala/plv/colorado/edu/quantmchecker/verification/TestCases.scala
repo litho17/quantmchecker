@@ -28,6 +28,18 @@ object TestCases {
             )
     """.stripMargin,
     """
+      (assert
+             (forall
+               ((a Int) (b Int) (c Int) (d Int) (e Int) (f Int))
+               (implies
+                 (= a (* (- c e d) (+ b (* b f))))
+                 (= a (* (- c (+ e 1) (- d 1)) (+ b (* b f))))
+               )
+             )
+             )
+      (check-sat)
+    """.stripMargin,
+    """
       (declare-const c1 Int)
       (declare-const c2 Int)
       (declare-const c3 Int)
@@ -70,16 +82,18 @@ object TestCases {
     "(* (- ee f) (* (+ e b) (- c d)))"
   )
 
-  val selfIncrement: List[(Array[String], Array[String], Array[String])] = List(
+  val selfIncrement: List[(Array[String], Array[String], Array[String], String)] = List(
     (
       Array("- (+ c104 c108 c113) (+ c110 c110)", "+ i i", "1", "= i tagsList", "= tagsList this.text"),
       Array("- loop c104", "- loop c108", "- loop c110", "- c113 ONE", "- loop ONE"),
-      Array("- c134 c135", "it", "+ (* 2 this.text) 1", "= it templateds")
+      Array("- c134 c135", "it", "+ (* 2 this.text) 1", "= it templateds"),
+      "c134"
     ),
     (
       Array("c151", "", "1"),
       Array("- c151 ONE"),
-      Array("- c65 c66", "matcher", "1", "= matcher this.text", "= c65 c66")
+      Array("- c65 c66", "matcher", "1", "= matcher this.text", "= c65 c66"),
+      "c65"
     )
   )
 }

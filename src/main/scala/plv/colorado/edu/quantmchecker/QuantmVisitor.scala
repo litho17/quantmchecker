@@ -14,7 +14,7 @@ import plv.colorado.edu.quantmchecker.invlang._
 import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, Summary}
 import plv.colorado.edu.quantmchecker.summarylang.{MethodSumUtils, MethodSummary, MethodSummaryI, MethodSummaryV}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
-import plv.colorado.edu.quantmchecker.verification.VerifyUtils
+import plv.colorado.edu.quantmchecker.verification.SolveLP
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -51,7 +51,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     obj.add(-1, "c63")
     obj.add(1, "c60")
 
-    PrintStuff.printRedString(node.getName, VerifyUtils.optimizeWithinMethod(node, obj))
+    PrintStuff.printRedString(node.getName, SolveLP.optimizeWithinMethod(node, obj))
     super.visitMethod(node, p)
   }
 

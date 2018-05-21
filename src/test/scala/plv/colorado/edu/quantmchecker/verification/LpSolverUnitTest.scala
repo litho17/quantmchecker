@@ -172,7 +172,7 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     val obj = new Linear
     obj.add(1, symbols(0))
 
-    val result = VerifyUtils.solveLp(
+    val result = SolveLP.solveLp(
       List(LpCons(cons1, "=", 0), LpCons(cons3, "=", 1)),
       Some(obj),
       0,
