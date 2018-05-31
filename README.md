@@ -61,7 +61,9 @@
 
     Note, please replace
     1.  `path_to_scalaz3_lib_jar` with the absolute path to the jar file of scalaz3 (e.g. `${env.HOME}/Documents/workspace/quantmchecker/lib/scalaz3_2.12-3.0.jar`)
-    2. `path_to_checker_jar` with the absolute path the the jar created in the prepreation step (e.g. `${env.HOME}/Desktop/qc.jar`).
+    2. `path_to_checker_jar` with the absolute path to the jar created in the prepreation step (e.g. `${env.HOME}/Desktop/qc.jar`).
+    3.  `path_to_lpsolve_jar` with the absolute path to the jar of lpsolve (e.g. `${env.HOME}/Documents/workspace/quantmchecker/lib/lpsolve55j.jar`)
+    4. `path_to_javailp_jar` with the absolute path to the jar of javailp (e.g. `${env.HOME}/Documents/workspace/quantmchecker/lib/javailp-1.2a.jar`)
     ```xml
     <!-- Annotations from the Checker Framework: nullness, interning, locking, ... -->
     <dependency>
@@ -103,6 +105,20 @@
       <version>1.0</version>
       <scope>system</scope>
       <systemPath>path_to_checker_jar</systemPath>
+    </dependency>
+    <dependency>
+       <groupId>lpsolve</groupId>
+       <artifactId>lpsolve</artifactId>
+       <version>5.5</version>
+       <scope>system</scope>
+       <systemPath>path_to_lpsolve_jar</systemPath>
+    </dependency>
+    <dependency>
+       <groupId>net.sf</groupId>
+       <artifactId>javailp</artifactId>
+       <version>1.2a</version>
+       <scope>system</scope>
+       <systemPath>path_to_javailp_jar</systemPath>
     </dependency>
     ```
 3. Add the following in to `<build><plugins></plugins></build>` section in pom.xml
