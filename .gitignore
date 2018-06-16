@@ -20,3 +20,4 @@ dist/*
 out/
 lib/
 target/
+src/test/java
