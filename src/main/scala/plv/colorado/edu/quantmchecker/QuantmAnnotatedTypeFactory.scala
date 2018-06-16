@@ -9,7 +9,7 @@ import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTrans
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual.{Inc, Inv, InvBot, InvUnk}
+import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvUnk}
 
 /**
   * @author Tianhan Lu
@@ -17,7 +17,6 @@ import plv.colorado.edu.quantmchecker.qual.{Inc, Inv, InvBot, InvUnk}
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
-  protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
   protected val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
 
@@ -50,9 +49,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {
     override def isSubtype(subAnno: AnnotationMirror, superAnno: AnnotationMirror): Boolean = {
-      if (AnnotationUtils.areSameIgnoringValues(subAnno, INC)
-        || AnnotationUtils.areSameIgnoringValues(superAnno, INC)
-        || AnnotationUtils.areSameIgnoringValues(subAnno, INVUNK)
+      if (AnnotationUtils.areSameIgnoringValues(subAnno, INVUNK)
         || AnnotationUtils.areSameIgnoringValues(superAnno, INVUNK))
         return true
 

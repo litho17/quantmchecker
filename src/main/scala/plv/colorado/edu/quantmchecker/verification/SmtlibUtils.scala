@@ -297,4 +297,16 @@ object SmtlibUtils {
     val defSyms = "\t\t(" + intTypedSyms + ")\n"
     prefix + defSyms + implies + "\t\t\t" + _p + "\n" + "\t\t\t" + _q + suffix
   }
+
+  def genOpSmtlibStr(str: Iterable[String], op: String): String = {
+    if (str.isEmpty) {
+      "0"
+    } else if (str.size == 1) {
+      str.head
+    } else {
+      str.foldLeft("(" + op){
+        (acc, s) => acc + " " + s
+      } + ")"
+    }
+  }
 }

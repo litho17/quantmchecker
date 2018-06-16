@@ -7,10 +7,12 @@ import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
 import com.sun.source.tree.{CompilationUnitTree, Tree}
 import com.sun.source.util.SourcePositions
-import org.checkerframework.javacutil.{AnnotationUtils, TypeAnnotationUtils}
+import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TypeAnnotationUtils}
+import plv.colorado.edu.quantmchecker.qual.Summary
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.HashSet
+import scala.collection.immutable.{HashMap, HashSet}
 
 /**
   * @author Tianhan Lu
@@ -81,6 +83,35 @@ object Utils {
     ("java.util.Hashtable", "remove")
   )
 
+  val ITER: HashSet[(String, String)] = HashSet(
+    ("java.lang.ArrayList", "iterator"),
+    ("java.util.List", "iterator"),
+    ("java.util.LinkedList", "iterator"),
+    ("java.util.AbstractList", "iterator"),
+    ("java.util.Set", "iterator"),
+    ("java.util.HashSet", "iterator"),
+    ("java.util.EnumSet", "iterator"),
+    ("java.util.TreeSet", "iterator"),
+    ("java.util.Map", "iterator"),
+    ("java.util.HashMap", "iterator"),
+    ("java.util.EnumMap", "iterator"),
+    ("java.util.ConcurrentHashMap", "iterator"),
+    ("java.util.AbstractMap", "iterator"),
+    ("java.util.TreeMap", "iterator"),
+    ("java.util.LinkedHashMap", "iterator"),
+    ("java.util.IdentityHashMap", "iterator"),
+    ("java.util.Collection", "iterator"),
+    ("java.util.Queue", "iterator"),
+    ("java.util.Queue", "iterator"),
+    ("java.util.PriorityQueue", "iterator"),
+    ("java.util.PriorityQueue", "iterator"),
+    ("java.util.Deque", "iterator"),
+    ("java.util.Deque", "iterator"),
+    ("java.util.Stack", "iterator"),
+    ("java.util.Vector", "iterator"),
+    ("java.util.Hashtable", "iterator")
+  )
+
   val ITER_NEXT: HashSet[(String, String)] = HashSet(
     ("java.util.Iterator", "next"),
     ("java.util.regex.Matcher", "find"),
@@ -117,34 +148,46 @@ object Utils {
     root.getLineMap.getLineNumber(positions.getStartPosition(root, node))
   }
 
-  /**
-    *
-    * @param klass  receiver type of the method invocation site
-    * @param method method invocation
-    * @return if the invocation is a collection add
-    */
-  def isCollectionAdd(klass: TypeMirror, method: ExecutableElement): Boolean = {
-    val className = TypeAnnotationUtils.unannotatedType(klass).toString
-    val methodName = method.getSimpleName.toString
-    COLLECTION_ADD.contains((className, methodName))
-  }
+  def getMethodSummary(method: ExecutableElement, atypeFactory: BaseAnnotatedTypeFactory): Option[String] = {
+    if (method == null) return None
+    val elements = atypeFactory.getElementUtils
+    val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
-  def isCollectionRemove(klass: TypeMirror, method: ExecutableElement): Boolean = {
-    val className = TypeAnnotationUtils.unannotatedType(klass).toString
-    val methodName = method.getSimpleName.toString
-    COLLECTION_REMOVE.contains((className, methodName))
+    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
+    if (summaries.size == 1) Option(Utils.extractArrayValues(summaries.head, "value").head) else None
   }
 
   /**
     *
-    * @param klass receiver type of the method invocation site
-    * @param method method invocation
-    * @return if the invocation is conceptually a next method on the iterator
+    * @param query        a collection operation
+    * @param klass        class that declares the method
+    * @param method       the method
+    * @param atypeFactory type factory
+    * @return if the method is indeed the query
     */
-  def isIterNext(klass: TypeMirror, method: ExecutableElement): Boolean = {
-    val className = TypeAnnotationUtils.unannotatedType(klass).toString
-    val methodName = method.getSimpleName.toString
-    ITER_NEXT.contains((className, methodName))
+  def isColWhat(query: String,
+                klass: TypeMirror,
+                method: ExecutableElement,
+                atypeFactory: BaseAnnotatedTypeFactory): Boolean = {
+    val map = HashMap[String, HashSet[(String, String)]](
+      "add" -> COLLECTION_ADD,
+      "remove" -> COLLECTION_REMOVE,
+      "iterator" -> ITER,
+      "next" -> ITER_NEXT
+    )
+
+    val className = if (klass == null) "" else TypeAnnotationUtils.unannotatedType(klass).toString
+    val methodName = if (method == null) "" else method.getSimpleName.toString
+    map.get(query) match {
+      case Some(collection) =>
+        if (collection.contains((className, methodName))) true else {
+          getMethodSummary(method, atypeFactory) match {
+            case Some(summary) => query.equalsIgnoreCase(summary)
+            case None => false
+          }
+        }
+      case None => false
+    }
   }
 
   /**
