@@ -11,9 +11,10 @@ import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, Summary}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
+import plv.colorado.edu.quantmchecker.verification.SmtlibUtils
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.HashSet
+import scala.collection.immutable.{HashMap, HashSet}
 
 /**
   * @author Tianhan Lu
@@ -304,10 +305,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     super.visitMethodInvocation(node, p)
   }
 
-  override def visitNewArray(node: NewArrayTree, p: Void): Void = {
-    super.visitNewArray(node, p)
-  }
-
   override def visitUnary(node: UnaryTree, p: Void): Void = {
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     (fieldInvs ++ localInvs).foreach {
@@ -342,7 +339,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param rhs           rhs of assignment
+    * @param rhs rhs of assignment
     * @return Whether should we do subtype checking for assignments: lhs = rhs
     *         This is flow sensitive checking
     */
@@ -367,7 +364,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val receiver = TreeUtils.getReceiverTree(m)
         val receivetTyp = types.erasure(getTypeFactory.getReceiverType(m).getUnderlyingType)
         val isIter = Utils.isColWhat("iterator", receivetTyp, callee, atypeFactory) // E.g. it = x.iterator()
-        val isClone = rhsStr == "clone"
+      val isClone = rhsStr == "clone"
         val isRhsEmp = rhsStr.startsWith(EMP_COLLECTION_PREFIX) // || rhsStr.startsWith("Collections.unmodifiable")
         if (isIter || isClone || isRhsEmp)
           return true
@@ -381,88 +378,42 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
+    * @param variable a variable
+    * @param typCxt   a typing context
+    * @return all types in the typing context that is dependent on the given variable
+    */
+  private def getVarType(variable: String, typCxt: HashMap[String, String]): HashSet[String] = {
+    typCxt.foldLeft(new HashSet[String]) {
+      case (acc, (v, typ)) => if (SmtlibUtils.containsToken(variable, typ)) acc + typ else acc
+    }
+  }
+
+  private def getExprType(expr: ExpressionTree, typCxt: HashMap[String, String]): HashSet[String] = {
+    ???
+  }
+
+  /**
+    *
     * @param node a AST node
     * @return field invariants in the enclosing class
     *         local invariants in the enclosing method
     *         label of the enclosing statement
     */
-  private def prepare(node: Tree): (Set[String], Set[String], String) = {
+  private def prepare(node: Tree): (HashMap[String, String], HashMap[String, String], String) = {
     val enclosingClass = getEnclosingClass(node)
     val enclosingMethod = getEnclosingMethod(node)
     val updatedLabel = getLabel(node)
     // if (enclosingClass == null || enclosingMethod == null)
     // Utils.logging("Empty enclosing class or method:\n" + node.toString)
-    val fldInv = if (enclosingClass == null) new HashSet[String] else getClassFieldInvariants(enclosingClass)
-    val localInv = if (enclosingMethod == null) new HashSet[String] else getLocalInvariants(enclosingMethod)
+    val fldInv = {
+      if (enclosingClass == null) new HashMap[String, String]
+      else atypeFactory.getFieldTypCxt(enclosingClass)
+    }
+    val localInv = {
+      if (enclosingMethod == null) new HashMap[String, String]
+      else atypeFactory.getLocalTypCxt(enclosingMethod)
+    }
     (fldInv, localInv, updatedLabel)
-  }
-
-  /**
-    *
-    * @param classTree a class definition
-    * @return a map from a line number to an invariant that might be changed by that line
-    */
-  private def getClassFieldInvariants(classTree: ClassTree): HashSet[String] = {
-    classTree.getMembers.asScala.foldLeft(new HashSet[String]) {
-      (acc, member) =>
-        member match {
-          case member: VariableTree =>
-            // Get annotations on class fields
-            acc ++ getAnnotFromVariableTree(member, INV)
-          case _ => acc
-        }
-    }
-  }
-
-  /**
-    *
-    * @param methodTree a method
-    * @return all invariants that are declared in the method
-    */
-  private def getLocalInvariants(methodTree: MethodTree): HashSet[String] = {
-    if (methodTree.getBody != null) {
-      val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
-        (acc, stmt) => acc ++ flattenStmt(stmt)
-      } ++ methodTree.getParameters.asScala
-
-      stmts.foldLeft(new HashSet[String]) {
-        (acc, stmt) =>
-          stmt match {
-            case stmt: VariableTree =>
-              // Local invariants should only be on variable declarations
-              // Otherwise, invariants are simply ignored
-              acc ++ getAnnotFromVariableTree(stmt, INV)
-            case x@_ =>
-              if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
-              acc
-          }
-      }
-    } else {
-      new HashSet[String]
-    }
-  }
-
-  /**
-    *
-    * @param node        a variable declaration AST node
-    * @param targetAnnot target annotation type to collect from the variable
-    * @return a set of collected annotations
-    */
-  private def getAnnotFromVariableTree(node: VariableTree, targetAnnot: AnnotationMirror): Set[String] = {
-    val annotations = {
-      node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
-        (acc, t) =>
-          acc ++ atypeFactory.getAnnotatedType(trees.getElement(atypeFactory.getPath(node))).getAnnotations.asScala
-      }
-    }
-    val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, targetAnnot))
-    // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
-    if (listInvAnnotations.nonEmpty) {
-      val invs: List[String] = Utils.extractArrayValues(listInvAnnotations.head, "value")
-      invs.foldLeft(new HashSet[String]) { (acc, inv) => acc + inv }
-    } else {
-      new HashSet[String]
-    }
   }
 
   private def getMethodElementFromInvocation(node: MethodInvocationTree): ExecutableElement = {
@@ -502,38 +453,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       return None
     val names = fieldName.split("\\.").toList.filterNot(s => s == "this")
     _findFldInCls(TypesUtils.getTypeElement(typ.getUnderlyingType), names)
-  }
-
-  /**
-    *
-    * @param node a statement tree
-    * @return collect a set of all leave statements
-    *         Note: All other StatementTrees are ignored
-    */
-  private def flattenStmt(node: StatementTree): HashSet[StatementTree] = {
-    node match {
-      case stmt: BlockTree =>
-        stmt.getStatements.asScala.foldLeft(new HashSet[StatementTree])((acc, s) => acc ++ flattenStmt(s))
-      case stmt: DoWhileLoopTree => flattenStmt(stmt.getStatement)
-      case stmt: EnhancedForLoopTree => flattenStmt(stmt.getStatement)
-      case stmt: ForLoopTree =>
-        stmt.getInitializer.asScala.foldLeft(flattenStmt(stmt.getStatement)) {
-          (acc, s) => acc ++ flattenStmt(s)
-        }
-      case stmt: WhileLoopTree => flattenStmt(stmt.getStatement)
-      case stmt: LabeledStatementTree => flattenStmt(stmt.getStatement)
-      case stmt: IfTree => flattenStmt(stmt.getThenStatement) ++ flattenStmt(stmt.getElseStatement)
-      case stmt: SwitchTree =>
-        stmt.getCases.asScala.foldLeft(new HashSet[StatementTree]) {
-          (acc, caseTree) => caseTree.getStatements.asScala.foldLeft(acc)((acc2, s) => acc2 ++ flattenStmt(s))
-        }
-      case stmt: ExpressionStatementTree => HashSet[StatementTree](stmt)
-      case stmt: ReturnTree => HashSet[StatementTree](stmt)
-      case stmt: VariableTree => HashSet[StatementTree](stmt)
-      case stmt: TryTree => flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)
-      case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
-      case _ => new HashSet[StatementTree]
-    }
   }
 
   /**

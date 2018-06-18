@@ -52,6 +52,7 @@ object SmtlibUtils {
     * @param term a SMTLIB2 linear prefix expression, e.g. (- (+ c1 c4) c5)
     * @return a list of pairs (coefficient and variable name), to be constructed as infix expression
     */
+  @deprecated
   private def linearPrefixToInfix(term: FunctionApplication): List[(Int, String)] = {
     val subterms: Seq[List[(Int, String)]] = term.terms.map {
       case subterm: FunctionApplication => linearPrefixToInfix(subterm) // recursive case
@@ -74,6 +75,7 @@ object SmtlibUtils {
     lhs ::: rhs // only the first two terms are kept in result
   }
 
+  @deprecated
   def toLinearCons(in: List[(Int, String)]): Linear = {
     val res = new Linear
     in.foreach { case (num, str) => res.add(num, str) }
@@ -114,9 +116,38 @@ object SmtlibUtils {
 
   /**
     *
+    * @param str an SMTLIB2 string
+    * @param token a target string
+    * @return if the SMTLIB2 string contains the token
+    */
+  def containsToken(str: String, token: String): Boolean = {
+    parseSmtlibToToken(str).exists {
+      case t: SymbolLit => t.content == token
+      case _ => false
+    }
+  }
+
+  /**
+    *
+    * @param str an SMTLIB2 string
+    * @param token a target string
+    * @return a set of strings in the SMTLIB2 string, each of which starts with the token
+    */
+  def startsWithToken(str: String, token: String): HashSet[String] = {
+    parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
+      (acc, t) => t match {
+        case t: SymbolLit => if (t.content.startsWith(token)) acc + t.content else acc
+        case _ => acc
+      }
+    }
+  }
+
+  /**
+    *
     * @param str a SMTLIB2 string that is a linear expression, e.g. - (+ c2 c3) (- c5 c6)
     * @return a linear expression in Java ILP
     */
+  @deprecated
   def parseSmtlibStrToLpCons(str: String): Option[Linear] = {
     val transformedStr = {
       if (str.contains(" "))
@@ -193,6 +224,26 @@ object SmtlibUtils {
 
   /**
     *
+    * @param p
+    * @param q
+    * @return an SMTLIB2 string: for all free variables in p and q, p => q
+    */
+  def genImplyQuery(p: String, q: String): String = {
+    val prefix = "(assert\n\t(forall\n"
+    val implies = "\t\t(implies\n"
+    val suffix = "\n\t\t)\n\t)\n)"
+
+    val syms = extractSyms(p) ++ extractSyms(q)
+    val intTypSyms = syms.foldLeft("") {
+      (acc, sym) => acc + " (" + sym + " Int)"
+    }
+    val defSyms = "\t\t(" + intTypSyms + ")\n"
+
+    prefix + defSyms + implies + "\t\t\t" + p + "\n" + "\t\t\t" + q + suffix
+  }
+
+  /**
+    *
     * @param p    the SMTLIB2 string representing the size of a list
     * @param _old tokens in p
     * @param _new new tokens that replace old tokens in p
@@ -200,6 +251,7 @@ object SmtlibUtils {
     * @param cons additional constraints that help proving the query
     * @return a SMTLIB2 query
     */
+  @deprecated
   def genFullQuery(p: String,
                    _old: List[String],
                    _new: List[String],
