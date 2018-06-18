@@ -4,6 +4,7 @@ import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorage;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -18,15 +19,17 @@ public class TextScore {
         return ngramScores;
     }
 
-    @Summary({"this.ngramScores", "1"})
+    @Summary({"add"})
     public void add(NgramType key, Ngram.ScoreStats value) {
         ngramScores.put(key, value);
     }
 
     @Override
     public String toString() {
-        @Inv("+sb=-ngramScores.entrySet+c25-c23") StringBuilder sb = new  StringBuilder();
-        c23: for (Map.Entry<NgramType, Ngram.ScoreStats> entry : ngramScores.entrySet()) {
+        @Inv("= (+ sb it) (- c25 c23)") StringBuilder sb = new  StringBuilder();
+        @Inv("ngramScores") Iterator<Map.Entry<NgramType, Ngram.ScoreStats>> it = ngramScores.entrySet().iterator();
+        c23: while (it.hasNext()) {
+            Map.Entry<NgramType, Ngram.ScoreStats> entry = it.next();
             if (entry.getValue() != null) {
                 c25: toStringHelper(entry, sb);
             }

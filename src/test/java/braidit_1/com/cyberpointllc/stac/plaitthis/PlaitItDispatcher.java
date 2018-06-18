@@ -17,6 +17,7 @@ import braidit_1.com.cyberpointllc.stac.proto.Braidit.LengthsMessage;
 import braidit_1.com.cyberpointllc.stac.proto.Braidit.ModifiedBraidMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Objects;
 
@@ -33,6 +34,7 @@ public class PlaitItDispatcher extends Dispatcher {
         this.plaitIt = Objects.requireNonNull(plaitIt, "BraidIt may not be null");
     }
 
+    @Summary({"this.plaitIt.currentGame.currentRound.phases", "1"})
     public void handleReceivedMessage(byte[] data, CommunicationsConnection conn) {
         try {
             // parse the message

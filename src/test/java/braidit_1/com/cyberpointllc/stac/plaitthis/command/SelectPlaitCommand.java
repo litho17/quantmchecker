@@ -9,6 +9,7 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.PlaitSelectedStepBuilder
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -25,6 +26,7 @@ public class SelectPlaitCommand extends PlaitItCommand {
     }
 
     @Override
+    @Summary({"this.plaitIt.currentGame.currentRound.phases", "1"})
     public void execute(PrintStream out, CommandLine cmdLine) {
         GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);

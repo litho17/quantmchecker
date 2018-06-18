@@ -4,6 +4,7 @@ import braidit_1.com.cyberpointllc.stac.communications.CommunicationsConnection;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsException;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsManager;
 import braidit_1.com.cyberpointllc.stac.console.Display;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
@@ -37,7 +38,7 @@ public abstract class Dispatcher implements CommunicationsManager {
 
     protected final Display display;
 
-    private final BlockingQueue<Throwable> errorQueue;
+    private final @InvUnk("") BlockingQueue<Throwable> errorQueue;
     private final ExecutorService displayExecutorService;
     private final ScheduledExecutorService scheduledExecutorService;
 

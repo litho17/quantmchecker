@@ -2,7 +2,7 @@ package gabfeed_1.com.cyberpointllc.stac.webserver.handler;
 
 import gabfeed_1.com.cyberpointllc.stac.common.DESHelper;
 import gabfeed_1.com.cyberpointllc.stac.auth.KeyExchangeServer;
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.TemplateEngine;
 import gabfeed_1.com.cyberpointllc.stac.webserver.User;
 import gabfeed_1.com.cyberpointllc.stac.webserver.UserManager;
@@ -11,8 +11,6 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.HashSet;
@@ -196,7 +194,6 @@ public class LoginHandler extends AbstractHttpHandler {
         templateMap.put("masterSecret", "Null");
     }
 
-    @Summary({"templateMap", "2"})
     private void handleGetHelper1(Map<String, String> templateMap, HttpExchange httpExchange) {
         templateMap.put("duration", String.valueOf(getDuration(httpExchange)));
         templateMap.put("timestamp", (new  Date()).toString());

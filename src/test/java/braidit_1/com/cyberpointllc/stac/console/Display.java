@@ -7,6 +7,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.BufferedReader;
@@ -29,7 +30,7 @@ public class Display {
     // commands that are available in the current program state
     private final Map<String, Command> currentCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     // commands that a user can use at any time
-    private final Map<String, Command> permanentCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    private final @Inv("+permanentCommands=+c70+c71+c73+c75+c78") Map<String, Command> permanentCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     // commands that might become available in the future
     private final Map<String, Command> inactiveCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
@@ -66,19 +67,19 @@ public class Display {
         reader.setPrompt(name + "> ");
         reader.addCompleter(new CommandCompleterBuilder().defineDisplay(this).composeCommandCompleter());
 
-        addPermanentCommand(new ExitCommand(this));
-        addPermanentCommand(new HelpCommand(this));
+        c70: addPermanentCommand(new ExitCommand(this));
+        c71: addPermanentCommand(new HelpCommand(this));
 
-        addPermanentCommand(new HistoryCommand(this));
+        c73: addPermanentCommand(new HistoryCommand(this));
         if (includeRepeat) {
-            addPermanentCommand(new RepeatCommand(this));
+            c75: addPermanentCommand(new RepeatCommand(this));
         }
         if (includeScript) {
-            addPermanentCommand(new ScriptCommandBuilder().defineDisplay(this).composeScriptCommand());
+            c78: addPermanentCommand(new ScriptCommandBuilder().defineDisplay(this).composeScriptCommand());
         }
     }
 
-    @Summary({"permanentCommands", "1"})
+    @Summary({"this.permanentCommands", "1"})
     public void addPermanentCommand(Command command) {
         if (command == null) {
             throw new IllegalArgumentException("Command may not be null");
@@ -91,7 +92,7 @@ public class Display {
         }
     }
 
-    @Summary({"inactiveCommands", "1"})
+    @Summary({"this.inactiveCommands", "1"})
     public void addInactiveCommand(Command command){
         if (command == null) {
             throw new IllegalArgumentException("Command may not be null");
@@ -102,7 +103,7 @@ public class Display {
         }
     }
 
-    @Summary({"currentCommands", "1"})
+    @Summary({"this.currentCommands", "1"})
     public void activateCommand(String cmd){
         Command command = inactiveCommands.get(cmd);
         if (command == null) {
@@ -174,6 +175,7 @@ public class Display {
      * @param line the command and parameters to execute
      * @throws IOException
      */
+    @Summary({"history", "1"})
     public void executeCommand(String line) throws IOException {
         executeCommand(line, true);
     }

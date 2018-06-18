@@ -23,6 +23,7 @@ import braidit_1.com.cyberpointllc.stac.communications.CommunicationsException;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsEmpty;
 import braidit_1.com.cyberpointllc.stac.communications.CommunicationsServer;
 import braidit_1.com.cyberpointllc.stac.console.Display;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class PlaitIt {
-    private final Display display;
+    private final @Inv({"+display.currentCommands=-i+c231+c103-c101", "+display.inactiveCommands=+c215+c216+c217+c218+c219+c220+c221+c222+c223+c224+c225+c226+c227+c228+c229+c230"}) Display display;
     private final PlaitItDispatcher dispatcher;
     private final CommunicationsClient client;
     private final CommunicationsServer server;
@@ -85,6 +86,7 @@ public class PlaitIt {
         }
     }
 
+    @Summary({"this.currentGame.currentRound.phases", "1"})
     public void setStep(GamePhase step) {
         // if there's a game in progress, update the game's state
         if (currentGame != null) {
@@ -97,9 +99,9 @@ public class PlaitIt {
         List<String> allowedCommands = step.obtainAllowedCommands();
         for (int i = 0; i < allowedCommands.size(); ) {
             while ((i < allowedCommands.size()) && (Math.random() < 0.4)) {
-                for (; (i < allowedCommands.size()) && (Math.random() < 0.4); i++) {
+                c101: for (; (i < allowedCommands.size()) && (Math.random() < 0.4); i++) {
                     String s = allowedCommands.get(i);
-                    display.activateCommand(s);
+                    c103: display.activateCommand(s);
                 }
             }
         }
@@ -118,7 +120,7 @@ public class PlaitIt {
         addConnection(connection);
     }
 
-    @Summary({"currentGame.previousRounds", "1"})
+    @Summary({"this.currentGame.previousRounds", "1", "this.currentGame.currentRound.phases", "1"})
     public void disconnect() throws CommunicationsException {
         if (connection != null) {
             disconnectWorker();
@@ -127,20 +129,20 @@ public class PlaitIt {
         setStep(new GamePhase(GamePhase.Phase.IDLE));
     }
 
-    @Summary({"currentGame.previousRounds", "1"})
+    @Summary({"this.currentGame.previousRounds", "1"})
     private void disconnectWorker() throws CommunicationsException {
         connection.close();
         connection = null;
         gameOver();
     }
 
-    @Summary({"currentGame.previousRounds", "1"})
+    @Summary({"this.currentGame.previousRounds", "1"})
     public boolean finishedRound(boolean iWon) {
         boolean gameOver = (currentGame != null) && currentGame.finishedRound(iWon);
         return gameOver;
     }
 
-    @Summary({"currentGame.previousRounds", "1"})
+    @Summary({"this.currentGame.previousRounds", "1", "this.currentGame.currentRound.phases", "1"})
     public void gameOver() {
         if (currentGame != null) {
             currentGame.finishedRound(false);
@@ -169,6 +171,7 @@ public class PlaitIt {
         return numFibers;
     }
 
+    @Summary({"this.currentGame.currentRound.phases", "1"})
     public boolean addConnection(CommunicationsConnection conn) {
         boolean connected = false;
 
@@ -190,10 +193,10 @@ public class PlaitIt {
         return connection != null;
     }
 
-    @Summary({"currentGame.previousRounds", "1"})
+    @Summary({"this.currentGame.previousRounds", "1"})
     public boolean removeConnection(CommunicationsConnection conn) throws CommunicationsException {
         if ((conn != null) && conn.equals(connection)) {
-            return new PlaitItManager().invoke();
+            disconnect();
         }
         return false;
     }
@@ -211,23 +214,23 @@ public class PlaitIt {
     }
 
     private void initDisplay() { // we add these as inactive commands for now, will become active according to state
-        display.addInactiveCommand(new DisconnectCommandBuilder().definePlaitIt(this).composeDisconnectCommand());
-        display.addInactiveCommand(new ConnectCommandBuilder().fixPlaitIt(this).composeConnectCommand());
-        display.addInactiveCommand(new OfferGameCommand(this));
-        display.addInactiveCommand(new AcceptGameCommandBuilder().setPlaitIt(this).composeAcceptGameCommand());
-        display.addInactiveCommand(new DeclineGameCommand(this));
-        display.addInactiveCommand(new AssignLengthCommandBuilder().setPlaitIt(this).composeAssignLengthCommand());
-        display.addInactiveCommand(new ModifyRandomCommand(this));
-        display.addInactiveCommand(new SwapCommand(this));
-        display.addInactiveCommand(new TripleSwapCommand(this));
-        display.addInactiveCommand(new GrowToThreeCommand(this));
-        display.addInactiveCommand(new GrowToFiveCommand(this));
-        display.addInactiveCommand(new SelectPlaitCommand(this));
-        display.addInactiveCommand(new TransmitLengthsCommand(this));
-        display.addInactiveCommand(new TransmitModifiedPlaitCommand(this));
-        display.addInactiveCommand(new MakeGuessCommandBuilder().definePlaitIt(this).composeMakeGuessCommand());
-        display.addInactiveCommand(new PrintCommand(this));
-        display.activateCommand("connect");
+        c215: display.addInactiveCommand(new DisconnectCommandBuilder().definePlaitIt(this).composeDisconnectCommand());
+        c216: display.addInactiveCommand(new ConnectCommandBuilder().fixPlaitIt(this).composeConnectCommand());
+        c217: display.addInactiveCommand(new OfferGameCommand(this));
+        c218: display.addInactiveCommand(new AcceptGameCommandBuilder().setPlaitIt(this).composeAcceptGameCommand());
+        c219: display.addInactiveCommand(new DeclineGameCommand(this));
+        c220: display.addInactiveCommand(new AssignLengthCommandBuilder().setPlaitIt(this).composeAssignLengthCommand());
+        c221: display.addInactiveCommand(new ModifyRandomCommand(this));
+        c222: display.addInactiveCommand(new SwapCommand(this));
+        c223: display.addInactiveCommand(new TripleSwapCommand(this));
+        c224: display.addInactiveCommand(new GrowToThreeCommand(this));
+        c225: display.addInactiveCommand(new GrowToFiveCommand(this));
+        c226: display.addInactiveCommand(new SelectPlaitCommand(this));
+        c227: display.addInactiveCommand(new TransmitLengthsCommand(this));
+        c228: display.addInactiveCommand(new TransmitModifiedPlaitCommand(this));
+        c229: display.addInactiveCommand(new MakeGuessCommandBuilder().definePlaitIt(this).composeMakeGuessCommand());
+        c230: display.addInactiveCommand(new PrintCommand(this));
+        c231: display.activateCommand("connect");
     }
 
     private class PlaitItWorker {
@@ -248,7 +251,7 @@ public class PlaitIt {
     }
 
     private class PlaitItManager {
-        @Summary({"currentGame.previousRounds", "1"})
+        @Summary({"this.currentGame.previousRounds", "1"})
         public boolean invoke() throws CommunicationsException {
             disconnect();
             return true;

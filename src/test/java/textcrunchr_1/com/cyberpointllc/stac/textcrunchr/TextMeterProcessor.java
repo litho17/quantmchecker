@@ -5,11 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
-import java.util.Scanner;
-import org.apache.commons.io.IOUtils;
+
 import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Rem;
-import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.Processor;
 import textcrunchr_1.com.nicnilov.textmeter.TextMeter;
 import textcrunchr_1.com.nicnilov.textmeter.TextLanguage;
 import textcrunchr_1.com.nicnilov.textmeter.TestUtils;
@@ -25,8 +22,8 @@ public class TextMeterProcessor extends Processor {
     public TCResult process(InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new  InputStreamReader(inps);
-        @Inv("+sb=-br+c34-c35-c31") StringBuilder sb = new  StringBuilder();
-        @Rem("inps") BufferedReader br = new  BufferedReader(is);
+        @Inv("= (+ sb br) (- c34 c35 c31)") StringBuilder sb = new  StringBuilder();
+        @Inv("inps") BufferedReader br = new  BufferedReader(is);
         String read;
         c31: read = br.readLine();
         while (read != null) {
@@ -38,7 +35,7 @@ public class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new  TextMeter();
         textMeter.createTextLanguage("en");
-        TextLanguage en = textMeter.get("en");
+        @Inv("= en c45") TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {

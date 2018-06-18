@@ -18,7 +18,7 @@ public class WordStatsProcessor extends Processor {
         // count number of sentences
         String input = readInput(inps);
         String words[] = tokenize(input);
-        @Inv("+result.results=+c22+c23+c24+c25") TCResult result = new  TCResult("Word stats");
+        @Inv("= result (+ c22 c23 c24 c25)") TCResult result = new  TCResult("Word stats");
         c22: result.addResult("Word count", words.length);
         c23: result.addResult("Average word length", meanLen(words));
         c24: result.addResult("Variance in word length", varLen(words));
@@ -91,8 +91,8 @@ public class WordStatsProcessor extends Processor {
 
     private String readInput(InputStream inps) throws IOException {
         // read to string
-        BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @Inv("+sb=-br+c99-c97-c100") StringBuilder sb = new  StringBuilder();
+        @Inv("inps") BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
+        @Inv("= (+ sb br) (- c99 c97 c100)") StringBuilder sb = new  StringBuilder();
         String read;
         c97: read = br.readLine();
         while (read != null) {

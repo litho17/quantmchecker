@@ -7,10 +7,11 @@ import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabMessage;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabRoom;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabUser;
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.BufferedReader;
@@ -203,10 +204,10 @@ public class GabDatabase {
     }
 
     public Collection<GabChat> getChats(String... userIds) {
-        Collection<GabChat> gabChats = new  ArrayList();
+        @Inv("+gabChats=-chats.values+c210-c209") Collection<GabChat> gabChats = new  ArrayList();
         Collection<String> setOfUserIds = Arrays.asList(userIds);
-        for (GabChat gabChat : chats.values()) {
-            getChatsHelper(gabChat, gabChats, setOfUserIds);
+        c209: for (GabChat gabChat : chats.values()) {
+            c210: getChatsHelper(gabChat, gabChats, setOfUserIds);
         }
         return gabChats;
     }
@@ -221,7 +222,7 @@ public class GabDatabase {
         addThreadHelper(thread);
     }
 
-    @Summary({"this.rooms", "1", "this.indices", "gabMessage.contents"})
+    @Summary({"this.messages", "1"})
     public void addMessage(GabMessage message) {
         addMessageHelper(message);
     }
@@ -236,12 +237,10 @@ public class GabDatabase {
         addChatHelper(chat);
     }
 
-    @Summary({"this.indices", "gabMessage.contents"})
     private void indexMessage(GabMessage gabMessage) {
         indexMessageHelper(gabMessage);
     }
 
-    @Summary({"this.indices", "message.contents"})
     private void updateIndexHelper(GabMessage message) {
         indexMessage(message);
     }
@@ -282,11 +281,11 @@ public class GabDatabase {
                 String[] parts = line.split(",");
                 if (parts[0].trim().equalsIgnoreCase("c")) {
                     // A new chat
-                    Set<String> userIds = new  HashSet();
-                    for (int i = 1; i < parts.length; i++) {
+                    @Inv("+userIds=-i+c288-c285") Set<String> userIds = new  HashSet();
+                    c285: for (int i = 1; i < parts.length; i++) {
                         // Skip first value ('c')
                         if (users.containsKey(parts[i])) {
-                            userIds.add(parts[i]);
+                            c288: userIds.add(parts[i]);
                         }
                     }
                     chat = new  GabChat(this, userIds);
@@ -332,40 +331,35 @@ public class GabDatabase {
         }
     }
 
-    @Summary({"this.threads", "1"})
     private void addThreadHelper(GabThread thread) {
         threads.put(thread.getId(), thread);
     }
 
-    @Summary({"this.messages", "1", "this.indices", "gabMessage.contents"})
     private void addMessageHelper(GabMessage message) {
         messages.put(message.getId(), message);
         indexMessage(message);
     }
 
-    @Summary({"this.rooms", "1"})
     private void addRoomHelper(GabRoom room) {
         rooms.put(room.getId(), room);
     }
 
-    @Summary({"this.chats", "1"})
     private void addChatHelper(GabChat chat) {
         chats.put(chat.getId(), chat);
     }
 
-    @Summary({"this.indices", "gabMessage.contents"})
     private void indexMessageHelper(GabMessage gabMessage) {
         if (gabMessage.isPublicMessage()) {
             String message = gabMessage.getContents();
             Date date = gabMessage.getPostDate();
             String[] words = message.split(" ");
-            Map<String, Integer> wordCount = new  HashMap();
-            for (String word : words) {
+            @Inv("+wordCount=-words+c353+c355-c350") Map<String, Integer> wordCount = new  HashMap();
+            c350: for (String word : words) {
                 word = word.replaceAll("[^a-zA-Z]", "");
                 if (wordCount.containsKey(word)) {
-                    wordCount.put(word, wordCount.get(word) + 1);
+                    c353: wordCount.put(word, wordCount.get(word) + 1);
                 } else {
-                    wordCount.put(word, 1);
+                    c355: wordCount.put(word, 1);
                 }
             }
             for (String word : wordCount.keySet()) {

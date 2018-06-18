@@ -1,11 +1,9 @@
 package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import java.util.HashMap;
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import gabfeed_1.com.cyberpointllc.stac.template.Templated;
 import org.apache.commons.lang3.StringEscapeUtils;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
@@ -38,7 +36,6 @@ public class GabRoom implements Templated {
         this.threadIds = threadIds;
     }
 
-    @Summary({"this.threadIds", "1"})
     public GabThread addThread(String name, String authorId) {
         String threadId = getId() + "_" + this.threadIds.size();
         GabThread thread = new  GabThread(db, threadId, name, authorId, new  Date());

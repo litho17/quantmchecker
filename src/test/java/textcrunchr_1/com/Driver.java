@@ -10,7 +10,7 @@ import java.util.Queue;
  */
 public class Driver {
     public static void main(Queue<String> input) throws Exception {
-        @Inv("+outph=-input-input-input-input-input+c20+c22+c24+c26+c28-c16-c16-c16-c16-c16") OutputHandler outph = new ConsoleOutputHandler();
+        @Inv("= (+ outph input input input input input) (- (+ c20 c22 c24 c26 c28) (+ c16 c16 c16 c16 c16))") OutputHandler outph = new ConsoleOutputHandler();
         while (true) {
             String filename;
             c16: filename = input.poll();

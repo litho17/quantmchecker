@@ -11,6 +11,7 @@ import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorageStrategy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -35,7 +36,7 @@ public class TextLanguage {
         throw new  NotInitializedException(String.format("Ngrams of type %s have not been loaded", ngramType));
     }
 
-    @Summary({"this.ngrams", "1"})
+    @Summary({"add"})
     public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
         Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
         ngrams.put(ngramType, ngram);
@@ -43,9 +44,11 @@ public class TextLanguage {
     }
 
     public TextScore score(final String text) {
-        @Inv("+textScore.ngramScores=-ngrams.entrySet+c50-c48") TextScore textScore = new  TextScore();
+        @Inv("= (+ textScore it) (- c50 c48)") TextScore textScore = new  TextScore();
         Ngram ngram;
-        c48: for (Map.Entry<NgramType, Ngram> entry : ngrams.entrySet()) {
+        @Inv("ngrams") Iterator<Map.Entry<NgramType, Ngram>> it = ngrams.entrySet().iterator();
+        c48: while (it.hasNext()) {
+            Map.Entry<NgramType, Ngram> entry = it.next();
             if ((ngram = entry.getValue()) != null) {
                 c50: textScore.add(entry.getKey(), ngram.score(text));
             }

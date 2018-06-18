@@ -1,6 +1,7 @@
 package braidit_1.com.cyberpointllc.stac.console;
 
 import org.apache.commons.cli.CommandLine;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -17,6 +18,7 @@ public class RepeatCommand extends Command {
     }
 
     @Override
+    @Summary({"this.display.history", "cmdLine.args"})
     public void execute(PrintStream out, CommandLine cmdLine) {
         List<String> argList = cmdLine.getArgList();
         if (argList.size() != 1) {
@@ -49,6 +51,7 @@ public class RepeatCommand extends Command {
         }
     }
 
+    @Summary({"this.display.history", "1"})
     private void executeAdviser(PrintStream out, String command1) throws IOException {
         String command = command1;
         // print command so user can see what command is being executed

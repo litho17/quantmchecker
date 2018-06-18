@@ -37,11 +37,10 @@ public class EnigmaMachine {
         return rl;
     }
 
-    // StringBuilder is used to build the result
-    private @Inv("+sb=-i+c53-c47") StringBuilder sb = new  StringBuilder();
-
     // Encode the input string and return the result
     public String encodeLine(String s) {
+        // StringBuilder is used to build the result
+        @Inv("= (+ sb i) (- c53 c47)") StringBuilder sb = new  StringBuilder();
         // Reuse the same StringBuilder.
         sb.setLength(0);
         c47: for (int i = 0; i < s.length(); i++) {

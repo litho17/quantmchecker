@@ -1,6 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.template;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -9,7 +10,6 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import plv.colorado.edu.quantmchecker.qual.Summary;
 
 /**
  * This engine takes a template in the form of a string and possibly a start tag
@@ -54,14 +54,14 @@ public class TemplateEngine {
      * @return A list of Pairs, where a Pair is the start and end location of a
      *         tag
      */
-    public List<Pair<Integer, Integer>> findTags() {
+    public @Inv("= (+ tagsList find) (- c65 c66)") List<Pair<Integer, Integer>> findTags() {
         Matcher matcher = pattern.matcher(text);
-        @Inv("+tagsList=-matcher+c62-c63-c60") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
-        boolean find;
-        c60: find = matcher.find();
+        @Inv("= (+ tagsList find) (- c65 c66)") List<Pair<Integer, Integer>> tagsList = new  ArrayList();
+        @Inv("text") boolean find;
+        find = matcher.find();
         while (find) {
-            c62: findTagsHelper(tagsList, matcher);
-            c63: find = matcher.find();
+            c65: tagsList.add(Pair.of(matcher.start(), matcher.end()));
+            c66: find = matcher.find();
         }
         return tagsList;
     }
@@ -76,8 +76,8 @@ public class TemplateEngine {
      *         replaced with the keys' corresponding values
      */
     public String replaceTags(Map<String, String> dictionary) {
-        @InvUnk StringBuilder sb = new  StringBuilder();
-        replaceTagsBuilder(dictionary, sb);
+        @InvUnk("polynomial bound") StringBuilder sb = new  StringBuilder();
+        c80: replaceTagsBuilder(dictionary, sb);
         return sb.toString();
     }
 
@@ -90,25 +90,27 @@ public class TemplateEngine {
      * @param sb
      *            The string builder to put the data in
      */
-    public void replaceTagsBuilder(Map<String, String> dictionary, StringBuilder sb) {
+    public void replaceTagsBuilder(Map<String, String> dictionary,
+                                   @Inv("= (- sb i) (- (+ c104 c108 c113) (+ c110 c110))") StringBuilder sb) {
         // keep track of where we are on the text string
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
         int endTagLength = StringEscapeUtils.unescapeJava(endTag).length();
         List<Pair<Integer, Integer>> tagsList = findTags();
-        for (int i = 0; i < tagsList.size(); i++) {
+        for (int i = 0; i < tagsList.size();) {
             int startTagLocation = tagsList.get(i).getLeft();
             int endTagLocation = tagsList.get(i).getRight();
             // append the part of the text that doesn't have tags
-            sb.append(text.substring(linePointer, startTagLocation));
+            c104: sb.append(text.substring(linePointer, startTagLocation));
             // get the dictionary key
             String key = text.substring(startTagLocation + startTagLength, endTagLocation - endTagLength).trim();
             // append the value to the text instead of the key
-            sb.append(dictionary.get(key));
+            c108: sb.append(dictionary.get(key));
             linePointer = endTagLocation;
+            c110: i++;
         }
         // append the last part of the text that doesn't have tags
-        sb.append(text.substring(linePointer, text.length()));
+        c113: sb.append(text.substring(linePointer, text.length()));
     }
 
     public String replaceTags(Templated templated) {
@@ -123,10 +125,12 @@ public class TemplateEngine {
      * @return a string representing all of the templated items
      */
     public String replaceTags(List<? extends Templated> templateds, String separator) {
-        StringBuilder sb = new  StringBuilder();
-        for (Templated templated : templateds) {
-            replaceTagsBuilder(templated.getTemplateMap(), sb);
-            sb.append(separator);
+        @InvUnk("polynomial bound") StringBuilder sb = new  StringBuilder();
+        @Inv("templateds") Iterator<? extends Templated> it = templateds.iterator();
+        while (it.hasNext()) {
+            Templated templated = it.next();
+            c134: replaceTagsBuilder(templated.getTemplateMap(), sb);
+            c135: sb.append(separator);
         }
         return sb.toString();
     }
@@ -139,10 +143,5 @@ public class TemplateEngine {
      */
     public String replaceTags(List<? extends Templated> templateds) {
         return replaceTags(templateds, "");
-    }
-
-    @Summary({"tagsList", "1"})
-    private void findTagsHelper(List<Pair<Integer, Integer>> tagsList, Matcher matcher) {
-        tagsList.add(Pair.of(matcher.start(), matcher.end()));
     }
 }

@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +27,10 @@ public class WordFrequencyProcessor extends Processor {
         // sort results by most frequent
         Sorter<WordCount> sorter = new  Sorter<WordCount>(new  DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
-        @Inv("+result.results=-sortedWCs+c31-c30") TCResult result = new  TCResult("Word frequencies");
-        c30: for (WordCount wc : sortedWCs) {
+        @Inv("= (+ result it) (- c31 c30)") TCResult result = new  TCResult("Word frequencies");
+        @Inv("sortedWCs") Iterator<WordCount> it = sortedWCs.iterator();
+        c30: while (it.hasNext()) {
+            WordCount wc = it.next();
             c31: result.addResult(wc.getWord(), wc.getCount());
         }
         return result;
@@ -44,11 +47,11 @@ public class WordFrequencyProcessor extends Processor {
      *         lower-cased for counting purposes).
      */
     private List<WordCount> countWords(String[] words) {
-        @Inv("+freqs=-words+c59-c49") List<WordCount> freqs = new  ArrayList<WordCount>();
+        @Inv("= (- freqs i) (- c59 c49)") List<WordCount> freqs = new  ArrayList<WordCount>();
         HashMap<String, WordCount> freqsCounter = new  HashMap<String, WordCount>();
-        c49: for (String word : words) {
+        c49: for (int i = 0; i < words.length; i++) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
-            String w = word;
+            String w = words[i];
             // increment current count for w
             WordCount count = null;
             if (freqsCounter.containsKey(w)) {
@@ -83,8 +86,8 @@ public class WordFrequencyProcessor extends Processor {
      */
     private String readInput(InputStream inps) throws IOException {
         // read to string
-        BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
-        @Inv("+sb=-br+c91-c89-c92") StringBuilder sb = new  StringBuilder();
+        @Inv("inps") BufferedReader br = new  BufferedReader(new  InputStreamReader(inps));
+        @Inv("= (+ sb br) (- c91 c89 c92)") StringBuilder sb = new  StringBuilder();
         String read;
         c89: read = br.readLine();
         while (read != null) {

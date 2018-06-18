@@ -1,8 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.gabfeed.model;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.persist.GabDatabase;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
@@ -29,7 +27,6 @@ public class GabIndexEntry {
         return word;
     }
 
-    @Summary({"this.items", "1"})
     public void addItem(String word, String messageId, int count, Date date) {
         addItemHelper(count, word, messageId, date);
     }
@@ -89,7 +86,6 @@ public class GabIndexEntry {
         }
     }
 
-    @Summary({"this.items", "1"})
     private void addItemHelper(int count, String word, String messageId, Date date) {
         items.add(new  Item(word, messageId, count, date));
     }

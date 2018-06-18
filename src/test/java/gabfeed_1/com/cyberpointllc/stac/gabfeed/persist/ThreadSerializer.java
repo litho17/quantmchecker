@@ -2,8 +2,6 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.persist;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabThread;
 import org.mapdb.Serializer;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -50,7 +48,6 @@ public class ThreadSerializer extends Serializer<GabThread> {
         }
     }
 
-    @Summary({"messageIds", "1"})
     private void deserializeHelper(List<String> messageIds, DataInput in) throws IOException {
         messageIds.add(in.readUTF());
     }

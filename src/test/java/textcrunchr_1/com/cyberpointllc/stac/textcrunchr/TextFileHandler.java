@@ -6,11 +6,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 public class TextFileHandler {
 
-    @Inv("+processors=+c18+c19+c20+c25+c26") List<Processor> processors;
+    @Inv("= processors (+ c18 c19 c20 c25 c26)") List<Processor> processors;
 
     public TextFileHandler() throws IOException {
         // todo - fill processors with list of processors
@@ -28,7 +29,10 @@ public class TextFileHandler {
 
     public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {
         List<String> argsList = new  ArrayList<String>(Arrays.asList(args));
-        for (Processor processor : processors) {
+        @Inv("processors") Iterator<Processor> it = processors.iterator();
+        while (it.hasNext()) {
+            Processor processor;
+            c36: processor = it.next();
             if (argsList.isEmpty() || argsList.contains(processor.getName())) {
                 TCResult tcr = processor.process(new  FileInputStream(filename));
                 outph.addResult(filename, tcr);

@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
@@ -19,7 +20,7 @@ public abstract class OutputHandler {
 
     protected Sorter<String> sorter = new  Sorter(DefaultComparator.STRING);
 
-    protected @InvUnk Map<String, String> namesToPaths = new  HashMap<String, String>();
+    protected @InvUnk("z") Map<String, String> namesToPaths = new  HashMap<String, String>();
 
     protected List<String> sortedFiles;
 
@@ -36,17 +37,18 @@ public abstract class OutputHandler {
 
     private void addResultHelper(TCResult tcr, String filename) {
         if (results.containsKey(filename)) {
-            results.get(filename).add(tcr);
+            List<TCResult> list = results.get(filename);
+            list.add(tcr);
         } else {
-            @InvUnk List<TCResult> newlist = new  ArrayList<TCResult>();
+            List<TCResult> newlist = new  ArrayList<TCResult>();
             newlist.add(tcr);
-            results.put(filename, newlist);
+            c44: results.put(filename, newlist);
         }
     }
 
     private void concludeHelper() throws OutputHandlerException {
-        for (String file : results.keySet()) {
-            namesToPaths.put(Paths.get(file).getFileName().toString(), file);
+        c49: for (String file : results.keySet()) {
+            c50: namesToPaths.put(Paths.get(file).getFileName().toString(), file);
         }
         sortedFiles = sorter.sort(namesToPaths.keySet());
         do_conclude();

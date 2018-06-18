@@ -1,6 +1,7 @@
 package braidit_1.com.cyberpointllc.stac.plaitthis.phase;
 
 import braidit_1.com.cyberpointllc.stac.plait.Plait;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -102,10 +103,10 @@ public class ChoicesPhase extends GamePhase {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        for (int q = 1; q <=5; q++) {
-            builder.append(fetchPlait(q));
-            builder.append(", ");
+        @Inv("+builder=-q-q+c109+c108-c107-c107") StringBuilder builder = new StringBuilder();
+        c107: for (int q = 1; q <=5; q++) {
+            c108: builder.append(fetchPlait(q));
+            c109: builder.append(", ");
         }
         return builder.toString();
     }

@@ -2,8 +2,6 @@ package gabfeed_1.com.cyberpointllc.stac.gabfeed.persist;
 
 import gabfeed_1.com.cyberpointllc.stac.gabfeed.model.GabChat;
 import org.mapdb.Serializer;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -69,12 +67,10 @@ public class ChatSerializer extends Serializer<GabChat> {
         out.writeUTF(messageId);
     }
 
-    @Summary({"userIds", "1"})
     private void deserializeHelper(Set<String> userIds, DataInput in) throws IOException {
         userIds.add(in.readUTF());
     }
 
-    @Summary({"messageIds", "1"})
     private void deserializeHelper1(List<String> messageIds, DataInput in) throws IOException {
         messageIds.add(in.readUTF());
     }

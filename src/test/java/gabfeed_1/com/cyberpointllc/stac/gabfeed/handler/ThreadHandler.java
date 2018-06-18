@@ -13,8 +13,6 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-
 import java.net.HttpURLConnection;
 import java.util.LinkedList;
 import java.util.List;
@@ -71,19 +69,19 @@ public class ThreadHandler extends GabHandler {
     private String getContents(GabThread thread, WebSession webSession) {
         String suppressTimestampString = webSession.getProperty("suppressTimestamp", "false");
         boolean suppressTimestamp = Boolean.parseBoolean(suppressTimestampString);
-        @Inv("messages+<self>/(1+this.messageListTemplate.engine.text+this.messageListTemplate.engine.text)+<self>/(1+this.messageListTemplateWithoutTime.engine.text+this.messageListTemplateWithoutTime.engine.text)=+c84+c86-c78") StringBuilder builder = new  StringBuilder();
+        StringBuilder builder = new  StringBuilder();
         List<GabMessage> messages = thread.getMessages();
         Sorter sorter = new  Sorter(GabMessage.ASCENDING_COMPARATOR);
         messages = sorter.sort(messages);
-        c78: for (GabMessage message : messages) {
+        for (GabMessage message : messages) {
             Map<String, String> messageMap = message.getTemplateMap();
             // fix up the contents
             String content = messageMap.get("messageContents");
             messageMap.put("messageContents", PageUtils.formatLongString(content, webSession));
             if (!suppressTimestamp) {
-                c84: messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
+                messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
             } else {
-                c86: messageListTemplateWithoutTime.getEngine().replaceTagsBuilder(messageMap, builder);
+                messageListTemplateWithoutTime.getEngine().replaceTagsBuilder(messageMap, builder);
             }
         }
         String messageContents = builder.toString();

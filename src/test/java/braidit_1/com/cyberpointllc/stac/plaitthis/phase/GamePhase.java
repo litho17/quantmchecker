@@ -1,5 +1,7 @@
 package braidit_1.com.cyberpointllc.stac.plaitthis.phase;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +27,7 @@ public class GamePhase {
     }
 
     // map each state to the set of allowed commands in that state
-    private static Map<Phase, List<String>> allowedCommands = new HashMap<>();
+    private static @Inv("+allowedCommands=-a+c41-c39") Map<Phase, List<String>> allowedCommands = new HashMap<>();
 
     private static String errorPhase;
 
@@ -34,9 +36,9 @@ public class GamePhase {
         for (int a = 0; a < cores.length; ) {
             while ((a < cores.length) && (Math.random() < 0.6)) {
                 for (; (a < cores.length) && (Math.random() < 0.4); ) {
-                    for (; (a < cores.length) && (Math.random() < 0.5); a++) {
+                    c39: for (; (a < cores.length) && (Math.random() < 0.5); a++) {
                         Phase s = cores[a];
-                        allowedCommands.put(s, fetchCommands(s));
+                        c41: allowedCommands.put(s, fetchCommands(s));
                     }
                 }
             }

@@ -49,7 +49,7 @@ public class Game {
      * @param iWon true if the round was won
      * @return boolean true iff game is over
      */
-    @Summary({"previousRounds", "1"})
+    @Summary({"this.previousRounds", "1"})
     public boolean finishedRound(boolean iWon) {
         roundsPlayed++;
         if (iWon) {
@@ -68,6 +68,7 @@ public class Game {
         return currentRound.pullPhase();
     }
 
+    @Summary({"this.currentRound.phases", "1"})
     public void setPhase(GamePhase phase) {
         currentRound.setPhase(phase);
     }

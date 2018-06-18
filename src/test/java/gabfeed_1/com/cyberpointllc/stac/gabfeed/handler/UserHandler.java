@@ -11,8 +11,6 @@ import gabfeed_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import gabfeed_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -117,20 +115,17 @@ public class UserHandler extends GabHandler {
         messageListTemplate.getEngine().replaceTagsBuilder(messageMap, builder);
     }
 
-    @Summary({"links", "1"})
     private void getChatContentHelper(WebSession webSession, Collection<GabChat> gabChats, List<Link> links) {
         for (GabChat gabChat : gabChats) {
             links.add(new  Link(ChatHandler.getPathToChat(gabChat.getId()), "Chat with " + gabChat.getOthers(webSession.getUserId())));
         }
     }
 
-    @Summary({"links", "1"})
     private void getChatContentHelper1(List<Link> links, GabUser user) {
         // No chat exists
         links.add(new  Link(ChatHandler.getPathToNewChat(user.getId()), "Start a chat with " + user.getDisplayName()));
     }
 
-    @Summary({"sb", "3"})
     private void getChatContentHelper2(StringBuilder sb, List<Link> links) {
         sb.append("<h2>Chats</h2><ul>");
         sb.append(menuTemplate.getEngine().replaceTags(links));

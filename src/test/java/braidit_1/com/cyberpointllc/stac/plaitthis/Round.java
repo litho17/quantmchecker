@@ -3,6 +3,7 @@ package braidit_1.com.cyberpointllc.stac.plaitthis;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.ChoicesPhase;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.GamePhase;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.LengthsPhase;
+import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Deque;
 import java.util.LinkedList;
@@ -51,6 +52,7 @@ public class Round {
         return null;
     }
 
+    @Summary({"this.phases", "1"})
     public void setPhase(GamePhase phase) {
         if (phase != null) {
             phases.push(phase);

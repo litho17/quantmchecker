@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.Iterator;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -46,11 +47,14 @@ public class WindowOutputHandler extends OutputHandler {
 
             public void mouseClicked(MouseEvent e) {
                 String selected = (String) fileList.getSelectedValue();
-                @Inv("+outputString=-sampleResults+c53-c52") StringBuilder outputString = new  StringBuilder();
+                @Inv("= (+ outputString it) (- c57 c56)") StringBuilder outputString = new  StringBuilder();
                 String path = namesToPaths.get(selected);
                 List<TCResult> sampleResults = results.get(path);
-                c52: for (TCResult result : sampleResults) {
-                    c53: outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
+                @Inv("sampleResults") Iterator<TCResult> it = sampleResults.iterator();
+                while (it.hasNext()) {
+                    TCResult result;
+                    c56: result = it.next();
+                    c57: outputString.append(result.getName() + ":\n" + result.getValue() + "\n\n");
                 }
                 //Clear the current text
                 textArea.setText(null);

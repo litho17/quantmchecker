@@ -1,8 +1,6 @@
 package gabfeed_1.com.cyberpointllc.stac.webserver;
 
-import java.util.HashMap;
-import plv.colorado.edu.quantmchecker.qual.Summary;
-
+import gabfeed_1.com.cyberpointllc.stac.hashmap.HashMap;
 import java.util.Map;
 
 public class UserManager {
@@ -23,7 +21,6 @@ public class UserManager {
         return usersByIdentity.get(identity);
     }
 
-    @Summary({"this.usersByUsername", "1", "this.usersByIdentity", "1"})
     private void addUserHelper(User user) throws UserException {
         if (usersByUsername.containsKey(user.getUsername())) {
             throw new  UserException(user, "already exists");

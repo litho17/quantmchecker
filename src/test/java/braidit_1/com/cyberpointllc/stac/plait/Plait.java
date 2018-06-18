@@ -2,6 +2,7 @@ package braidit_1.com.cyberpointllc.stac.plait;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
@@ -371,10 +372,10 @@ public class Plait {
      * @return indices of triples of the form i(i+1)i or (i+1)i(i+1)
      */
     public List<Integer> determineTriples() {
-        List<Integer> indices = new ArrayList<>();
-        for (int q = 0; q < meetings.length() - 2; q++) {
+        @Inv("+indices=-q+c378-c376") List<Integer> indices = new ArrayList<>();
+        c376: for (int q = 0; q < meetings.length() - 2; q++) {
             if (Math.abs(meetings.charAt(q) - meetings.charAt(q +1)) == 1 && meetings.charAt(q) == meetings.charAt(q +2)) {
-                indices.add(q);
+                c378: indices.add(q);
             }
         }
         return indices;
@@ -382,10 +383,10 @@ public class Plait {
 
     // replace substring(i, j) of crossings with chunk
     private void insertInMeetings(int q, int j, String portion) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(meetings.substring(0, q));
-        builder.append(portion);
-        builder.append(meetings.substring(j));
+        @Inv("+builder=+c387+c388+c389") StringBuilder builder = new StringBuilder();
+        c387: builder.append(meetings.substring(0, q));
+        c388: builder.append(portion);
+        c389: builder.append(meetings.substring(j));
         meetings = builder.toString();
     }
 
@@ -507,10 +508,10 @@ public class Plait {
     }
 
     public int computePenalty() {
-        Map<Character, Integer> countsMap = new HashMap<>();
+        @Inv("+countsMap=-c+c514-c513") Map<Character, Integer> countsMap = new HashMap<>();
         char[] charArray = meetings.toCharArray();
-        for (int c = 0; c < charArray.length; c++) {
-            computePenaltySupervisor(countsMap, charArray[c]);
+        c513: for (int c = 0; c < charArray.length; c++) {
+            c514: computePenaltySupervisor(countsMap, charArray[c]);
         }
         Collection<Integer> counts = countsMap.values();
         if (counts.size() < MAX_FIBERS - 1) { // 0 if not all characters appear

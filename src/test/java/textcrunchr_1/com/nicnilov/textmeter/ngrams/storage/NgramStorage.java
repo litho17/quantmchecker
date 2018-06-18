@@ -20,7 +20,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
 
     private long count = 0;
 
-    protected @Inv("+storage=-br+c48-c41-c50") AbstractMap<String, Float> storage;
+    protected @InvUnk("polynomial bound") AbstractMap<String, Float> storage;
 
     public abstract NgramStorageStrategy getStorageStrategy();
 

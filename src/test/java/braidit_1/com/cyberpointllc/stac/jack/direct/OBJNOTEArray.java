@@ -5,6 +5,7 @@
 package braidit_1.com.cyberpointllc.stac.jack.direct;
 
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
@@ -88,7 +89,7 @@ public class OBJNOTEArray extends ArrayList implements List, OBJNOTEAware, OBJNO
             
 			Object core =iter.next();
 			if(core == null){
-				@Inv("+<self>.sb=+c92") OBJNOTEArrayAid aid = new OBJNOTEArrayAid(sb);
+				@InvUnk("") OBJNOTEArrayAid aid = new OBJNOTEArrayAid(sb);
 				c92: aid.invoke();
 				continue;
 			}
