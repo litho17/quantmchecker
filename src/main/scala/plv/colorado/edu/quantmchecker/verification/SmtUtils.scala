@@ -3,6 +3,7 @@ package plv.colorado.edu.quantmchecker.verification
 import java.io.StringReader
 
 import net.sf.javailp._
+import plv.colorado.edu.Utils
 import smtlib.lexer.Tokens._
 import smtlib.trees.Commands.{Assert, Command, DeclareFun}
 import smtlib.trees.Terms.{FunctionApplication, QualifiedIdentifier, Term}
@@ -13,10 +14,12 @@ import scala.collection.mutable.ListBuffer
 /**
   * @author Tianhan Lu
   */
-object SmtlibUtils {
+object SmtUtils {
   val ONE = "ONE" // Used in annotations to replace (= c7 1) with (- c7 ONE)
   val TRUE = "true"
+  val FALSE = "false"
   val SELF = "self"
+  val CHECK_SAT = "(check-sat)"
 
   /**
     *
@@ -158,7 +161,7 @@ object SmtlibUtils {
         "(declare-fun " + str + " () Int)" // e.g. c151
     }
     // println(transformedStr)
-    val cmds = SmtlibUtils.parseSmtlibToAST(transformedStr)
+    val cmds = SmtUtils.parseSmtlibToAST(transformedStr)
     if (cmds.nonEmpty) {
       cmds.head match {
         case Assert(term: Term) =>
@@ -184,7 +187,7 @@ object SmtlibUtils {
     * @return a properly parenthesized SMTLIB2 string
     */
   def addParen(str: String): String = {
-    if (str.contains(" "))
+    if (str.contains(" ") && !str.startsWith("("))
       "(" + str + ")"
     else
       str
@@ -200,19 +203,16 @@ object SmtlibUtils {
     * @return a set of symbols in the string
     */
   def extractSyms(str: String): Set[String] = {
-    val reserved = List("+", "-", "*", "/", "=", "and")
+    val reserved = List("+", "-", "*", "/", "=", "and", TRUE, FALSE)
     parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
       (acc, t) =>
         t.kind match {
           case SymbolLitKind =>
-            if (!reserved.contains(t.asInstanceOf[SymbolLit].content))
-              acc + t.toString
-            else {
-              // println("Discarded symbol: " + t)
-              acc
-            }
-          case NumeralLitKind | OParen | CParen => acc
-          case x@_ => println("Discarded symbol: " + x); acc // discarded
+            val content = t.toString()
+            if (!reserved.contains(content) && Utils.isValidId(content)) acc + content // Get rid of e.g. "-1", "*"
+            else acc
+          case NumeralLitKind | OParen | CParen | StringLitKind | KeywordKind => acc
+          case x@_ => println("Discarded symbol: " + t.toString()); acc // discarded
         }
     }
   }
@@ -223,9 +223,15 @@ object SmtlibUtils {
     * @return the conjunction of all of the constraints
     */
   def conjunctionAll(c: Iterable[String]): String = {
-    c.foldLeft("(and") {
-      (acc, c) => acc + " " + addParen(c)
-    } + ")"
+    if (c.isEmpty) {
+      TRUE
+    } else if (c.size == 1) {
+      c.head
+    } else {
+      c.foldLeft("(and") {
+        (acc, c) => acc + " " + addParen(c)
+      } + ")"
+    }
   }
 
   /**
@@ -234,18 +240,21 @@ object SmtlibUtils {
     * @param q
     * @return an SMTLIB2 string: for all free variables in p and q, p => q
     */
-  def genImplyQuery(p: String, q: String): String = {
+  def mkImply(p: String, q: String): String = {
     val prefix = "(assert\n\t(forall\n"
     val implies = "\t\t(implies\n"
     val suffix = "\n\t\t)\n\t)\n)"
 
-    val syms = extractSyms(p) ++ extractSyms(q)
+    val syms = {
+      val syms = extractSyms(p) ++ extractSyms(q)
+      if (syms.isEmpty) syms + "DUMMY" else syms
+    }
     val intTypSyms = syms.foldLeft("") {
       (acc, sym) => acc + " (" + sym + " Int)"
     }
     val defSyms = "\t\t(" + intTypSyms + ")\n"
 
-    prefix + defSyms + implies + "\t\t\t" + p + "\n" + "\t\t\t" + q + suffix
+    prefix + defSyms + implies + "\t\t\t" + addParen(p) + "\n" + "\t\t\t" + addParen(q) + suffix
   }
 
   /**
@@ -274,7 +283,7 @@ object SmtlibUtils {
         )
       """.stripMargin
 
-    val q = SmtlibUtils.substitute(p, _old, _new)
+    val q = SmtUtils.substitute(p, _old, _new)
 
     val uniqueSym = "LLL"
     assert(!p.contains(uniqueSym) && !q.contains(uniqueSym)) // this symbol has to be unique

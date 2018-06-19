@@ -11,7 +11,7 @@ import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, Summary}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
-import plv.colorado.edu.quantmchecker.verification.SmtlibUtils
+import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -74,14 +74,21 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitAssignment(node: AssignmentTree, p: Void): Void = {
-    val (fieldInvs, localInvs, updatedLabel) = prepare(node)
+    val (fieldInvs, localInvs, label) = prepare(node)
     val lhs = node.getVariable
+    val rhs = node.getExpression
     // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     // val lhsAnno = lhsTyp.getAnnotations
 
-    val lhsTyp = getVarType(node.getVariable, fieldInvs ++ localInvs)
-    val rhsTyp = getExprType(node.getExpression, fieldInvs ++ localInvs)
-    // println(lhsTyp, rhsTyp, node)
+    val lhsTyp = inferVarType(node.getVariable, fieldInvs ++ localInvs)
+    val rhsTyp = {
+      val set = inferExprType(node.getExpression, fieldInvs ++ localInvs)
+      if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
+    }
+    val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
+
+    Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))
+    // issueError(node, "In assignment: rhs's type doesn't imply lhs's")
 
     /*Utils.COLLECTION_ADD.foreach {
     case (klass, method) =>
@@ -100,7 +107,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       * in an invariant in the other scope, type check will fail.
       */
     (fieldInvs ++ localInvs).foreach {
-      invariant =>
+      case (v, inv) =>
+        val q = SmtUtils.substitute(inv, List(label), List(SmtUtils.mkAdd(label, "1")))
+        val implication = SmtUtils.mkImply(inv, q)
+      // Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))
     }
 
     /**
@@ -339,14 +349,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param typCxt   a typing context
     * @return all types in the typing context that is dependent on the given variable (including its own type)
     */
-  private def getVarType(variable: Tree, typCxt: Map[String, String]): HashSet[String] = {
-    val selfTyp: Set[String] = atypeFactory.getVarAnnotation(variable).filter {
-      case (v, typ) => v == SmtlibUtils.SELF
+  private def inferVarType(variable: Tree, typCxt: Map[String, String]): HashSet[String] = {
+    // TODO: What about self.f.g's annotation?
+    val selfTyp: Set[String] = atypeFactory.getVarAnnoMap(variable).filter {
+      case (v, typ) => v == SmtUtils.SELF // Filter out e.g. self.f.g
     }.values.toSet
     typCxt.foldLeft(new HashSet[String] ++ selfTyp) {
       case (acc, (v, typ)) => {
-        if (SmtlibUtils.containsToken(variable.toString, typ))
-          acc + SmtlibUtils.substitute(typ, List(SmtlibUtils.SELF), List(v)) // substitute self with v
+        if (SmtUtils.containsToken(variable.toString, typ))
+          acc + SmtUtils.substitute(typ, List(SmtUtils.SELF), List(v)) // substitute self with v
         else acc
       }
     }
@@ -358,21 +369,28 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param typCxt a typing context
     * @return type constraints on the expression
     */
-  private def getExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
+  private def inferExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
     expr match {
       case e: LiteralTree =>
-        e.getKind match {
-          case Tree.Kind.INT_LITERAL => HashSet[String](SmtlibUtils.mkEq(Utils.hashCode(e), e.toString))
-          case Tree.Kind.VARIABLE => getVarType(e, typCxt) + SmtlibUtils.mkEq(Utils.hashCode(e), e.toString)
-          case _ => new HashSet[String] // ignored
-        }
+        if (Utils.isValidId(e.toString)) {
+          e.getKind match {
+            case Tree.Kind.INT_LITERAL => HashSet[String](SmtUtils.mkEq(Utils.hashCode(e), e.toString))
+            case Tree.Kind.VARIABLE => inferVarType(e, typCxt) + SmtUtils.mkEq(Utils.hashCode(e), e.toString)
+            case _ => new HashSet[String] // ignored
+          }
+        } else new HashSet[String] // ignored
       case e: BinaryTree =>
+        val left = e.getLeftOperand.toString
+        val right = e.getRightOperand.toString
         val eq = e.getKind match {
-          case Tree.Kind.PLUS => SmtlibUtils.mkEq(SmtlibUtils.SELF, SmtlibUtils.mkAdd(e.getLeftOperand.toString, e.getRightOperand.toString))
-          case Tree.Kind.MINUS => SmtlibUtils.mkEq(SmtlibUtils.SELF, SmtlibUtils.mkSub(e.getLeftOperand.toString, e.getRightOperand.toString))
-          case _ => SmtlibUtils.TRUE // ignored
+          case Tree.Kind.PLUS => SmtUtils.mkEq(Utils.hashCode(e), SmtUtils.mkAdd(left, right))
+          case Tree.Kind.MINUS => SmtUtils.mkEq(Utils.hashCode(e), SmtUtils.mkSub(left, right))
+          case _ => SmtUtils.TRUE // ignored
         }
-        getExprType(e.getLeftOperand, typCxt) ++ getExprType(e.getRightOperand, typCxt) + eq
+        val leftCons = inferExprType(e.getLeftOperand, typCxt)
+        val rightCons = inferExprType(e.getRightOperand, typCxt)
+        // If cannot infer constraints for any operand, then don't infer constraints for the binary expression
+        if (leftCons.nonEmpty && rightCons.nonEmpty) leftCons ++ rightCons + eq else new HashSet[String]
       // case e: MethodInvocationTree =>
       case _ => new HashSet[String] // ignored
     }
@@ -477,13 +495,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   /**
     *
     * @param node a statement or expression
-    * @return label of the enclosing statement of node, if any
+    * @return label of the immediate enclosing statement of the node, if any
     */
   private def getLabel(node: Tree): String = {
     // trees.getPath(root, node)
     val enclosingLabel = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.LABELED_STATEMENT).asInstanceOf[LabeledStatementTree]
     if (enclosingLabel != null) {
-      enclosingLabel.getLabel.toString
+      if (enclosingLabel.getStatement == node) enclosingLabel.getLabel.toString else ""
     } else {
       ""
     }

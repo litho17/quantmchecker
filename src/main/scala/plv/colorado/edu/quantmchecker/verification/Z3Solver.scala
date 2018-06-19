@@ -8,6 +8,8 @@ import com.microsoft.z3.{BoolExpr, Context, Solver, Status}
   * @author Tianhan Lu
   */
 object Z3Solver {
+  val DEBUG = false
+
   val cfg = new util.HashMap[String, String]
   cfg.put("model", "true")
   val ctx = new Context(cfg)
@@ -21,12 +23,19 @@ object Z3Solver {
   }
 
   def check(f: BoolExpr): Boolean = {
+    if (DEBUG) println(f)
     val s = ctx.mkSolver
     s.add(f)
     interpretSolverOutput(s.check())
   }
 
-  def parseSMTLIB2StringToArray(str: String): Array[BoolExpr] = ctx.parseSMTLIB2String(str, null, null, null, null)
+  def parseSMTLIB2StringToArray(str: String): Array[BoolExpr] = {
+    try {
+      ctx.parseSMTLIB2String(str, null, null, null, null)
+    } catch {
+      case e: Exception => println("SMTLIB2 parse exception:\n" + str); Array(ctx.mkFalse())
+    }
+  }
   def parseSMTLIB2String(str: String): BoolExpr = ctx.mkAnd(parseSMTLIB2StringToArray(str): _*)
 
   private def interpretSolverOutput(status : Status) : Boolean = status match {

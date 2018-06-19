@@ -91,7 +91,16 @@ object TestCases {
       (maximize (- (+ c1 c4) c5))
       (check-sat)
       (get-objectives)
-    """.stripMargin
+    """.stripMargin,
+    """(assert
+      |	(forall
+      |		( (DUMMY Int))
+      |		(implies
+      |			true
+      |			true
+      |		)
+      |	)
+      |)""".stripMargin
   )
 
   val counters: List[String] = List(

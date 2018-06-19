@@ -16,12 +16,12 @@ class VerifySelfIncUnitTest extends FlatSpec with Matchers {
         val calleeStruct = IncStruct.genIncStruct(x._1)
         val callerStruct = IncStruct.genIncStruct(x._3)
         // println("counters: " + calleeStruct.counters)
-        val obj = SmtlibUtils.parseSmtlibStrToLpCons(calleeStruct.counters)
+        val obj = SmtUtils.parseSmtlibStrToLpCons(calleeStruct.counters)
         val one = new Linear
-        one.add(1, SmtlibUtils.ONE)
+        one.add(1, SmtUtils.ONE)
         val constraints = x._2.foldLeft(HashSet[LpCons](LpCons(one, "=", 1))) {
           (acc, s) =>
-            SmtlibUtils.parseSmtlibStrToLpCons(s) match {
+            SmtUtils.parseSmtlibStrToLpCons(s) match {
               case Some(cons) => acc + LpCons(cons, "=", 0)
               case None => acc
             }
@@ -31,7 +31,7 @@ class VerifySelfIncUnitTest extends FlatSpec with Matchers {
           case None => 0
         }
         val listIncStr = IncStruct.genSmtlibStr(calleeStruct, maxInc)
-        val remCons = calleeStruct.remCons.map(s => SmtlibUtils.parseSmtlibStrToLpCons(s)).foldLeft(new HashSet[LpCons]) {
+        val remCons = calleeStruct.remCons.map(s => SmtUtils.parseSmtlibStrToLpCons(s)).foldLeft(new HashSet[LpCons]) {
           (acc, c) =>
             c match {
               case Some(c) => acc + LpCons(c, "=", 0)
@@ -40,14 +40,14 @@ class VerifySelfIncUnitTest extends FlatSpec with Matchers {
         }
         val _old = List(x._4)
         val _new = List("(+ " + x._4 + " 1)")
-        val fullQuery = SmtlibUtils.genFullQuery(
+        val fullQuery = SmtUtils.genFullQuery(
           IncStruct.genSmtlibStr(callerStruct),
           _old,
           _new,
           listIncStr,
           calleeStruct.remCons
         )
-        val partialQuery = SmtlibUtils.genPartialQuery(
+        val partialQuery = SmtUtils.genPartialQuery(
           callerStruct.coefficient,
           listIncStr,
           calleeStruct.remCons
