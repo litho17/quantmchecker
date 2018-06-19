@@ -7,9 +7,9 @@ import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeC
 import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils}
+import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvUnk}
+import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, InvUnk}
 import plv.colorado.edu.quantmchecker.verification.{SmtlibUtils, Z3Solver}
 
 import scala.collection.JavaConverters._
@@ -23,6 +23,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
+  protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
 
   // disable flow inference
   // super(checker, false);
@@ -41,24 +42,47 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   /**
     *
-    * @param rcvr ???
+    * @param rcvr tree representation of a variable
     * @return annotation of the receiver of a method invocation
     */
   def getTypeAnnotation(rcvr: Tree): AnnotationMirror = {
-    this.getQualifierHierarchy()
+    this.getQualifierHierarchy
       .findAnnotationInHierarchy(
-        getAnnotatedType(rcvr).getAnnotations(),
-        this.getQualifierHierarchy().getTopAnnotations().iterator().next())
+        getAnnotatedType(rcvr).getAnnotations,
+        this.getQualifierHierarchy.getTopAnnotations.iterator().next())
+  }
+
+  @deprecated
+  def getExprAnnotations(node: ExpressionTree): Option[AnnotationMirror] = {
+    if (node == null) {
+      None
+    } else {
+      /*val vtree = TreeUtils.enclosingVariable(atypeFactory.getPath(node))
+      if (vtree == null)
+        return List.empty
+      val element = TreeUtils.elementFromDeclaration(vtree)*/
+      val element = TreeUtils.elementFromUse(node)
+      if (element == null) {
+        None
+      } else {
+        // elements.getAllAnnotationMirrors(element).asScala.toList
+        val annotations = this.getAnnotatedType(element).getAnnotations
+        Some(this.getQualifierHierarchy.findAnnotationInHierarchy(annotations, this.getQualifierHierarchy.getTopAnnotations.asScala.head))
+        //element.getAnnotationMirrors.asScala.toList
+      }
+    }
   }
 
   /**
     *
-    * @param node        a variable declaration AST node
+    * @param node        tree representation of a variable
     * @param targetAnnot target annotation type to collect from the variable
-    * @return a set of collected annotations
+    * @return a set of collected annotations: variable -> its type annotation
     */
-  def getAnnotFromVariableTree(node: VariableTree, targetAnnot: AnnotationMirror): HashMap[String, String] = {
-    val varName = node.getName.toString
+  def getVarAnnotation(node: Tree,
+                       targetAnnot: AnnotationMirror = this.getQualifierHierarchy.getTopAnnotations.asScala.head
+                      ): HashMap[String, String] = {
+    /*
     val annotations = {
       node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
         (acc, t) =>
@@ -66,14 +90,13 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       }
     }
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, targetAnnot))
-    // val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
-    if (listInvAnnotations.nonEmpty) {
-      val invs: List[String] = Utils.extractArrayValues(listInvAnnotations.head, "value")
-      invs.foldLeft(new HashMap[String, String]) {
+    val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
+    */
+    val annotation = getTypeAnnotation(node)
+    if (annotation != null) {
+      Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
         (acc, inv) =>
-          SmtlibUtils.startsWithToken(inv, varName).foldLeft(acc) {
-            (acc2, t) => acc2 + (t -> inv)
-          }
+          SmtlibUtils.startsWithToken(inv, SmtlibUtils.SELF).foldLeft(acc) { (acc2, t) => acc2 + (t -> inv) }
       }
     } else {
       new HashMap[String, String]
@@ -91,7 +114,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         member match {
           case member: VariableTree =>
             // Get annotations on class fields
-            this.getAnnotFromVariableTree(member, INV).foldLeft(acc) {
+            this.getVarAnnotation(member, INV).foldLeft(acc) {
               case (acc2, (v, typ)) => acc2 + (v -> typ)
             }
           case _ => acc
@@ -116,7 +139,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             case stmt: VariableTree =>
               // Local invariants should only be on variable declarations
               // Otherwise, invariants are simply ignored
-              this.getAnnotFromVariableTree(stmt, INV).foldLeft(acc) {
+              this.getVarAnnotation(stmt, INV).foldLeft(acc) {
                 case (acc2, (v, typ)) => acc2 + (v -> typ)
               }
             case x@_ =>

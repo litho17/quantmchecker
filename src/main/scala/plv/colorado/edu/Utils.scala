@@ -200,4 +200,6 @@ object Utils {
     logger.println(msg)
     logger.close()
   }
+
+  def hashCode(tree: Tree): String = "h" + tree.hashCode().toString
 }

@@ -15,6 +15,8 @@ import scala.collection.mutable.ListBuffer
   */
 object SmtlibUtils {
   val ONE = "ONE" // Used in annotations to replace (= c7 1) with (- c7 ONE)
+  val TRUE = "true"
+  val SELF = "self"
 
   /**
     *
@@ -89,7 +91,7 @@ object SmtlibUtils {
     * @param _new a list of new tokens
     * @return replace every old token in the SMTLIB2 string with a corresponding new one
     */
-  def substituteStmlib(str: String, _old: List[String], _new: List[String]): String = {
+  def substitute(str: String, _old: List[String], _new: List[String]): String = {
     assert(_old.size == _new.size)
     val tokens = parseSmtlibToToken(str)
     val newTokens = tokens.map {
@@ -181,12 +183,16 @@ object SmtlibUtils {
     * @param str a SMTLIB2 string
     * @return a properly parenthesized SMTLIB2 string
     */
-  def smtlibAddParen(str: String): String = {
+  def addParen(str: String): String = {
     if (str.contains(" "))
       "(" + str + ")"
     else
       str
   }
+
+  def mkEq(a: String, b: String): String = "(= " + a + " " + b + ")"
+  def mkAdd(list: String*): String = list.foldLeft("(+")((acc, a) => acc + " " + a) + ")"
+  def mkSub(list: String*): String = list.foldLeft("(-")((acc, a) => acc + " " + a) + ")"
 
   /**
     *
@@ -216,9 +222,9 @@ object SmtlibUtils {
     * @param c a list of SMTLIB2 constraints
     * @return the conjunction of all of the constraints
     */
-  def genAndSmtlibStr(c: Iterable[String]): String = {
+  def conjunctionAll(c: Iterable[String]): String = {
     c.foldLeft("(and") {
-      (acc, c) => acc + " " + smtlibAddParen(c)
+      (acc, c) => acc + " " + addParen(c)
     } + ")"
   }
 
@@ -268,7 +274,7 @@ object SmtlibUtils {
         )
       """.stripMargin
 
-    val q = SmtlibUtils.substituteStmlib(p, _old, _new)
+    val q = SmtlibUtils.substitute(p, _old, _new)
 
     val uniqueSym = "LLL"
     assert(!p.contains(uniqueSym) && !q.contains(uniqueSym)) // this symbol has to be unique
@@ -278,7 +284,7 @@ object SmtlibUtils {
     val _p = {
       val tmp = "(= " + uniqueSym + " " + p + ")"
       if (cons.nonEmpty)
-        "(and " + tmp + " " + genAndSmtlibStr(cons) + ")"
+        "(and " + tmp + " " + conjunctionAll(cons) + ")"
       else
         tmp
     }
@@ -323,13 +329,13 @@ object SmtlibUtils {
     val suffix = "\n\t\t)\n\t)\n)"
     val _p = {
       if (cons.nonEmpty)
-        genAndSmtlibStr(cons)
+        conjunctionAll(cons)
       else
         "true"
     }
 
     val _q = {
-      val lhs = "(* 1 " + smtlibAddParen(coefficient) + ")"
+      val lhs = "(* 1 " + addParen(coefficient) + ")"
       "(= " + lhs + " " + inc + ")"
     }
     val syms = {

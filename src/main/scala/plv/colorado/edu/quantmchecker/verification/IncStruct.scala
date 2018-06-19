@@ -22,16 +22,16 @@ object IncStruct {
   def genSmtlibStr(incStruct: IncStruct, increment: Int): String = {
     val lhs = {
       if (incStruct.remainders.nonEmpty)
-        "(- " + increment + " " + SmtlibUtils.smtlibAddParen(incStruct.remainders) + ") "
+        "(- " + increment + " " + SmtlibUtils.addParen(incStruct.remainders) + ") "
       else
         increment + " "
     }
-    "(* " + lhs + SmtlibUtils.smtlibAddParen(incStruct.coefficient) + ")"
+    "(* " + lhs + SmtlibUtils.addParen(incStruct.coefficient) + ")"
   }
 
   def genSmtlibStr(incStruct: IncStruct): String = {
-    val lhs = "(- " + SmtlibUtils.smtlibAddParen(incStruct.counters) + " " + SmtlibUtils.smtlibAddParen(incStruct.remainders) + ")"
-    val rhs = SmtlibUtils.smtlibAddParen(incStruct.coefficient)
+    val lhs = "(- " + SmtlibUtils.addParen(incStruct.counters) + " " + SmtlibUtils.addParen(incStruct.remainders) + ")"
+    val rhs = SmtlibUtils.addParen(incStruct.coefficient)
     "(* " + lhs + " " + rhs + ")"
   }
 }

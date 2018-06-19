@@ -34,8 +34,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   private val EMP_COLLECTION_PREFIX = "Collections.empty"
 
-  private val qualifierHierarchy = atypeFactory.getQualifierHierarchy
-
   if (DEBUG_PATHS) {
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
@@ -75,32 +73,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     super.processClassTree(classTree)
   }
 
-  @deprecated
-  private def getExprAnnotations(node: ExpressionTree): Option[AnnotationMirror] = {
-    if (node == null) {
-      None
-    } else {
-      /*val vtree = TreeUtils.enclosingVariable(atypeFactory.getPath(node))
-      if (vtree == null)
-        return List.empty
-      val element = TreeUtils.elementFromDeclaration(vtree)*/
-      val element = TreeUtils.elementFromUse(node)
-      if (element == null) {
-        None
-      } else {
-        // elements.getAllAnnotationMirrors(element).asScala.toList
-        val annotations = atypeFactory.getAnnotatedType(element).getAnnotations
-        Some(qualifierHierarchy.findAnnotationInHierarchy(annotations, qualifierHierarchy.getTopAnnotations.asScala.head))
-        //element.getAnnotationMirrors.asScala.toList
-      }
-    }
-  }
-
   override def visitAssignment(node: AssignmentTree, p: Void): Void = {
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     val lhs = node.getVariable
-    val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
-    val lhsAnno = lhsTyp.getAnnotations
+    // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
+    // val lhsAnno = lhsTyp.getAnnotations
+
+    val lhsTyp = getVarType(node.getVariable, fieldInvs ++ localInvs)
+    val rhsTyp = getExprType(node.getExpression, fieldInvs ++ localInvs)
+    // println(lhsTyp, rhsTyp, node)
 
     /*Utils.COLLECTION_ADD.foreach {
     case (klass, method) =>
@@ -136,31 +117,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     // This expression could only change remainder
     (fieldInvs ++ localInvs).foreach {
-      /*case invariant@Invariant(_, _, _, _) =>
-        val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(invariant)
-        remainders.foreach {
-          remainder =>
-            if (remainder == node.getVariable.toString) {
-              node.getExpression match {
-                case rhs: LiteralTree =>
-                  rhs.getKind match {
-                    case Tree.Kind.INT_LITERAL =>
-                      val increment = rhs.getValue.asInstanceOf[Integer]
-                      node.getKind match {
-                        case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
-                          if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -increment), ("", 0), updatedLabel, node))
-                            issueError(node, "")
-                        case _ => // All other compound assignments are not supported
-                          issueWarning(node, "[CompoundAssignmentTree] Operator " + node.getKind + " is " + NOT_SUPPORTED)
-                      }
-                    case _ => issueWarning(node, "[CompoundAssignmentTree] Other literal kind is " + NOT_SUPPORTED); true
-                  }
-                case _ => issueWarning(node, "[CompoundAssignmentTree] Non-literal is " + NOT_SUPPORTED); true
-              }
-            } else {
-              ignoreWarning(node, "[CompoundAssignmentTree] LHS is not remainder")
-            }
-        }*/
+      // case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
       case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant"); true
     }
     super.visitCompoundAssignment(node, p)
@@ -380,16 +337,45 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     *
     * @param variable a variable
     * @param typCxt   a typing context
-    * @return all types in the typing context that is dependent on the given variable
+    * @return all types in the typing context that is dependent on the given variable (including its own type)
     */
-  private def getVarType(variable: String, typCxt: HashMap[String, String]): HashSet[String] = {
-    typCxt.foldLeft(new HashSet[String]) {
-      case (acc, (v, typ)) => if (SmtlibUtils.containsToken(variable, typ)) acc + typ else acc
+  private def getVarType(variable: Tree, typCxt: Map[String, String]): HashSet[String] = {
+    val selfTyp: Set[String] = atypeFactory.getVarAnnotation(variable).filter {
+      case (v, typ) => v == SmtlibUtils.SELF
+    }.values.toSet
+    typCxt.foldLeft(new HashSet[String] ++ selfTyp) {
+      case (acc, (v, typ)) => {
+        if (SmtlibUtils.containsToken(variable.toString, typ))
+          acc + SmtlibUtils.substitute(typ, List(SmtlibUtils.SELF), List(v)) // substitute self with v
+        else acc
+      }
     }
   }
 
-  private def getExprType(expr: ExpressionTree, typCxt: HashMap[String, String]): HashSet[String] = {
-    ???
+  /**
+    *
+    * @param expr   an expression
+    * @param typCxt a typing context
+    * @return type constraints on the expression
+    */
+  private def getExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
+    expr match {
+      case e: LiteralTree =>
+        e.getKind match {
+          case Tree.Kind.INT_LITERAL => HashSet[String](SmtlibUtils.mkEq(Utils.hashCode(e), e.toString))
+          case Tree.Kind.VARIABLE => getVarType(e, typCxt) + SmtlibUtils.mkEq(Utils.hashCode(e), e.toString)
+          case _ => new HashSet[String] // ignored
+        }
+      case e: BinaryTree =>
+        val eq = e.getKind match {
+          case Tree.Kind.PLUS => SmtlibUtils.mkEq(SmtlibUtils.SELF, SmtlibUtils.mkAdd(e.getLeftOperand.toString, e.getRightOperand.toString))
+          case Tree.Kind.MINUS => SmtlibUtils.mkEq(SmtlibUtils.SELF, SmtlibUtils.mkSub(e.getLeftOperand.toString, e.getRightOperand.toString))
+          case _ => SmtlibUtils.TRUE // ignored
+        }
+        getExprType(e.getLeftOperand, typCxt) ++ getExprType(e.getRightOperand, typCxt) + eq
+      // case e: MethodInvocationTree =>
+      case _ => new HashSet[String] // ignored
+    }
   }
 
   /**
