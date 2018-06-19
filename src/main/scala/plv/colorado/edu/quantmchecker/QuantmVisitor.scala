@@ -80,7 +80,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     // val lhsAnno = lhsTyp.getAnnotations
 
-    val lhsTyp = inferVarType(node.getVariable, fieldInvs ++ localInvs)
+    val lhsTyp = inferVarType(node.getVariable.toString, fieldInvs ++ localInvs)
     val rhsTyp = {
       val set = inferExprType(node.getExpression, fieldInvs ++ localInvs)
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
@@ -345,21 +345,21 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param variable a variable
+    * @param variable name of a variable
     * @param typCxt   a typing context
-    * @return all types in the typing context that is dependent on the given variable (including its own type)
+    * @return all types in the typing context that is dependent on
+    *         the given variable name (e.g. v -> {inv1,inv2}/v.f -> {inv3,inv4})
     */
-  private def inferVarType(variable: Tree, typCxt: Map[String, String]): HashSet[String] = {
-    // TODO: What about self.f.g's annotation?
-    val selfTyp: Set[String] = atypeFactory.getVarAnnoMap(variable).filter {
-      case (v, typ) => v == SmtUtils.SELF // Filter out e.g. self.f.g
-    }.values.toSet
-    typCxt.foldLeft(new HashSet[String] ++ selfTyp) {
-      case (acc, (v, typ)) => {
-        if (SmtUtils.containsToken(variable.toString, typ))
-          acc + SmtUtils.substitute(typ, List(SmtUtils.SELF), List(v)) // substitute self with v
-        else acc
-      }
+  private def inferVarType(variable: String, typCxt: Map[String, String]): HashSet[String] = {
+    val selfTyp: HashSet[String] = typCxt.get(variable) match {
+      case Some(s) => HashSet(s)
+      case None => HashSet.empty
+    }
+    typCxt.foldLeft(selfTyp) {
+      case (acc2, (vInEnv, typInEnv)) =>
+        if (SmtUtils.containsToken(typInEnv, variable))
+          acc2 + SmtUtils.substitute(typInEnv, List(SmtUtils.SELF), List(vInEnv)) // E.g. self -> vInEnv
+        else acc2
     }
   }
 
@@ -371,11 +371,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     */
   private def inferExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
     expr match {
+      case e: MemberSelectTree => inferVarType(e.toString, typCxt) // E.g. v.f
       case e: LiteralTree =>
         if (Utils.isValidId(e.toString)) {
           e.getKind match {
             case Tree.Kind.INT_LITERAL => HashSet[String](SmtUtils.mkEq(Utils.hashCode(e), e.toString))
-            case Tree.Kind.VARIABLE => inferVarType(e, typCxt) + SmtUtils.mkEq(Utils.hashCode(e), e.toString)
+            case Tree.Kind.VARIABLE => inferVarType(e.toString, typCxt) + SmtUtils.mkEq(Utils.hashCode(e), e.toString)
             case _ => new HashSet[String] // ignored
           }
         } else new HashSet[String] // ignored
@@ -389,8 +390,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
         val leftCons = inferExprType(e.getLeftOperand, typCxt)
         val rightCons = inferExprType(e.getRightOperand, typCxt)
-        // If cannot infer constraints for any operand, then don't infer constraints for the binary expression
-        if (leftCons.nonEmpty && rightCons.nonEmpty) leftCons ++ rightCons + eq else new HashSet[String]
+        // If cannot infer constraints for any operand, then cannot infer constraints for the binary expression
+        if (leftCons.nonEmpty || rightCons.nonEmpty) leftCons ++ rightCons + eq else new HashSet[String]
       // case e: MethodInvocationTree =>
       case _ => new HashSet[String] // ignored
     }

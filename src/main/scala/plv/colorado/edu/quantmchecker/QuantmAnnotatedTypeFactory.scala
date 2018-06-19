@@ -136,8 +136,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         member match {
           case member: VariableTree =>
             // Get annotations on class fields
-            this.getVarAnnoMap(member).foldLeft(acc) {
-              case (acc2, (v, typ)) => acc2 + (v -> typ)
+            this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
+              case (acc2, (v, typ)) => acc2 + (v.replace(SmtUtils.SELF, member.getName.toString) -> typ)
             }
           case _ => acc
         }
@@ -161,8 +161,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             case stmt: VariableTree =>
               // Local invariants should only be on variable declarations
               // Otherwise, invariants are simply ignored
-              this.getVarAnnoMap(stmt).foldLeft(acc) {
-                case (acc2, (v, typ)) => acc2 + (v -> typ)
+              this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f
+                case (acc2, (v, typ)) => acc2 + (v.replace(SmtUtils.SELF, stmt.getName.toString) -> typ)
               }
             case x@_ =>
               if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
