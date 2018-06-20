@@ -74,21 +74,47 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     super.processClassTree(classTree)
   }
 
+  /**
+    *
+    * @param implication the query
+    * @param node        AST node
+    * @param errorMsg    error message if query is not satisfiable
+    */
+  private def typecheck(implication: String, node: Tree, errorMsg: String): Unit = {
+    if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
+      if (DEBUT_CHECK) println(implication)
+      issueWarning(node, errorMsg)
+    }
+  }
+
+  /**
+    *
+    * @param list   a list variable
+    * @param typMap typing context
+    * @return all iterators in the typing context that are attached to v
+    */
+  private def getIterators(list: String, typMap: Map[String, String]): HashSet[String] = {
+    typMap.foldLeft(new HashSet[String]) {
+      case (acc, (v, t)) => if (SmtUtils.SMTLIB2Toinv(t) == list) acc + v else acc
+    }
+  }
+
   // Assume that all variables' scope is global to a method
   override def visitAssignment(node: AssignmentTree, p: Void): Void = {
     if (!isEnclosedInExprStmt(node))
       return super.visitAssignment(node, p)
 
     val (fieldInvs, localInvs, label) = prepare(node)
+    val typingCxt = fieldInvs ++ localInvs
     val lhs = node.getVariable
     val rhs = node.getExpression
     // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     // val lhsAnno = lhsTyp.getAnnotations
-    val lhsTyp = inferVarType(node.getVariable.toString, fieldInvs ++ localInvs) // Invariant: lhs is replaced with self
+    val lhsTyp = inferVarType(node.getVariable.toString, typingCxt) // Invariant: lhs is replaced with self
     val rhsTyp = { // Invariant: lhs is replaced with self
-      val set = inferExprType(node.getExpression, fieldInvs ++ localInvs)
+      val set = inferExprType(node.getExpression, typingCxt)
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
-    }.map{ s => SmtUtils.substitute(s, List(label, lhs.toString), List(SmtUtils.mkAdd(label, "1"), SmtUtils.SELF)) }
+    }.map { s => SmtUtils.substitute(s, List(label, lhs.toString), List(SmtUtils.mkAdd(label, "1"), SmtUtils.SELF)) }
 
     rhs match {
       case rhs: MethodInvocationTree =>
@@ -98,39 +124,54 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         if (callerTyp != null) {
           val isNext = Utils.isColWhat("next", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
           val isRmv = Utils.isColWhat("remove", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
-          (fieldInvs ++ localInvs).foreach {
+          typingCxt.foreach {
             case (v, t) =>
+              val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
               if (isRmv) {
+                {
+                  val p = tp
+                  val iterators = getIterators(callerName, typingCxt).toList
+                  val _old = label :: callerName :: iterators
+                  val _new = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkSub(callerName, "1") ::
+                    iterators.map(s => SmtUtils.mkSub(s, "1"))
+                  val q = SmtUtils.substitute(p, _old, _new)
+                  val implication = SmtUtils.mkImply(p, q)
+                  typecheck(implication, node, "y = x.remove: invariant broken")
+                }
               }
               if (isNext) {
-                val p = t
-                val q = SmtUtils.substitute(p, List(label, callerName),
-                  List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(callerName, "1")))
-                val implication = SmtUtils.mkImply(p, q)
-                if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
-                  if (DEBUT_CHECK) println(implication)
-                  issueWarning(node, "list.next: invariant broken")
+                {
+                  val p = tp
+                  val q = SmtUtils.substitute(p, List(label, callerName),
+                    List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(callerName, "1")))
+                  val implication = SmtUtils.mkImply(p, q)
+                  typecheck(implication, node, "y = x.next: invariant broken due to line counter increment")
+                }
+                {
+                  val p = {
+                    val listName = SmtUtils.SMTLIB2Toinv(callerName)
+                    // TODO: If x: List[t], get t's type annotation
+                    SmtUtils.FALSE
+                  }
+                  val q = SmtUtils.conjunctionAll(lhsTyp)
+                  val implication = SmtUtils.mkImply(p, q)
+                  typecheck(implication, node,
+                    "y = x.next: invariant broken due to incompatible types between x's element and y")
                 }
               }
           }
         }
-      case _ =>
+      case _ => {
         val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
-        if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
-          if (DEBUT_CHECK) println(implication)
-          issueError(node, "In assignment: rhs's type doesn't imply lhs's")
-        }
+        typecheck(implication, node, "In assignment: rhs's type doesn't imply lhs's")
         // types.asElement(types.erasure(lhsTyp.getUnderlyingType))
-
-        (fieldInvs ++ localInvs).foreach {
+      }
+        typingCxt.foreach {
           case (v, inv) =>
-            if (!atypeFactory.isDependentOn(lhs.toString, inv)) {
+            if (!atypeFactory.isDependentOn(lhs.toString, inv)) { // No need to check because this is already checked above
               val q = SmtUtils.substitute(inv, List(label), List(SmtUtils.mkAdd(label, "1")))
               val implication = SmtUtils.mkImply(inv, q)
-              if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
-                if (DEBUT_CHECK) println(implication)
-                issueError(node, "In assignment: invariant invalidated due to counter increment")
-              }
+              typecheck(implication, node, "In assignment: invariant invalidated due to counter increment")
             }
         }
     }
@@ -155,6 +196,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       return super.visitMethodInvocation(node, p)
 
     val (fieldInvs, localInvs, label) = prepare(node)
+    val typingCxt = fieldInvs ++ localInvs
     // TODO: methodinvocation (a.f().g()) -> memberselect (a.f())
     val callSite = CallSite(node)
     val (callee, caller, callerName, callerTyp, callerDecl, vtPairs) =
@@ -177,7 +219,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
       // Utils.logging("list.remove: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
       // Utils.logging("list.add: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
-      (fieldInvs ++ localInvs).filter { case (v, t) => !v.startsWith(callerName) }.foreach {
+      typingCxt.filter { case (v, t) => !v.startsWith(callerName) }.foreach {
         case (v: String, t: String) => // E.g. v.add1() affects v.f1's length
           if (isAdd) {
             // issueWarning(node, LIST_NOT_ANNOTATED)
