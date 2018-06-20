@@ -9,7 +9,7 @@ import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTrans
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, InvUnk}
+import plv.colorado.edu.quantmchecker.qual._
 import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
 
 import scala.collection.JavaConverters._
@@ -21,6 +21,7 @@ import scala.collection.immutable.{HashMap, HashSet}
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
   protected val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
@@ -75,6 +76,44 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   /**
     *
+    * @param inv an invariant
+    * @return if the invariant is composed of only 1 token, then return "= self inv"
+    */
+  def invToSMTLIB2(inv: String): String = {
+    val tokens = SmtUtils.parseSmtlibToToken(inv)
+    if (tokens.length == 1) {
+      val token = tokens.head.toString()
+      if (token == SmtUtils.SELF) {
+        assert(false, "Invariant cannot be self")
+        SmtUtils.TRUE
+      } else if (token != SmtUtils.TRUE && token != SmtUtils.FALSE) { // E.g. @Inv("x|n|c") Iterator it;
+        // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
+        SmtUtils.mkEq(SmtUtils.SELF, inv)
+      } else
+        inv
+    } else
+      inv
+  }
+
+  /**
+    *
+    * @param inv an invariant
+    * @return if the invariant is form "= self a", then return "a"
+    */
+  def SMTLIB2Toinv(inv: String): String = { // TODO: not tested
+    val tokens = SmtUtils.parseSmtlibToToken(inv)
+    if (tokens.length == 3) {
+      if (tokens.head.toString() == SmtUtils.SELF && tokens.length == 2) {
+        val ret = tokens(2).toString()
+        assert(ret != SmtUtils.TRUE && ret != SmtUtils.FALSE && ret != SmtUtils.SELF)
+        ret
+      } else inv
+    } else
+      inv
+  }
+
+  /**
+    *
     * @param annotation type annotation of a variable
     * @return a set of collected annotations: self/self.f.g -> its type annotation
     */
@@ -83,23 +122,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
         (acc, inv) =>
           SmtUtils.startsWithToken(inv, SmtUtils.SELF).foldLeft(acc) { // E.g. self or self.f.g
-            (acc2, t) =>
-              val tokens = SmtUtils.parseSmtlibToToken(inv)
-              val invp = {
-                if (tokens.length == 1) {
-                  val token = tokens.head.toString()
-                  if (token == SmtUtils.SELF) {
-                    assert(false, "Invariant cannot be self")
-                    SmtUtils.TRUE
-                  } else if (token != SmtUtils.TRUE && token != SmtUtils.FALSE) { // E.g. @Inv("x|n|c") Iterator it;
-                    // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
-                    SmtUtils.mkEq(SmtUtils.SELF, inv)
-                  } else inv
-                } else {
-                  inv
-                }
-              }
-              acc2 + (t -> invp)
+            (acc2, t) => acc2 + (t -> invToSMTLIB2(inv))
           }
       }
     } else {
@@ -109,7 +132,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   /**
     *
-    * @param node        tree representation of a variable
+    * @param node tree representation of a variable
     * @return a set of collected annotations: self/self.f.g -> its type annotation
     */
   def getVarAnnoMap(node: Tree): HashMap[String, String] = {
@@ -213,9 +236,21 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       val isSuperInvUnk = AnnotationUtils.areSameIgnoringValues(superAnno, INVUNK)
       val isSubInv = AnnotationUtils.areSameIgnoringValues(subAnno, INV)
       val isSuperInv = AnnotationUtils.areSameIgnoringValues(superAnno, INV)
+      val isSubInc = AnnotationUtils.areSameIgnoringValues(subAnno, INC)
+      val isSuperInc = AnnotationUtils.areSameIgnoringValues(superAnno, INC)
 
-      val newSubAnno = if (isSubInv) INV else if (isSubInvUnk) INVUNK else subAnno
-      val newSuperAnno = if (isSuperInv) INV else if (isSuperInvUnk) INVUNK else superAnno
+      val newSubAnno = {
+        if (isSubInv) INV
+        else if (isSubInvUnk) INVTOP // INVUNK
+        else if (isSubInc) INVTOP // INC
+        else subAnno
+      }
+      val newSuperAnno = {
+        if (isSuperInv) INV
+        else if (isSuperInvUnk) INVTOP // INVUNK
+        else if (isSuperInc) INVTOP // INC
+        else superAnno
+      }
 
       // Check subtyping for invariants
       if (isSubInv && isSuperInv) {
