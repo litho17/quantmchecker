@@ -85,7 +85,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val rhsTyp = {
       val set = inferExprType(node.getExpression, fieldInvs ++ localInvs)
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
-    }
+    }.map(s => SmtUtils.substitute(s, List(label), List(SmtUtils.mkAdd(label, "1"))))
     val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
     if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication)))
       issueError(node, "In assignment: rhs's type doesn't imply lhs's")
@@ -371,25 +371,26 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def inferExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
     expr match {
       case e: MemberSelectTree => inferVarType(e.toString, typCxt) // E.g. v.f
-      case e: IdentifierTree => inferVarType(e.toString, typCxt) + SmtUtils.mkEq(Utils.hashCode(e), e.toString)
+      case e: IdentifierTree => inferVarType(e.toString, typCxt)
       case e: LiteralTree =>
         e.getKind match {
-          case Tree.Kind.INT_LITERAL => HashSet[String](SmtUtils.mkEq(Utils.hashCode(e), e.toString))
-          // case Tree.Kind.VARIABLE =>
+          case Tree.Kind.INT_LITERAL =>
+            // To make it consistent that, it means cannot infer a type when returning an empty set
+            HashSet[String](SmtUtils.mkEq(e.toString, e.toString))
           case _ => new HashSet[String] // ignored
         }
       case e: BinaryTree =>
         val left = e.getLeftOperand.toString
         val right = e.getRightOperand.toString
+        val leftCons = inferExprType(e.getLeftOperand, typCxt)
+        val rightCons = inferExprType(e.getRightOperand, typCxt)
         val eq = e.getKind match {
           case Tree.Kind.PLUS => SmtUtils.mkEq(Utils.hashCode(e), SmtUtils.mkAdd(left, right))
           case Tree.Kind.MINUS => SmtUtils.mkEq(Utils.hashCode(e), SmtUtils.mkSub(left, right))
-          case _ => SmtUtils.TRUE // ignored
+          case _ => "" // ignored
         }
-        val leftCons = inferExprType(e.getLeftOperand, typCxt)
-        val rightCons = inferExprType(e.getRightOperand, typCxt)
         // If cannot infer constraints for any operand, then cannot infer constraints for the binary expression
-        if (leftCons.nonEmpty && rightCons.nonEmpty) leftCons ++ rightCons + eq else new HashSet[String]
+        if (leftCons.nonEmpty && rightCons.nonEmpty && eq != "") leftCons ++ rightCons + eq else new HashSet[String]
       // case e: MethodInvocationTree =>
       case _ => new HashSet[String] // ignored
     }
