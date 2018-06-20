@@ -1,5 +1,6 @@
 package plv.colorado.edu.quantmchecker
 
+import java.util
 import javax.lang.model.element.AnnotationMirror
 
 import com.sun.source.tree._
@@ -43,15 +44,28 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   /**
     *
+    * @param v   variable name
+    * @param inv invariant
+    * @return if the invariant is dependent on variable v
+    */
+  def isDependentOn(v: String, inv: String): Boolean = SmtUtils.containsToken(inv, v)
+
+  /**
+    *
+    * @param annotations
+    * @return
+    */
+  def getTypeAnnotation(annotations: util.Collection[AnnotationMirror]): AnnotationMirror = {
+    this.getQualifierHierarchy
+      .findAnnotationInHierarchy(annotations, this.getQualifierHierarchy.getTopAnnotations.iterator().next())
+  }
+
+  /**
+    *
     * @param rcvr tree representation of a variable
     * @return annotation of the receiver of a method invocation
     */
-  def getTypeAnnotation(rcvr: Tree): AnnotationMirror = {
-    this.getQualifierHierarchy
-      .findAnnotationInHierarchy(
-        getAnnotatedType(rcvr).getAnnotations,
-        this.getQualifierHierarchy.getTopAnnotations.iterator().next())
-  }
+  def getTypeAnnotation(rcvr: Tree): AnnotationMirror = getTypeAnnotation(getAnnotatedType(rcvr).getAnnotations)
 
   @deprecated
   def getExprAnnotations(node: ExpressionTree): Option[AnnotationMirror] = {
@@ -76,44 +90,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
 
   /**
     *
-    * @param inv an invariant
-    * @return if the invariant is composed of only 1 token, then return "= self inv"
-    */
-  def invToSMTLIB2(inv: String): String = {
-    val tokens = SmtUtils.parseSmtlibToToken(inv)
-    if (tokens.length == 1) {
-      val token = tokens.head.toString()
-      if (token == SmtUtils.SELF) {
-        assert(false, "Invariant cannot be self")
-        SmtUtils.TRUE
-      } else if (token != SmtUtils.TRUE && token != SmtUtils.FALSE) { // E.g. @Inv("x|n|c") Iterator it;
-        // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
-        SmtUtils.mkEq(SmtUtils.SELF, inv)
-      } else
-        inv
-    } else
-      inv
-  }
-
-  /**
-    *
-    * @param inv an invariant
-    * @return if the invariant is form "= self a", then return "a"
-    */
-  def SMTLIB2Toinv(inv: String): String = { // TODO: not tested
-    val tokens = SmtUtils.parseSmtlibToToken(inv)
-    if (tokens.length == 3) {
-      if (tokens.head.toString() == SmtUtils.SELF && tokens.length == 2) {
-        val ret = tokens(2).toString()
-        assert(ret != SmtUtils.TRUE && ret != SmtUtils.FALSE && ret != SmtUtils.SELF)
-        ret
-      } else inv
-    } else
-      inv
-  }
-
-  /**
-    *
     * @param annotation type annotation of a variable
     * @return a set of collected annotations: self/self.f.g -> its type annotation
     */
@@ -122,7 +98,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
         (acc, inv) =>
           SmtUtils.startsWithToken(inv, SmtUtils.SELF).foldLeft(acc) { // E.g. self or self.f.g
-            (acc2, t) => acc2 + (t -> invToSMTLIB2(inv))
+            (acc2, t) => acc2 + (t -> SmtUtils.invToSMTLIB2(inv))
           }
       }
     } else {
@@ -161,7 +137,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
           case member: VariableTree =>
             // Get annotations on class fields
             this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
-              case (acc2, (v, typ)) => acc2 + (v.replace(SmtUtils.SELF, member.getName.toString) -> typ)
+              case (acc2, (v, typ)) => acc2 +
+                (SmtUtils.substitute(v, List(SmtUtils.SELF), List(member.getName.toString)) -> typ)
             }
           case _ => acc
         }
@@ -186,7 +163,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
               // Local invariants should only be on variable declarations
               // Otherwise, invariants are simply ignored
               this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f
-                case (acc2, (v, typ)) => acc2 + (v.replace(SmtUtils.SELF, stmt.getName.toString) -> typ)
+                case (acc2, (v, typ)) => acc2 +
+                  (SmtUtils.substitute(v, List(SmtUtils.SELF), List(stmt.getName.toString)) -> typ)
               }
             case x@_ =>
               if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)

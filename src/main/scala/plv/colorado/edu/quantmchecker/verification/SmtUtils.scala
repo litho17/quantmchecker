@@ -199,6 +199,44 @@ object SmtUtils {
 
   /**
     *
+    * @param inv an invariant
+    * @return if the invariant is composed of only 1 token, then return "= self inv"
+    */
+  def invToSMTLIB2(inv: String): String = {
+    val tokens = parseSmtlibToToken(inv)
+    if (tokens.length == 1) {
+      val token = tokens.head.toString()
+      if (token == SELF) {
+        assert(false, "Invariant cannot be self")
+        TRUE
+      } else if (token != TRUE && token != FALSE) { // E.g. @Inv("x|n|c") Iterator it;
+        // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
+        mkEq(SELF, inv)
+      } else
+        inv
+    } else
+      inv
+  }
+
+  /**
+    *
+    * @param inv an invariant
+    * @return if the invariant is form "= self a", then return "a"
+    */
+  def SMTLIB2Toinv(inv: String): String = { // TODO: not tested
+    val tokens = parseSmtlibToToken(inv)
+    if (tokens.length == 3) {
+      if (tokens.head.toString() == SELF && tokens.length == 2) {
+        val ret = tokens(2).toString()
+        assert(ret != TRUE && ret != FALSE && ret != SELF)
+        ret
+      } else inv
+    } else
+      inv
+  }
+
+  /**
+    *
     * @param str a SMTLIB2 string
     * @return a set of symbols in the string
     */

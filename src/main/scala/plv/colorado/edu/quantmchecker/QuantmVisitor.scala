@@ -9,7 +9,7 @@ import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop, Summary}
+import plv.colorado.edu.quantmchecker.qual._
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
 
@@ -20,6 +20,7 @@ import scala.collection.immutable.{HashMap, HashSet}
   * @author Tianhan Lu
   */
 class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnnotatedTypeFactory](checker) {
+  private val DEBUT_CHECK = true
   private val DEBUG_PATHS = false
   private val DEBUG_WHICH_UNHANDLED_CASE = false
   private val ISSUE_ALL_UNANNOTATED_LISTS = true
@@ -75,40 +76,64 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   // Assume that all variables' scope is global to a method
   override def visitAssignment(node: AssignmentTree, p: Void): Void = {
+    if (!isEnclosedInExprStmt(node))
+      return super.visitAssignment(node, p)
+
     val (fieldInvs, localInvs, label) = prepare(node)
     val lhs = node.getVariable
     val rhs = node.getExpression
     // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     // val lhsAnno = lhsTyp.getAnnotations
-
-    val lhsTyp = inferVarType(node.getVariable.toString, fieldInvs ++ localInvs)
-    val rhsTyp = {
+    val lhsTyp = inferVarType(node.getVariable.toString, fieldInvs ++ localInvs) // Invariant: lhs is replaced with self
+    val rhsTyp = { // Invariant: lhs is replaced with self
       val set = inferExprType(node.getExpression, fieldInvs ++ localInvs)
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
-    }.map(s => SmtUtils.substitute(s, List(label), List(SmtUtils.mkAdd(label, "1"))))
-    val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
-    if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication)))
-      issueError(node, "In assignment: rhs's type doesn't imply lhs's")
+    }.map{ s => SmtUtils.substitute(s, List(label, lhs.toString), List(SmtUtils.mkAdd(label, "1"), SmtUtils.SELF)) }
 
-    /*Utils.COLLECTION_ADD.foreach {
-    case (klass, method) =>
-      types.asElement(types.erasure(lhsTyp.getUnderlyingType)) match {
-        case te: TypeElement =>
-          if (klass == te.getQualifiedName.toString) {
-            Utils.logging("Destructive update: " + node.toString + "\n" + getEnclosingMethod(node))
+    rhs match {
+      case rhs: MethodInvocationTree =>
+        val callSite = CallSite(rhs)
+        val (callee, caller, callerName, callerTyp) =
+          (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp)
+        if (callerTyp != null) {
+          val isNext = Utils.isColWhat("next", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
+          val isRmv = Utils.isColWhat("remove", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
+          (fieldInvs ++ localInvs).foreach {
+            case (v, t) =>
+              if (isRmv) {
+              }
+              if (isNext) {
+                val p = t
+                val q = SmtUtils.substitute(p, List(label, callerName),
+                  List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(callerName, "1")))
+                val implication = SmtUtils.mkImply(p, q)
+                if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
+                  if (DEBUT_CHECK) println(implication)
+                  issueWarning(node, "list.next: invariant broken")
+                }
+              }
           }
-        case _ =>
-      }
-  }*/
+        }
+      case _ =>
+        val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
+        if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
+          if (DEBUT_CHECK) println(implication)
+          issueError(node, "In assignment: rhs's type doesn't imply lhs's")
+        }
+        // types.asElement(types.erasure(lhsTyp.getUnderlyingType))
 
-    (fieldInvs ++ localInvs).foreach {
-      case (v, inv) if v != lhs.toString =>
-        val q = SmtUtils.substitute(inv, List(label), List(SmtUtils.mkAdd(label, "1")))
-        val implication = SmtUtils.mkImply(inv, q)
-        if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication)))
-          issueError(node, "In assignment: invariant invalidated due to counter increment")
+        (fieldInvs ++ localInvs).foreach {
+          case (v, inv) =>
+            if (!atypeFactory.isDependentOn(lhs.toString, inv)) {
+              val q = SmtUtils.substitute(inv, List(label), List(SmtUtils.mkAdd(label, "1")))
+              val implication = SmtUtils.mkImply(inv, q)
+              if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))) {
+                if (DEBUT_CHECK) println(implication)
+                issueError(node, "In assignment: invariant invalidated due to counter increment")
+              }
+            }
+        }
     }
-
     /**
       * This is unsound because of breaking subtype checking, but it is implemented for reducing annotation burden
       */
@@ -121,149 +146,45 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   override def visitCompoundAssignment(node: CompoundAssignmentTree, p: Void): Void = {
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
-    // This expression could only change remainder
-    (fieldInvs ++ localInvs).foreach {
-      // case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
-      case _ => ignoreWarning(node, "[CompoundAssignmentTree] Malformed invariant"); true
-    }
+    // case Tree.Kind.PLUS_ASSIGNMENT | Tree.Kind.MINUS_ASSIGNMENT =>
     super.visitCompoundAssignment(node, p)
   }
 
   override def visitMethodInvocation(node: MethodInvocationTree, p: Void): Void = {
-    // val summaryExists = hasSummary(node)
-    val (fieldInvs, localInvs, updatedLabel) = prepare(node)
-    // Check if side effects will invalidate invariants
+    if (!isEnclosedInExprStmt(node))
+      return super.visitMethodInvocation(node, p)
+
+    val (fieldInvs, localInvs, label) = prepare(node)
     // TODO: methodinvocation (a.f().g()) -> memberselect (a.f())
-    val callee: ExecutableElement = getMethodElementFromInvocation(node)
-    val receiver: ExpressionTree = TreeUtils.getReceiverTree(node)
-    val receiverName = if (receiver == null) "" else receiver.toString
-    val receiverTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(node)
-    val receiverDecl: Element = {
-      if (receiver != null) {
-        TreeUtils.elementFromUse(receiver)
-      } else { // this is member method invocation, therefore we return the class tree
-        TreeUtils.elementFromDeclaration(getEnclosingClass(node))
+    val callSite = CallSite(node)
+    val (callee, caller, callerName, callerTyp, callerDecl, vtPairs) =
+      (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp, callSite.callerDecl, callSite.vtPairs)
+
+    if (callerTyp != null) {
+      val absPath = root.getSourceFile.getName
+      val relativePath = if (absPath.startsWith(Utils.DESKTOP_PATH + File.separator)) absPath.substring(Utils.DESKTOP_PATH.length + 1) else absPath
+
+      vtPairs.foldLeft(new HashSet[String]) {
+        case (acc, (v, t: AnnotatedTypeMirror)) =>
+          val anno = atypeFactory.getTypeAnnotation(t.getAnnotations)
+          if (anno != null) {
+            val map = atypeFactory.getVarAnnoMap(anno)
+            acc
+          } else acc
       }
-    }
-    // elements.getAllAnnotationMirrors(receiverDecl).asScala.toList
-    // trees.getTypeMirror()
-    // atypeFactory.declarationFromElement(callee)
 
-    val callerSummary = Utils.getMethodSummary(getMethodElementFromDecl(getEnclosingMethod(node)), atypeFactory)
-    val calleeSummary = Utils.getMethodSummary(getMethodElementFromInvocation(node), atypeFactory)
-    if (calleeSummary.nonEmpty) {
-      calleeSummary.foreach {
-        summary =>
-        /*val increment: Integer = summary match {
-          case MethodSummaryI(_, i) => i
-          case _ => 0
-        }
-        val whichVar = MethodSumUtils.whichVar(summary, callee)
-        val numOfUpdatedInvs = (fieldInvs ++ localInvs).count {
-          invariant =>
-            val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(invariant)
-            selfs.exists {
-              self =>
-                if (whichVar.isLeft) { // Local variable is changed, according to method summary
-                  val argIdx = whichVar.left.get
-                  node.getArguments.get(argIdx) match {
-                    case arg: IdentifierTree =>
-                      if (arg.toString == self) { // Summary says: update self
-                        if (!InvSolver.isValidAfterUpdate(invariant, ("", 0), (self, increment), updatedLabel, node))
-                          issueError(node, "")
-                        true
-                      } else {
-                        false
-                      }
-                    case _ =>
-                      issueWarning(node, "[MethodInvocationTree] Complicated method arguments are " + NOT_SUPPORTED)
-                      true
-                  }
-                } else { // Field of the receiver should be updated, according to method summary
-                  findFieldInClass(receiverTyp, whichVar.right.get) match {
-                    case Some(field) =>
-                      // If receiver is self and summary updates self's field
-                      val updatedFldName = receiverName + "." + field.toString
-                      if (updatedFldName == self) {
-                        if (!InvSolver.isValidAfterUpdate(invariant, ("", 0), (self, increment), updatedLabel, node))
-                          issueError(node, "")
-                        true
-                      } else {
-                        false
-                      }
-                    case None =>
-                      issueWarning(node, "Field not found. Probably a mistake in the summary: " + summary)
-                      false
-                  }
-                }
-            }
-        }*/
-        // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
-        // issueWarning(node, LIST_NOT_ANNOTATED)
+      val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
+
+      // Utils.logging("list.remove: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
+      // Utils.logging("list.add: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
+      (fieldInvs ++ localInvs).filter { case (v, t) => !v.startsWith(callerName) }.foreach {
+        case (v: String, t: String) => // E.g. v.add1() affects v.f1's length
+          if (isAdd) {
+            // issueWarning(node, LIST_NOT_ANNOTATED)
+          }
       }
-    } else { // No method summaries found. Translate library methods (e.g. append, add) into numerical updates
-      if (receiverTyp == null) { // Do nothing
-      } else {
-        val absPath = root.getSourceFile.getName
-        val relativePath = if (absPath.startsWith(Utils.DESKTOP_PATH + File.separator)) absPath.substring(Utils.DESKTOP_PATH.length + 1) else absPath
 
-        val isColAdd = Utils.isColWhat("add", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory)
-        val isIterNext = Utils.isColWhat("next", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory)
-        val isColRem = Utils.isColWhat("remove", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory)
-        if (isColRem)
-          Utils.logging("list.remove: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
-        if (isColAdd) {
-          // if (receiverAnno.isEmpty && inLoop) {
-          // issueWarning(node, LIST_NOT_ANNOTATED)
-          // }
-          Utils.logging("list.add: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
-
-          /*val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
-            invariant =>
-              val (_, selfs: List[String]) = InvUtils.extractInv(invariant)
-              selfs.exists {
-                self =>
-                  // If a Collection Add's effect is already described in summary,
-                  // then there is no need to check if it will invalidate some invariant
-                  val isDescribedInSummary = callerSummary.exists {
-                    case MethodSummaryI(target, _) =>
-                      if (target.contains(self)) true else false
-                    case _ => false
-                  }
-                  val selfCall = self + "." + callee.getSimpleName // E.g. x.f.g.add(1)
-                  if (node.getMethodSelect.toString == selfCall && !isDescribedInSummary) {
-                    if (!InvSolver.isValidAfterUpdate(invariant, ("", 0), (self, 1), updatedLabel, node))
-                      issueError(node, "")
-                    true
-                  } else {
-                    false
-                  }
-              }
-          }*/
-          // if (numOfUpdatedInvs == 0 && !summaryExists && inLoop)
-          // issueWarning(node, LIST_NOT_ANNOTATED)
-        }
-
-        if (isIterNext) {
-          /*val numOfUpdatedInvs: Int = (fieldInvs ++ localInvs).count {
-            invariant =>
-              val (remainders: List[String], _) = InvUtils.extractInv(invariant)
-              remainders.exists {
-                remainder =>
-                  val remainderCall = remainder + "." + callee.getSimpleName // E.g. x.f.g.add(1)
-                  if (node.getMethodSelect.toString == remainderCall) {
-                    if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
-                      issueError(node, "")
-                    true
-                  } else {
-                    false
-                  }
-              }
-          }*/
-        }
-
-        // A method is invoked, but it does not have a summary and is not Collection ADD
-      }
+      // A method is invoked, but it does not have a summary and is not Collection ADD
     }
     super.visitMethodInvocation(node, p)
   }
@@ -341,14 +262,25 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param v name of a variable
-    * @param typCxt   a typing context
+    * @param expr an expression
+    * @return if the expression is a direct subtree of an expression statement
+    */
+  private def isEnclosedInExprStmt(expr: ExpressionTree): Boolean = {
+    val exprStmt = TreeUtils.enclosingOfKind(atypeFactory.getPath(expr), Tree.Kind.EXPRESSION_STATEMENT)
+    if (exprStmt == null) false
+    else exprStmt.asInstanceOf[ExpressionStatementTree].getExpression == expr
+  }
+
+  /**
+    *
+    * @param v      name of a variable
+    * @param typCxt a typing context
     * @return all types in the typing context that is dependent on
     *         the given variable name (e.g. v -> {inv1,inv2}/v.f -> {inv3,inv4})
     */
   private def inferVarType(v: String, typCxt: Map[String, String]): HashSet[String] = {
     val selfTyp: HashSet[String] = typCxt.get(v) match {
-      case Some(s) => HashSet(s.replace(v, SmtUtils.SELF))
+      case Some(s) => HashSet(s)
       case None => HashSet.empty
     }
     val dependentTyp = typCxt.foldLeft(new HashSet[String]) {
@@ -359,7 +291,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     // Check separately for the case where v does not have any type annotation
     if (dependentTyp.isEmpty && selfTyp.isEmpty) HashSet.empty
-    else selfTyp ++ dependentTyp
+    else (selfTyp ++ dependentTyp).map(s => SmtUtils.substitute(s, List(v), List(SmtUtils.SELF)))
   }
 
   /**
@@ -495,13 +427,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   /**
     *
     * @param node a statement or expression
-    * @return label of the immediate enclosing statement of the node, if any
+    * @return label of the immediate enclosing expression statement of the node, if any
     */
   private def getLabel(node: Tree): String = {
     // trees.getPath(root, node)
     val enclosingLabel = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.LABELED_STATEMENT).asInstanceOf[LabeledStatementTree]
     if (enclosingLabel != null) {
-      if (enclosingLabel.getStatement == node) enclosingLabel.getLabel.toString else ""
+      if (enclosingLabel.getStatement.isInstanceOf[ExpressionStatementTree]) enclosingLabel.getLabel.toString else ""
     } else {
       ""
     }
@@ -541,4 +473,25 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * 5. trees.xxx
     * 6. types.xxx
     */
+
+  case class CallSite(node: MethodInvocationTree) {
+    val callee: ExecutableElement = getMethodElementFromInvocation(node)
+    val caller: ExpressionTree = TreeUtils.getReceiverTree(node)
+    val callerName: String = if (caller == null) "" else caller.toString
+    val callerTyp: AnnotatedTypeMirror = getTypeFactory.getReceiverType(node)
+    val callerDecl: Element = {
+      if (caller != null) {
+        TreeUtils.elementFromUse(caller)
+      } else { // this is member method invocation, therefore we return the class tree
+        TreeUtils.elementFromDeclaration(getEnclosingClass(node))
+      }
+    }
+    val vtPairs: List[(VariableElement, AnnotatedTypeMirror)] = callee.getParameters.asScala.zip(atypeFactory.fromElement(callee).getParameterTypes.asScala).toList
+    // elements.getAllAnnotationMirrors(receiverDecl).asScala.toList
+    // trees.getTypeMirror()
+    // atypeFactory.declarationFromElement(callee)
+    // val callerSummary = Utils.getMethodSummary(getMethodElementFromDecl(getEnclosingMethod(node)), atypeFactory)
+    // val calleeSummary = Utils.getMethodSummary(getMethodElementFromInvocation(node), atypeFactory)
+  }
+
 }
