@@ -92,7 +92,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
                     assert(false, "Invariant cannot be self")
                     SmtUtils.TRUE
                   } else if (token != SmtUtils.TRUE && token != SmtUtils.FALSE) { // E.g. @Inv("x|n|c") Iterator it;
-                    SmtUtils.mkEq(SmtUtils.SELF, inv) // E.g. x|n|c -> = self x|n|c
+                    // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
+                    SmtUtils.mkEq(SmtUtils.SELF, inv)
                   } else inv
                 } else {
                   inv

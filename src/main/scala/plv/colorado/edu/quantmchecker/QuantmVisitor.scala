@@ -73,6 +73,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     super.processClassTree(classTree)
   }
 
+  // Assume that all variables' scope is global to a method
   override def visitAssignment(node: AssignmentTree, p: Void): Void = {
     val (fieldInvs, localInvs, label) = prepare(node)
     val lhs = node.getVariable
@@ -86,9 +87,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
     }
     val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
-
-    Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))
-    // issueError(node, "In assignment: rhs's type doesn't imply lhs's")
+    if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication)))
+      issueError(node, "In assignment: rhs's type doesn't imply lhs's")
 
     /*Utils.COLLECTION_ADD.foreach {
     case (klass, method) =>
@@ -101,16 +101,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       }
   }*/
 
-    /**
-      * Assume that any two variables won't have a same name. Otherwise,
-      * if variable a is used in an invariant in one scope, but not used
-      * in an invariant in the other scope, type check will fail.
-      */
     (fieldInvs ++ localInvs).foreach {
-      case (v, inv) =>
+      case (v, inv) if v != lhs.toString =>
         val q = SmtUtils.substitute(inv, List(label), List(SmtUtils.mkAdd(label, "1")))
         val implication = SmtUtils.mkImply(inv, q)
-      // Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))
+        if (!Z3Solver.check(Z3Solver.parseSMTLIB2String(implication)))
+          issueError(node, "In assignment: invariant invalidated due to counter increment")
     }
 
     /**
@@ -345,22 +341,25 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param variable name of a variable
+    * @param v name of a variable
     * @param typCxt   a typing context
     * @return all types in the typing context that is dependent on
     *         the given variable name (e.g. v -> {inv1,inv2}/v.f -> {inv3,inv4})
     */
-  private def inferVarType(variable: String, typCxt: Map[String, String]): HashSet[String] = {
-    val selfTyp: HashSet[String] = typCxt.get(variable) match {
-      case Some(s) => HashSet(s)
+  private def inferVarType(v: String, typCxt: Map[String, String]): HashSet[String] = {
+    val selfTyp: HashSet[String] = typCxt.get(v) match {
+      case Some(s) => HashSet(s.replace(v, SmtUtils.SELF))
       case None => HashSet.empty
     }
-    typCxt.foldLeft(selfTyp) {
+    val dependentTyp = typCxt.foldLeft(new HashSet[String]) {
       case (acc2, (vInEnv, typInEnv)) =>
-        if (SmtUtils.containsToken(typInEnv, variable))
+        if (SmtUtils.containsToken(typInEnv, v))
           acc2 + SmtUtils.substitute(typInEnv, List(SmtUtils.SELF), List(vInEnv)) // E.g. self -> vInEnv
         else acc2
     }
+    // Check separately for the case where v does not have any type annotation
+    if (dependentTyp.isEmpty && selfTyp.isEmpty) HashSet.empty
+    else selfTyp ++ dependentTyp
   }
 
   /**
@@ -372,14 +371,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def inferExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
     expr match {
       case e: MemberSelectTree => inferVarType(e.toString, typCxt) // E.g. v.f
+      case e: IdentifierTree => inferVarType(e.toString, typCxt) + SmtUtils.mkEq(Utils.hashCode(e), e.toString)
       case e: LiteralTree =>
-        if (Utils.isValidId(e.toString)) {
-          e.getKind match {
-            case Tree.Kind.INT_LITERAL => HashSet[String](SmtUtils.mkEq(Utils.hashCode(e), e.toString))
-            case Tree.Kind.VARIABLE => inferVarType(e.toString, typCxt) + SmtUtils.mkEq(Utils.hashCode(e), e.toString)
-            case _ => new HashSet[String] // ignored
-          }
-        } else new HashSet[String] // ignored
+        e.getKind match {
+          case Tree.Kind.INT_LITERAL => HashSet[String](SmtUtils.mkEq(Utils.hashCode(e), e.toString))
+          // case Tree.Kind.VARIABLE =>
+          case _ => new HashSet[String] // ignored
+        }
       case e: BinaryTree =>
         val left = e.getLeftOperand.toString
         val right = e.getRightOperand.toString
@@ -391,7 +389,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val leftCons = inferExprType(e.getLeftOperand, typCxt)
         val rightCons = inferExprType(e.getRightOperand, typCxt)
         // If cannot infer constraints for any operand, then cannot infer constraints for the binary expression
-        if (leftCons.nonEmpty || rightCons.nonEmpty) leftCons ++ rightCons + eq else new HashSet[String]
+        if (leftCons.nonEmpty && rightCons.nonEmpty) leftCons ++ rightCons + eq else new HashSet[String]
       // case e: MethodInvocationTree =>
       case _ => new HashSet[String] // ignored
     }
