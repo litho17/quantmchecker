@@ -20,6 +20,7 @@ object SmtUtils {
   val FALSE = "false"
   val SELF = "self"
   val CHECK_SAT = "(check-sat)"
+  val INIT = "init"
 
   /**
     *
@@ -96,15 +97,20 @@ object SmtUtils {
     */
   def substitute(str: String, _old: List[String], _new: List[String]): String = {
     assert(_old.size == _new.size)
+    val filter = _old.zip(_new).filter { case (o, n) => o != "" && n!= ""} // Filter out ""
+    val __old = filter.map { case (o, n) => o}
+    val __new = filter.map { case (o, n) => n}
+
     val tokens = parseSmtlibToToken(str)
-    val newTokens = tokens.map {
-      case t: SymbolLit =>
-        val idx = _old.indexOf(t.content)
-        if (idx != -1)
-          SymbolLit(_new(idx))
-        else
-          t
-      case x@_ => x
+    val newTokens = tokens.zipWithIndex.map {
+      case (t: SymbolLit, i) =>
+        val idx = __old.indexOf(t.content)
+        if (idx != -1) {
+          if (i >= 1) { // TODO: Don't replace any arg of init (hard coded)
+            if (tokens(i-1).toString() == INIT) t else SymbolLit(__new(idx))
+          } else SymbolLit(__new(idx))
+        } else t
+      case x@_ => x._1
     }
     // tokens.foreach(t => println(t, t.getClass))
     // newTokens.foreach(t => println(t, t.getClass))
@@ -199,6 +205,20 @@ object SmtUtils {
 
   /**
     *
+    * @param str an SMTLIB2 string
+    * @return if the given string represents a line counter
+    */
+  def isLineCounter(str: String): Boolean = {
+    val tokens = parseSmtlibToToken(str)
+    if (tokens.length == 1) {
+      if (str.length >= 1) {
+        str.startsWith("c") && str.substring(1).forall(c => c.isDigit)
+      } else false
+    } else false
+  }
+
+  /**
+    *
     * @param inv an invariant
     * @return if the invariant is composed of only 1 token, then return "= self inv"
     */
@@ -241,7 +261,7 @@ object SmtUtils {
     * @return a set of symbols in the string
     */
   def extractSyms(str: String): Set[String] = {
-    val reserved = List("+", "-", "*", "/", "=", "and", TRUE, FALSE)
+    val reserved = List("+", "-", "*", "/", "=", "and", TRUE, FALSE, INIT)
     parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
       (acc, t) =>
         t.kind match {
