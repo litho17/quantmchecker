@@ -94,11 +94,16 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @return a set of collected annotations: self/self.f.g -> its type annotation
     */
   def getVarAnnoMap(annotation: AnnotationMirror): HashMap[String, String] = {
-    if (annotation != null) {
+    if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, INV)) {
       Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
         (acc, inv) =>
-          SmtUtils.startsWithToken(inv, SmtUtils.SELF).foldLeft(acc) { // E.g. self or self.f.g
-            (acc2, t) => acc2 + (t -> SmtUtils.invToSMTLIB2(inv))
+          // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
+          val invValidFormat = SmtUtils.rmParen(inv.trim)
+          val keys = SmtUtils.startsWithToken(invValidFormat, SmtUtils.SELF)
+          if (keys.nonEmpty) { // E.g. self or self.f.g
+            keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> invValidFormat) }
+          } else { // E.g. x|c|n -> = self x|c|n
+            acc + (SmtUtils.SELF -> SmtUtils.invToSMTLIB2(invValidFormat))
           }
       }
     } else {
@@ -130,6 +135,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @param classTree a class definition
     * @return a typing context collected from class field declarations: variable -> its type annotation
     *         E.g. v -> = self c1
+    *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getFieldTypCxt(classTree: ClassTree): HashMap[String, String] = {
     classTree.getMembers.asScala.foldLeft(new HashMap[String, String]) {
@@ -151,12 +157,13 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @param methodTree a method
     * @return a typing context collected from local variable declarations: variable -> its type annotation
     *         E.g. v -> = self c1
+    *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getLocalTypCxt(methodTree: MethodTree): HashMap[String, String] = {
     if (methodTree.getBody != null) {
       val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
-        (acc, stmt) => acc ++ flattenStmt(stmt)
-      } ++ methodTree.getParameters.asScala
+        (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
+      } // ++ methodTree.getParameters.asScala
 
       stmts.foldLeft(new HashMap[String, String]) {
         (acc, stmt) =>
@@ -175,38 +182,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       }
     } else {
       new HashMap[String, String]
-    }
-  }
-
-  /**
-    *
-    * @param node a statement tree
-    * @return collect a set of all leave statements
-    *         Note: All other StatementTrees are ignored
-    */
-  def flattenStmt(node: StatementTree): HashSet[StatementTree] = {
-    node match {
-      case stmt: BlockTree =>
-        stmt.getStatements.asScala.foldLeft(new HashSet[StatementTree])((acc, s) => acc ++ flattenStmt(s))
-      case stmt: DoWhileLoopTree => flattenStmt(stmt.getStatement)
-      case stmt: EnhancedForLoopTree => flattenStmt(stmt.getStatement)
-      case stmt: ForLoopTree =>
-        stmt.getInitializer.asScala.foldLeft(flattenStmt(stmt.getStatement)) {
-          (acc, s) => acc ++ flattenStmt(s)
-        }
-      case stmt: WhileLoopTree => flattenStmt(stmt.getStatement)
-      case stmt: LabeledStatementTree => flattenStmt(stmt.getStatement)
-      case stmt: IfTree => flattenStmt(stmt.getThenStatement) ++ flattenStmt(stmt.getElseStatement)
-      case stmt: SwitchTree =>
-        stmt.getCases.asScala.foldLeft(new HashSet[StatementTree]) {
-          (acc, caseTree) => caseTree.getStatements.asScala.foldLeft(acc)((acc2, s) => acc2 ++ flattenStmt(s))
-        }
-      case stmt: ExpressionStatementTree => HashSet[StatementTree](stmt)
-      case stmt: ReturnTree => HashSet[StatementTree](stmt)
-      case stmt: VariableTree => HashSet[StatementTree](stmt)
-      case stmt: TryTree => flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)
-      case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
-      case _ => new HashSet[StatementTree]
     }
   }
 
