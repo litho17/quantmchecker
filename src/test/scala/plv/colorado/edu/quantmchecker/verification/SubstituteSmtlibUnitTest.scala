@@ -17,4 +17,13 @@ class SubstituteSmtlibUnitTest extends FlatSpec with Matchers {
         println(SmtUtils.parseSmtlibToToken(newStr))
     }
   }
+
+  "substitution" should "also work" in {
+    val label = "c52"
+    val receiverName = "it"
+    val p = "= (+ self it) (- c54 c52)"
+    val q = SmtUtils.substitute(p, List(label, receiverName),
+      List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(receiverName,"1")))
+    println(q)
+  }
 }

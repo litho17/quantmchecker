@@ -279,6 +279,7 @@ object SmtUtils {
     * @return an SMTLIB2 string: for all free variables in p and q, p => q
     */
   def mkImply(p: String, q: String): String = {
+    if (p == q) return TRUE
     val prefix = "(assert\n\t(forall\n"
     val implies = "\t\t(implies\n"
     val suffix = "\n\t\t)\n\t)\n)"

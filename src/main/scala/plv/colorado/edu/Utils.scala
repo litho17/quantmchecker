@@ -115,12 +115,12 @@ object Utils {
   val ITER_NEXT: HashSet[(String, String)] = HashSet(
     ("java.util.Iterator", "next"),
     ("java.util.regex.Matcher", "find"),
-    ("java.util.StringTokenizer", "hasMoreElements"),
-    ("java.util.StringTokenizer", "hasMoreTokens"),
-    ("java.util.Enumeration", "hasMoreElements"),
+    ("java.util.StringTokenizer", "nextElement"),
+    ("java.util.StringTokenizer", "nextToken"),
+    ("java.util.Enumeration", "nextElement"),
     ("java.io.BufferedReader", "readLine"),
-    ("java.io.InputStreamReader", "read"),
-    ("java.util.Queue", "poll")
+    ("java.io.InputStreamReader", "read")
+    // ("java.util.Queue", "poll")
   )
 
   /**

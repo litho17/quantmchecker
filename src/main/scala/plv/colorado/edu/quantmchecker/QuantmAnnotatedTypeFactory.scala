@@ -129,6 +129,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     *
     * @param classTree a class definition
     * @return a typing context collected from class field declarations: variable -> its type annotation
+    *         E.g. v -> = self c1
     */
   def getFieldTypCxt(classTree: ClassTree): HashMap[String, String] = {
     classTree.getMembers.asScala.foldLeft(new HashMap[String, String]) {
@@ -149,6 +150,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     *
     * @param methodTree a method
     * @return a typing context collected from local variable declarations: variable -> its type annotation
+    *         E.g. v -> = self c1
     */
   def getLocalTypCxt(methodTree: MethodTree): HashMap[String, String] = {
     if (methodTree.getBody != null) {
