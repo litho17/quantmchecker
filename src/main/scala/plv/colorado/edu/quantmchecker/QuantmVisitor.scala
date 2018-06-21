@@ -341,8 +341,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case m: MethodInvocationTree =>
         val callee = getMethodElementFromInvocation(m)
         val receiver = TreeUtils.getReceiverTree(m)
-        val receivetTyp = types.erasure(getTypeFactory.getReceiverType(m).getUnderlyingType)
-        val isIter = Utils.isColWhat("iterator", receivetTyp, callee, atypeFactory) // E.g. it = x.iterator()
+        val receiverTyp = getTypeFactory.getReceiverType(m)
+        if (receiverTyp == null)
+          return false
+        val isIter = Utils.isColWhat("iterator", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory) // E.g. it = x.iterator()
       val isClone = rhsStr == "clone"
         val isRhsEmp = rhsStr.startsWith(EMP_COLLECTION_PREFIX) // || rhsStr.startsWith("Collections.unmodifiable")
         if (isIter || isClone || isRhsEmp)
