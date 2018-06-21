@@ -26,6 +26,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val ISSUE_ALL_UNANNOTATED_LISTS = true
 
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
   protected val TOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
   protected val BOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
@@ -43,10 +44,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private var iters: HashSet[String] = HashSet.empty // Names of iterators in current method
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
-    iters = getIterators(node)
+    iters = getIters(node)
     val typCxt = atypeFactory.getLocalTypCxt(node)
-    typCxt.foreach { // Check each invariant is a valid SMTLIB2 string
-      case (v, t) => SmtUtils.parseSmtlibToToken(t)
+    typCxt.foreach {
+      case (v, t) =>
+        try { // Check each invariant is a valid SMTLIB2 string
+          SmtUtils.parseSmtlibToToken(t)
+        } catch {
+          case e: Exception => assert(false)
+        }
     }
     typCxt.foreach {
       case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
@@ -54,13 +60,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         typecheck(SmtUtils.mkAssertion(init), node, "T-Init\n")
       case _ => true
     }
-
-    /*val obj = new Linear
-    obj.add(1, "c62")
-    obj.add(-1, "c63")
-    obj.add(1, "c60")
-
-    PrintStuff.printRedString(node.getName, SolveLP.optimizeWithinMethod(node, obj))*/
     super.visitMethod(node, p)
   }
 
@@ -111,7 +110,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param typMap typing context
     * @return all iterators in the typing context that are attached to v
     */
-  private def getIterators(list: String, typMap: Map[String, String]): HashSet[String] = {
+  private def getListIters(list: String, typMap: Map[String, String]): HashSet[String] = {
     typMap.foldLeft(new HashSet[String]) {
       case (acc, (v, t)) => if (SmtUtils.SMTLIB2Toinv(t) == list) acc + v else acc
     }
@@ -122,7 +121,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param node method
     * @return all local variables in the method that are of iterator type
     */
-  private def getIterators(node: MethodTree): HashSet[String] = {
+  private def getIters(node: MethodTree): HashSet[String] = {
     if (node.getBody != null) {
       Utils.flattenStmt(node.getBody).foldLeft(new HashSet[String]) {
         (acc, stmt) =>
@@ -174,7 +173,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               if (isRmv) {
                 {
                   val p = tp
-                  val iterators = getIterators(callerName, typingCxt).toList
+                  val iterators = getListIters(callerName, typingCxt).toList
                   val _old = label :: callerName :: iterators
                   val _new = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkSub(callerName, "1") ::
                     iterators.map(s => SmtUtils.mkSub(s, "1"))
@@ -247,30 +246,50 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp, callSite.callerDecl, callSite.vtPairs)
 
     if (callerTyp != null) {
-      vtPairs.foldLeft(new HashSet[String]) {
+      val argInc = vtPairs.foldLeft(List[HashMap[String, String]]()) {
         case (acc, (v, t: AnnotatedTypeMirror)) =>
           val anno = atypeFactory.getTypeAnnotation(t.getAnnotations)
-          if (anno != null) {
-            val map = atypeFactory.getVarAnnoMap(anno)
-            acc
-          } else acc
+          if (anno != null) atypeFactory.getVarAnnoMap(anno, INC) :: acc else HashMap[String, String]() :: acc
       }
+
+      // val calleeTree = trees.getTree(callee)
+      // val calleeTypCxt = if (calleeTree != null && calleeTree.getBody != null) atypeFactory.getLocalTypCxt(calleeTree) else HashMap.empty
 
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
       typingCxt.foreach {
         case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
           val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
-          if (isAdd) {
-            val p = tp
-            val iterators = getIterators(callerName, typingCxt).toList
-            val _old = label :: callerName :: iterators
-            val _new = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkAdd(callerName, "1") ::
-              iterators.map(s => SmtUtils.mkAdd(s, "1"))
-            val q = SmtUtils.substitute(p, _old, _new)
-            val implication = SmtUtils.mkImply(p, q)
-            typecheck(implication, node, "y.add(x): invariant broken")
-          } else { // E.g. v.m() affects v.f1's length
+          val p = tp
+          val iterators = getListIters(callerName, typingCxt).toList
+          val (_old: List[String], _new: List[String], cons: HashSet[String]) = {
+            if (isAdd) {
+              val o = label :: callerName :: iterators
+              val n = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkAdd(callerName, "1") ::
+                iterators.map(s => SmtUtils.mkAdd(s, "1"))
+              (o, n, HashSet.empty)
+              /*} else if (calleeTypCxt.nonEmpty) { // E.g. o.m() may affect o.f1's length
+                val (arg, delta) = argInc.zipWithIndex.foldLeft(List[String](), List[String]()) {
+                  case (acc, (map, idx)) =>
+                    if (map.nonEmpty) {
+                      val actualArg = node.getArguments.asScala(idx).toString
+                      map.foldLeft(acc) {
+                        case (acc2, (v, t)) =>
+                          val vp = SmtUtils.substitute(v, List(SmtUtils.SELF), List(actualArg))
+                          val delta = Utils.hashCode(vp)
+                          (vp :: acc2._1, delta :: acc2._2, acc2._3)
+                      }
+                    } else acc
+                }
+
+                val o = label
+                val n = SmtUtils.mkAdd(label, "1")
+
+                (o, n)*/
+            } else (List[String](), List[String](), HashSet[String]())
           }
+          val q = SmtUtils.substitute(p, _old, _new)
+          val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(p :: cons.toList), q)
+          typecheck(implication, node, "y.add(x): invariant broken")
         case _ =>
       }
     }
@@ -280,22 +299,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   override def visitUnary(node: UnaryTree, p: Void): Void = {
     val (fieldInvs, localInvs, updatedLabel) = prepare(node)
     (fieldInvs ++ localInvs).foreach {
-      /*case invariant@Invariant(_, _, _, _) =>
-        val (remainders: List[String], selfs: List[String]) = InvUtils.extractInv(invariant)
-        remainders.foreach {
-          remainder =>
-            // This expression could only change remainder
-            if (remainder == node.getExpression.toString) {
-              node.getKind match {
-                case Tree.Kind.POSTFIX_INCREMENT
+      /*Tree.Kind.POSTFIX_INCREMENT
                      | Tree.Kind.PREFIX_INCREMENT
                      | Tree.Kind.POSTFIX_DECREMENT
-                     | Tree.Kind.PREFIX_DECREMENT =>
-                  if (!InvSolver.isValidAfterUpdate(invariant, (remainder, -1), ("", 0), updatedLabel, node))
-                    issueError(node, "")
-                case _ => issueWarning(node, "[UnaryTree] Unknown unary operator is " + NOT_SUPPORTED); true
-              }
-            }
+                     | Tree.Kind.PREFIX_DECREMENT
         }*/
       case _ => ignoreWarning(node, "[UnaryTree] " + NOT_SUPPORTED); true
     }

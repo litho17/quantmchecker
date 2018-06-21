@@ -91,10 +91,11 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   /**
     *
     * @param annotation type annotation of a variable
+    * @param invTyp     a specific type of annotation
     * @return a set of collected annotations: self/self.f.g -> its type annotation
     */
-  def getVarAnnoMap(annotation: AnnotationMirror): HashMap[String, String] = {
-    if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, INV)) {
+  def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror = INV): HashMap[String, String] = {
+    if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, invTyp)) {
       Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
         (acc, inv) =>
           // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
