@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
-import com.sun.source.tree.{CompilationUnitTree, Tree}
+import com.sun.source.tree._
 import com.sun.source.util.SourcePositions
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TypeAnnotationUtils}
@@ -206,5 +206,37 @@ object Utils {
   def isValidId(str: String): Boolean = {
     val pattern = "(?:\\b[_a-zA-Z]|\\B\\$)[_$a-zA-Z0-9]*+"
     str.matches(pattern)
+  }
+
+  /**
+    *
+    * @param node a statement tree
+    * @return collect a set of all leave statements
+    *         Note: All other StatementTrees are ignored
+    */
+  def flattenStmt(node: StatementTree): HashSet[StatementTree] = {
+    node match {
+      case stmt: BlockTree =>
+        stmt.getStatements.asScala.foldLeft(new HashSet[StatementTree])((acc, s) => acc ++ flattenStmt(s))
+      case stmt: DoWhileLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: EnhancedForLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: ForLoopTree =>
+        stmt.getInitializer.asScala.foldLeft(flattenStmt(stmt.getStatement)) {
+          (acc, s) => acc ++ flattenStmt(s)
+        }
+      case stmt: WhileLoopTree => flattenStmt(stmt.getStatement)
+      case stmt: LabeledStatementTree => flattenStmt(stmt.getStatement)
+      case stmt: IfTree => flattenStmt(stmt.getThenStatement) ++ flattenStmt(stmt.getElseStatement)
+      case stmt: SwitchTree =>
+        stmt.getCases.asScala.foldLeft(new HashSet[StatementTree]) {
+          (acc, caseTree) => caseTree.getStatements.asScala.foldLeft(acc)((acc2, s) => acc2 ++ flattenStmt(s))
+        }
+      case stmt: ExpressionStatementTree => HashSet[StatementTree](stmt)
+      case stmt: ReturnTree => HashSet[StatementTree](stmt)
+      case stmt: VariableTree => HashSet[StatementTree](stmt)
+      case stmt: TryTree => flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)
+      case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
+      case _ => new HashSet[StatementTree]
+    }
   }
 }

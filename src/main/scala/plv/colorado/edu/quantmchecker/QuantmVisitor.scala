@@ -1,5 +1,6 @@
 package plv.colorado.edu.quantmchecker
 
+import java.io.File
 import javax.lang.model.element._
 
 import com.sun.source.tree._
@@ -39,7 +40,21 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
   }
 
+  private var iters: HashSet[String] = HashSet.empty // Names of iterators in current method
+
   override def visitMethod(node: MethodTree, p: Void): Void = {
+    iters = getIterators(node)
+    val typCxt = atypeFactory.getLocalTypCxt(node)
+    typCxt.foreach { // Check each invariant is a valid SMTLIB2 string
+      case (v, t) => SmtUtils.parseSmtlibToToken(t)
+    }
+    typCxt.foreach {
+      case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
+        val init = initInv(t, typCxt)
+        typecheck(SmtUtils.mkAssertion(init), node, "T-Init\n")
+      case _ => true
+    }
+
     /*val obj = new Linear
     obj.add(1, "c62")
     obj.add(-1, "c63")
@@ -75,15 +90,17 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   /**
     *
-    * @param implication the query
-    * @param node        AST node
-    * @param errorMsg    error message if query is not satisfiable
+    * @param query    a query
+    * @param node     AST node
+    * @param errorMsg error message if query is not satisfiable
     */
-  private def typecheck(implication: String, node: Tree, errorMsg: String): Boolean = {
-    val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(implication))
+  private def typecheck(query: String, node: Tree, errorMsg: String): Boolean = {
+    // Declare init as uninterpreted function
+    val declInit = "(declare-fun " + SmtUtils.INIT + " (Int) Int)\n"
+    val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(declInit + query))
     if (!isChecked) {
-      if (DEBUT_CHECK) println(implication)
-      issueWarning(node, errorMsg)
+      // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
+      issueWarning(node, errorMsg + "\n" + query)
     }
     isChecked
   }
@@ -98,6 +115,32 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     typMap.foldLeft(new HashSet[String]) {
       case (acc, (v, t)) => if (SmtUtils.SMTLIB2Toinv(t) == list) acc + v else acc
     }
+  }
+
+  /**
+    *
+    * @param node method
+    * @return all local variables in the method that are of iterator type
+    */
+  private def getIterators(node: MethodTree): HashSet[String] = {
+    if (node.getBody != null) {
+      Utils.flattenStmt(node.getBody).foldLeft(new HashSet[String]) {
+        (acc, stmt) =>
+          stmt match {
+            case v: VariableTree =>
+              val element = TreeUtils.elementFromTree(v)
+              val typ = types.erasure(trees.getTypeMirror(trees.getPath(element)))
+              val typeElement = types.asElement(typ)
+              if (typeElement != null) {
+                val isIterClass = Utils.ITER_NEXT.exists {
+                  case (c, m) => c.contains(typeElement.toString)
+                }
+                if (isIterClass) acc + v.getName.toString else acc
+              } else acc
+            case _ => acc
+          }
+      }
+    } else HashSet.empty
   }
 
   // Assume that all variables' scope is global to a method
@@ -126,7 +169,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           val isNext = Utils.isColWhat("next", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
           val isRmv = Utils.isColWhat("remove", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
           typingCxt.foreach {
-            case (v, t) =>
+            case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
               val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
               if (isRmv) {
                 {
@@ -160,12 +203,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     "y = x.next: invariant broken due to incompatible types between x's element and y")
                 }
               }
+            case _ =>
           }
         }
       case _ => {
         val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
         typecheck(implication, node, "x = e: rhs's type doesn't imply lhs's")
-        // types.asElement(types.erasure(lhsTyp.getUnderlyingType))
       }
         typingCxt.foreach {
           case (v, t) =>
@@ -204,11 +247,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp, callSite.callerDecl, callSite.vtPairs)
 
     if (callerTyp != null) {
-      // val absPath = root.getSourceFile.getName
-      // val relativePath = if (absPath.startsWith(Utils.DESKTOP_PATH + File.separator)) absPath.substring(Utils.DESKTOP_PATH.length + 1) else absPath
-      // Utils.logging("list.remove: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
-      // Utils.logging("list.add: [Line " + getLineNumber(node) + "] " + relativePath + ", " + node.toString)
-
       vtPairs.foldLeft(new HashSet[String]) {
         case (acc, (v, t: AnnotatedTypeMirror)) =>
           val anno = atypeFactory.getTypeAnnotation(t.getAnnotations)
@@ -220,7 +258,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
       typingCxt.foreach {
-        case (v, t) =>
+        case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
           val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
           if (isAdd) {
             val p = tp
@@ -233,6 +271,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             typecheck(implication, node, "y.add(x): invariant broken")
           } else { // E.g. v.m() affects v.f1's length
           }
+        case _ =>
       }
     }
     super.visitMethodInvocation(node, p)
@@ -307,6 +346,31 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // val isInit = if (getEnclosingMethod(node) != null) getEnclosingMethod(node).toString.contains("init") else false
         isRhsNull // || isInit // unsound
     }
+  }
+
+  /**
+    *
+    * @param inv    invariant
+    * @param typCxt typing context
+    * @return the (symbolic) initial value of the invariant
+    */
+  private def initInv(inv: String, typCxt: Map[String, String]): String = {
+    val tokens = SmtUtils.parseSmtlibToToken(inv)
+    val counters = tokens.filter(t => SmtUtils.isLineCounter(t.toString())).map(t => t.toString()) // init(counter) = 0
+    val (iterators, lists) = { // init(it) = init(list)
+      typCxt.foldLeft(List[String](), List[String]()) {
+        case (acc, (v, t)) => if (iters.contains(v)) {
+          (v :: acc._1, SmtUtils.addParen(SmtUtils.INIT + " " + SmtUtils.SMTLIB2Toinv(t)) :: acc._2)
+        } else acc
+      }
+    }
+    val (vars, initVars) = { // init(x) = init(x)
+      val vars = SmtUtils.extractSyms(inv).diff(iters).toList
+      (vars, vars.map(v => SmtUtils.addParen(SmtUtils.INIT + " " + v)))
+    }
+    val _old: List[String] = List(SmtUtils.SELF) ::: counters ::: vars ::: iterators
+    val _new: List[String] = List("0") ::: counters.map(_ => "0") ::: initVars ::: lists
+    SmtUtils.substitute(inv, _old, _new)
   }
 
   /**
@@ -499,6 +563,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (enclosingMethod == null)
       return false
     enclosingMethod.getName.toString == "<init>"
+  }
+
+  private def getFileName: String = {
+    val absPath = root.getSourceFile.getName
+    if (absPath.startsWith(Utils.DESKTOP_PATH + File.separator)) absPath.substring(Utils.DESKTOP_PATH.length + 1) else absPath
   }
 
   /** Places to look for help:

@@ -114,7 +114,7 @@ object SmtUtils {
     }
     // tokens.foreach(t => println(t, t.getClass))
     // newTokens.foreach(t => println(t, t.getClass))
-    newTokens.foldLeft("") {
+    val ret = newTokens.foldLeft("") {
       (acc, t) =>
         if (t.kind == OParen)
           acc + "( "
@@ -122,7 +122,8 @@ object SmtUtils {
           acc + ") "
         else
           acc + t.toString() + " "
-    }
+    }.trim
+    rmParen(ret)
   }
 
   /**
@@ -187,16 +188,16 @@ object SmtUtils {
       None
   }
 
-  /**
-    *
-    * @param str a SMTLIB2 string
-    * @return a properly parenthesized SMTLIB2 string
-    */
   def addParen(str: String): String = {
     if (str.contains(" ") && !str.startsWith("("))
       "(" + str + ")"
     else
       str
+  }
+
+  def rmParen(str: String): String = {
+    val ret = str.trim
+    if (ret.startsWith("(") && ret.endsWith(")")) ret.substring(1, ret.length-1) else ret.trim
   }
 
   def mkEq(a: String, b: String): String = "(= " + a + " " + b + ")"
@@ -229,9 +230,8 @@ object SmtUtils {
       if (token == SELF) {
         assert(false, "Invariant cannot be self")
         TRUE
-      } else if (token != TRUE && token != FALSE) { // E.g. @Inv("x|n|c") Iterator it;
-        // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
-        mkEq(SELF, inv)
+      } else if (token != TRUE && token != FALSE) { // Automatically tranform invariant (e.g. x|n|c -> = self x|n|c)
+        rmParen(mkEq(SELF, inv)) // Note that parenthesis are removed
       } else
         inv
     } else
@@ -246,9 +246,9 @@ object SmtUtils {
   def SMTLIB2Toinv(inv: String): String = { // TODO: not tested
     val tokens = parseSmtlibToToken(inv)
     if (tokens.length == 3) {
-      if (tokens.head.toString() == SELF && tokens.length == 2) {
+      if (tokens(1).toString() == SELF) {
         val ret = tokens(2).toString()
-        assert(ret != TRUE && ret != FALSE && ret != SELF)
+        assert(ret != SELF)
         ret
       } else inv
     } else
@@ -290,6 +290,27 @@ object SmtUtils {
         (acc, c) => acc + " " + addParen(c)
       } + ")"
     }
+  }
+
+  /**
+    *
+    * @param p an SMTLIB2 string
+    * @return assert
+    */
+  def mkAssertion(p: String): String = {
+    val prefix = "(assert\n\t(forall\n"
+    val suffix = "\n\t)\n)"
+
+    val syms = {
+      val syms = extractSyms(p)
+      if (syms.isEmpty) syms + "DUMMY" else syms
+    }
+    val intTypSyms = syms.foldLeft("") {
+      (acc, sym) => acc + " (" + sym + " Int)"
+    }
+    val defSyms = "\t\t(" + intTypSyms + ")\n"
+
+    prefix + defSyms + "\t\t" + addParen(p) + suffix
   }
 
   /**

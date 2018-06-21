@@ -2,7 +2,7 @@ package plv.colorado.edu.quantmchecker.verification
 
 import java.util
 
-import com.microsoft.z3.{BoolExpr, Context, Solver, Status}
+import com.microsoft.z3._
 
 /**
   * @author Tianhan Lu
@@ -33,10 +33,15 @@ object Z3Solver {
     try {
       ctx.parseSMTLIB2String(str, null, null, null, null)
     } catch {
-      case e: Exception => println("SMTLIB2 parse exception:\n" + str); Array(ctx.mkFalse())
+      case e: Exception => println("SMTLIB2 parse exception:\n" + str + "\n"); Array(ctx.mkFalse())
     }
   }
-  def parseSMTLIB2String(str: String): BoolExpr = ctx.mkAnd(parseSMTLIB2StringToArray(str): _*)
+  def parseSMTLIB2String(str: String): BoolExpr = {
+    val array = parseSMTLIB2StringToArray(str)
+    if (array.length == 1) array.head
+    else if (array.isEmpty) ctx.mkTrue()
+    else ctx.mkAnd(parseSMTLIB2StringToArray(str): _*)
+  }
 
   private def interpretSolverOutput(status : Status) : Boolean = status match {
     case Status.UNSATISFIABLE => false
