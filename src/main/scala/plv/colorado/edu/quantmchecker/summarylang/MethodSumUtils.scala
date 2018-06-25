@@ -12,21 +12,25 @@ object MethodSumUtils {
     *
     * @param summary       a method summary
     * @param invokedMethod a method invocation
-    * @return Either the index of formal argument that is described by the summary,
-    *         or the class field that is described by the summary
-    *         Invariant: each summary describes at most one variable's change
+    * @return index of the target variable and the access path (-1 represents "this")
+    *         E.g. this.f -> (-1, ".f"); o.g -> (2, ".g")
     */
-  def whichVar(summary: MethodSummary, invokedMethod: ExecutableElement): Either[Integer, String] = {
+  def whichVar(summary: MSum, invokedMethod: ExecutableElement): (Integer, String) = {
     val formalArgs = invokedMethod.getParameters.asScala.map(v => v.getSimpleName.toString)
     val varName = summary match {
-      case MethodSummaryI(v, _) => v
-      case MethodSummaryV(v, _) => v
+      case MSumI(v, _) => v
+      case MSumV(v, _) => v
       case _ => ""
     }
-    if (formalArgs.contains(varName)) {
-      Left(formalArgs.indexOf(varName))
-    } else {
-      Right(varName)
+    val dotIdx = varName.indexOf(".")
+    val (target, accessPath) = {
+      if (dotIdx != -1) (varName.substring(0, dotIdx), varName.substring(dotIdx, varName.length))
+      else (varName, "")
     }
+    val idx = {
+      if (target == "this") -1
+      else formalArgs.indexOf(target)
+    }
+    (idx, accessPath)
   }
 }

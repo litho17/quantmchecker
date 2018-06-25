@@ -10,6 +10,7 @@ import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual._
+import plv.colorado.edu.quantmchecker.summarylang.{MSum, MSumI, MSumV, MethodSumUtils}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
 
@@ -99,7 +100,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(declInit + query))
     if (!isChecked) {
       // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
-      issueWarning(node, errorMsg + "\n" + query)
+      issueError(node, errorMsg)
     }
     isChecked
   }
@@ -153,8 +154,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val rhs = node.getExpression
     // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     // val lhsAnno = lhsTyp.getAnnotations
-    val lhsTyp = inferVarType(node.getVariable.toString, typingCxt) // Invariant: lhs is replaced with self
-    val rhsTyp = { // Invariant: lhs is replaced with self
+    val lhsTyp = inferVarType(node.getVariable.toString, typingCxt) // self -> ...self...
+    val rhsTyp = { // self -> ...self...
       val set = inferExprType(node.getExpression, typingCxt)
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
     }.map { s => SmtUtils.substitute(s, List(label, lhs.toString), List(SmtUtils.mkAdd(label, "1"), SmtUtils.SELF)) }
@@ -167,21 +168,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         if (callerTyp != null) {
           val isNext = Utils.isColWhat("next", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
           val isRmv = Utils.isColWhat("remove", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
-          typingCxt.foreach {
-            case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
+          val iterators = getListIters(callerName, typingCxt).toList
+          typingCxt.foreach { // Do not check iterator's and self's type annotation
+            case (v, t) if !iters.contains(v) && v != callerName =>
               val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
-              if (isRmv) {
-                {
-                  val p = tp
-                  val iterators = getListIters(callerName, typingCxt).toList
-                  val _old = label :: callerName :: iterators
-                  val _new = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkSub(callerName, "1") ::
-                    iterators.map(s => SmtUtils.mkSub(s, "1"))
-                  val q = SmtUtils.substitute(p, _old, _new)
-                  val implication = SmtUtils.mkImply(p, q)
-                  typecheck(implication, node, "y = x.remove: invariant broken")
-                }
-              }
               if (isNext) {
                 {
                   val p = tp
@@ -204,11 +194,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               }
             case _ =>
           }
+          // Check self's type annotation
+          if (isRmv) {
+            lhsTyp.foreach {
+              t =>
+                val p = t
+                val _old = label :: SmtUtils.SELF :: iterators
+                val _new = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkSub(SmtUtils.SELF, "1") ::
+                  iterators.map(s => SmtUtils.mkSub(s, "1"))
+                val q = SmtUtils.substitute(p, _old, _new)
+                val implication = SmtUtils.mkImply(p, q)
+                typecheck(implication, node, "y = x.remove: invariant broken")
+            }
+          }
         }
-      case _ => {
+      case _ =>
         val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
         typecheck(implication, node, "x = e: rhs's type doesn't imply lhs's")
-      }
         typingCxt.foreach {
           case (v, t) =>
             if (!atypeFactory.isDependentOn(lhs.toString, t)) { // No need to check because this is already checked above
@@ -246,22 +248,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp, callSite.callerDecl, callSite.vtPairs)
 
     if (callerTyp != null) {
-      val argInc = vtPairs.foldLeft(List[HashMap[String, String]]()) {
+      /*val argInc = vtPairs.foldLeft(List[HashMap[String, String]]()) {
         case (acc, (v, t: AnnotatedTypeMirror)) =>
           val anno = atypeFactory.getTypeAnnotation(t.getAnnotations)
           if (anno != null) atypeFactory.getVarAnnoMap(anno, INC) :: acc else HashMap[String, String]() :: acc
       }
+      val calleeTree = trees.getTree(callee)
+      val calleeTypCxt = if (calleeTree != null && calleeTree.getBody != null) atypeFactory.getLocalTypCxt(calleeTree) else HashMap.empty*/
 
-      // val calleeTree = trees.getTree(callee)
-      // val calleeTypCxt = if (calleeTree != null && calleeTree.getBody != null) atypeFactory.getLocalTypCxt(calleeTree) else HashMap.empty
-
+      val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
+      val calleeSummary = getMethodSummaries(getMethodElementFromInvocation(node))
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
-      typingCxt.foreach {
-        case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
-          val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
+      val iterators = getListIters(callerName, typingCxt).toList
+      typingCxt.foreach { // Do not check iterator's and self's type annotation
+        case (v, t) if !iters.contains(v) && !v.startsWith(callerName) =>
+          val tp = SmtUtils.substitute(t, List(SmtUtils.SELF), List(v), true)
           val p = tp
-          val iterators = getListIters(callerName, typingCxt).toList
-          val (_old: List[String], _new: List[String], cons: HashSet[String]) = {
+          val (_old: List[String], _new: List[String], extraCons: HashSet[String]) = {
             if (isAdd) {
               val o = label :: callerName :: iterators
               val n = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkAdd(callerName, "1") ::
@@ -285,14 +288,56 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 val n = SmtUtils.mkAdd(label, "1")
 
                 (o, n)*/
-            } else (List[String](), List[String](), HashSet[String]())
+            } else {
+              val (_o, _n) = getArgUpdates(calleeSummary, callerName)
+              val o = label :: _o ::: iterators
+              val n = SmtUtils.mkAdd(label, "1") :: _n ::: iterators.map(s => SmtUtils.mkAdd(s, "1"))
+              (o, n, HashSet[String]())
+            }
           }
           val q = SmtUtils.substitute(p, _old, _new)
-          val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(p :: cons.toList), q)
-          typecheck(implication, node, "y.add(x): invariant broken")
+          val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(p :: extraCons.toList), q)
+          typecheck(implication, node, "y.add(x): invariant broken on dependent types")
         case _ =>
       }
+      // Check self's type annotation
+      if (!isAdd) {
+        inferVarType(callerName, typingCxt).foreach {
+          t =>
+            val p = t
+            val tokens = SmtUtils.parseSmtlibToToken(t)
+            val selfs = tokens.filter(t => t.toString().startsWith(SmtUtils.SELF)).map(t => t.toString())
+            val (_o, _n) = getArgUpdates(calleeSummary, "self")
+            val _old = label :: _o ::: iterators
+            val _new = SmtUtils.mkAdd(label, "1") :: _n ::: iterators.map(s => SmtUtils.mkAdd(s, "1"))
+            val q = SmtUtils.substitute(p, _old, _new)
+            val implication = SmtUtils.mkImply(p, q)
+            typecheck(implication, node, "y.add(x): invariant broken on self type")
+        }
+      }
     }
+
+    def getArgUpdates(calleeSummary: HashSet[MSum], callerName: String): (List[String], List[String]) = {
+      calleeSummary.foldLeft(List[String](), List[String]()) {
+        (acc, summary) =>
+          val increment: Integer = summary match {
+            case MSumI(_, i) => i
+            case _ => 0
+          }
+          val (idx, accessPath) = MethodSumUtils.whichVar(summary, callee)
+          val target = {
+            if (idx == -1) callerName
+            else {
+              node.getArguments.get(idx) match {
+                case arg: IdentifierTree => arg
+                case _ => "" // E.g. o.m(y.n()+z)
+              }
+            }
+          } + accessPath
+          (target :: acc._1, SmtUtils.mkAdd(target, increment.toString) :: acc._2)
+      }
+    }
+
     super.visitMethodInvocation(node, p)
   }
 
@@ -344,8 +389,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val receiverTyp = getTypeFactory.getReceiverType(m)
         if (receiverTyp == null)
           return false
-        val isIter = Utils.isColWhat("iterator", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory) // E.g. it = x.iterator()
-      val isClone = rhsStr == "clone"
+        val isIter = Utils.isColWhat("iterator", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory)
+        val isClone = rhsStr == "clone"
         val isRhsEmp = rhsStr.startsWith(EMP_COLLECTION_PREFIX) // || rhsStr.startsWith("Collections.unmodifiable")
         if (isIter || isClone || isRhsEmp)
           return true
@@ -365,6 +410,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     */
   private def initInv(inv: String, typCxt: Map[String, String]): String = {
     val tokens = SmtUtils.parseSmtlibToToken(inv)
+    val selfs = tokens.filter(t => t.toString().startsWith(SmtUtils.SELF)).map(t => t.toString())
     val counters = tokens.filter(t => SmtUtils.isLineCounter(t.toString())).map(t => t.toString()) // init(counter) = 0
     val (iterators, lists) = { // init(it) = init(list)
       typCxt.foldLeft(List[String](), List[String]()) {
@@ -377,8 +423,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val vars = SmtUtils.extractSyms(inv).diff(iters).toList
       (vars, vars.map(v => SmtUtils.addParen(SmtUtils.INIT + " " + v)))
     }
-    val _old: List[String] = List(SmtUtils.SELF) ::: counters ::: vars ::: iterators
-    val _new: List[String] = List("0") ::: counters.map(_ => "0") ::: initVars ::: lists
+    val _old: List[String] = selfs ::: counters ::: vars ::: iterators
+    val _new: List[String] = selfs.map(_ => "0") ::: counters.map(_ => "0") ::: initVars ::: lists
     SmtUtils.substitute(inv, _old, _new)
   }
 
@@ -398,7 +444,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param v      name of a variable
     * @param typCxt a typing context
     * @return all types in the typing context that is dependent on
-    *         the given variable name (e.g. v -> {inv1,inv2}/v.f -> {inv3,inv4})
+    *         the given variable name (e.g. v -> {...self...}/v.f -> {...self...})
     */
   private def inferVarType(v: String, typCxt: Map[String, String]): HashSet[String] = {
     val selfTyp: HashSet[String] = typCxt.get(v) match {
@@ -408,7 +454,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val dependentTyp = typCxt.foldLeft(new HashSet[String]) {
       case (acc2, (vInEnv, typInEnv)) =>
         if (SmtUtils.containsToken(typInEnv, v))
-          acc2 + SmtUtils.substitute(typInEnv, List(SmtUtils.SELF), List(vInEnv)) // E.g. self -> vInEnv
+          acc2 + SmtUtils.substitute(typInEnv, List(SmtUtils.SELF), List(vInEnv), true) // E.g. self -> vInEnv
         else acc2
     }
     // Check separately for the case where v does not have any type annotation
@@ -589,6 +635,40 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * 5. trees.xxx
     * 6. types.xxx
     */
+
+  /**
+    *
+    * @param method a method
+    * @return the summary of the method
+    */
+  private def getMethodSummaries(method: ExecutableElement): HashSet[MSum] = {
+    if (method == null)
+      return new HashSet[MSum]
+    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
+    if (summaries.size == 1) {
+      val summaryList = Utils.extractArrayValues(summaries.head, "value")
+      if (summaryList.size % 2 != 0) {
+        issueWarning(method, "Method summary should have even number of arguments")
+        new HashSet[MSum]
+      } else {
+        summaryList.grouped(2).foldLeft(new HashSet[MSum]) {
+          (acc, summary) =>
+            assert(summary.size == 2)
+            // val variableName = summary.head
+            if (summary(1).forall(c => c.isDigit)) {
+              acc + MSumI(summaryList.head, Integer.parseInt(summaryList(1)))
+            } else {
+              acc + MSumV(summaryList.head, summaryList(1))
+            }
+        }
+      }
+    } else if (summaries.size > 1) {
+      issueWarning(method, "Method should have exactly 1 summary")
+      new HashSet[MSum]
+    } else {
+      new HashSet[MSum]
+    }
+  }
 
   case class CallSite(node: MethodInvocationTree) {
     val callee: ExecutableElement = getMethodElementFromInvocation(node)

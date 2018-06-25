@@ -90,25 +90,41 @@ object SmtUtils {
 
   /**
     *
-    * @param str  a SMTLIB2 string
-    * @param _old a list of old tokens
-    * @param _new a list of new tokens
+    * @param str    an SMTLIB2 string
+    * @param _old   a list of old tokens
+    * @param _new   a list of new tokens
+    * @param prefix if also substitute for tokens that are prefixed by any old token
     * @return replace every old token in the SMTLIB2 string with a corresponding new one
     */
-  def substitute(str: String, _old: List[String], _new: List[String]): String = {
+  def substitute(str: String, _old: List[String], _new: List[String], prefix: Boolean = false): String = {
     assert(_old.size == _new.size)
-    val filter = _old.zip(_new).filter { case (o, n) => o != "" && n!= ""} // Filter out ""
-    val __old = filter.map { case (o, n) => o}
-    val __new = filter.map { case (o, n) => n}
-
+    val filter = _old.zip(_new).filter { case (o, n) => o != "" && n != "" } // Filter out ""
+    val __old = filter.map { case (o, n) => o }
+    val __new = filter.map { case (o, n) => n }
     val tokens = parseSmtlibToToken(str)
+
+    def _substitute(tokenIdx: Int, oldToken: Token, newToken: Token): Token = {
+      if (tokenIdx >= 1) { // TODO: Don't replace any arg of init (hard coded)
+        if (tokens(tokenIdx - 1).toString() == INIT) oldToken else newToken
+      } else newToken
+    }
+
     val newTokens = tokens.zipWithIndex.map {
-      case (t: SymbolLit, i) =>
-        val idx = __old.indexOf(t.content)
-        if (idx != -1) {
-          if (i >= 1) { // TODO: Don't replace any arg of init (hard coded)
-            if (tokens(i-1).toString() == INIT) t else SymbolLit(__new(idx))
-          } else SymbolLit(__new(idx))
+      case (t: SymbolLit, tokenIdx) =>
+        val oldTokenIdx = __old.indexOf(t.content)
+        if (oldTokenIdx != -1) _substitute(tokenIdx, t, SymbolLit(__new(oldTokenIdx)))
+        else if (prefix) {
+          val oldTokenIdx = {
+            val idxSet = _old.zipWithIndex.filter {
+              case (oldToken, _) => t.content.startsWith(oldToken)
+            }.map { case (s, i) => i }
+            if (idxSet.nonEmpty) idxSet.head else -1 // Only pick the first old token to substitute
+          }
+          if (oldTokenIdx != -1) {
+            assert(oldTokenIdx >= 0)
+            val newToken = __new(oldTokenIdx) + t.content.substring(__old(oldTokenIdx).length)
+            _substitute(tokenIdx, t, SymbolLit(newToken))
+          } else t
         } else t
       case x@_ => x._1
     }
@@ -128,7 +144,7 @@ object SmtUtils {
 
   /**
     *
-    * @param str an SMTLIB2 string
+    * @param str   an SMTLIB2 string
     * @param token a target string
     * @return if the SMTLIB2 string contains the token
     */
@@ -141,16 +157,17 @@ object SmtUtils {
 
   /**
     *
-    * @param str an SMTLIB2 string
+    * @param str   an SMTLIB2 string
     * @param token a target string
     * @return a set of strings in the SMTLIB2 string, each of which starts with the token
     */
   def startsWithToken(str: String, token: String): HashSet[String] = {
     parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
-      (acc, t) => t match {
-        case t: SymbolLit => if (t.content.startsWith(token)) acc + t.content else acc
-        case _ => acc
-      }
+      (acc, t) =>
+        t match {
+          case t: SymbolLit => if (t.content.startsWith(token)) acc + t.content else acc
+          case _ => acc
+        }
     }
   }
 
@@ -197,11 +214,13 @@ object SmtUtils {
 
   def rmParen(str: String): String = {
     val ret = str.trim
-    if (ret.startsWith("(") && ret.endsWith(")")) ret.substring(1, ret.length-1) else ret.trim
+    if (ret.startsWith("(") && ret.endsWith(")")) ret.substring(1, ret.length - 1) else ret.trim
   }
 
   def mkEq(a: String, b: String): String = "(= " + a + " " + b + ")"
+
   def mkAdd(list: String*): String = list.foldLeft("(+")((acc, a) => acc + " " + a) + ")"
+
   def mkSub(list: String*): String = list.foldLeft("(-")((acc, a) => acc + " " + a) + ")"
 
   /**
@@ -267,8 +286,18 @@ object SmtUtils {
         t.kind match {
           case SymbolLitKind =>
             val content = t.toString()
-            if (!reserved.contains(content) && Utils.isValidId(content)) acc + content // Get rid of e.g. "-1", "*"
-            else acc
+            if (!reserved.contains(content)) { // Get rid of e.g. "-1", "*"
+              val isValidId = Utils.isValidId(content)
+              val isValidDotExpr = { // Also extract valid dot expressions (e.g. v.g, self.f)
+                if (content.contains(".")) content.split(".").forall(s => Utils.isValidId(s))
+                else false
+              }
+              if (isValidDotExpr || isValidId) acc + content
+              else {
+                println("Discarded symbol: " + t.toString())
+                acc
+              }
+            } else acc
           case NumeralLitKind | OParen | CParen | StringLitKind | KeywordKind => acc
           case x@_ => println("Discarded symbol: " + t.toString()); acc // discarded
         }
@@ -443,17 +472,5 @@ object SmtUtils {
     }
     val defSyms = "\t\t(" + intTypedSyms + ")\n"
     prefix + defSyms + implies + "\t\t\t" + _p + "\n" + "\t\t\t" + _q + suffix
-  }
-
-  def genOpSmtlibStr(str: Iterable[String], op: String): String = {
-    if (str.isEmpty) {
-      "0"
-    } else if (str.size == 1) {
-      str.head
-    } else {
-      str.foldLeft("(" + op){
-        (acc, s) => acc + " " + s
-      } + ")"
-    }
   }
 }
