@@ -256,9 +256,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val calleeTree = trees.getTree(callee)
       val calleeTypCxt = if (calleeTree != null && calleeTree.getBody != null) atypeFactory.getLocalTypCxt(calleeTree) else HashMap.empty*/
 
-      val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
+      // val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
       val calleeSummary = getMethodSummaries(getMethodElementFromInvocation(node))
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
+      if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " (" + root.getSourceFile.getName + ")")
       val iterators = getListIters(callerName, typingCxt).toList
       typingCxt.foreach { // Do not check iterator's and self's type annotation
         case (v, t) if !iters.contains(v) && !v.startsWith(callerName) =>
@@ -318,7 +319,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
 
     def getArgUpdates(calleeSummary: HashSet[MSum], callerName: String): (List[String], List[String]) = {
-      calleeSummary.foldLeft(List[String](), List[String]()) {
+      val (arg, argUpdate) = calleeSummary.foldLeft(List[String](), List[String]()) {
         (acc, summary) =>
           val increment: Integer = summary match {
             case MSumI(_, i) => i
@@ -336,6 +337,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           } + accessPath
           (target :: acc._1, SmtUtils.mkAdd(target, increment.toString) :: acc._2)
       }
+      // if (calleeSummary.nonEmpty) println(arg, argUpdate, calleeSummary)
+      (arg, argUpdate)
     }
 
     super.visitMethodInvocation(node, p)
@@ -645,20 +648,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (method == null)
       return new HashSet[MSum]
     val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
-    if (summaries.size == 1) {
+    val set = if (summaries.size == 1) {
       val summaryList = Utils.extractArrayValues(summaries.head, "value")
       if (summaryList.size % 2 != 0) {
         issueWarning(method, "Method summary should have even number of arguments")
         new HashSet[MSum]
       } else {
         summaryList.grouped(2).foldLeft(new HashSet[MSum]) {
-          (acc, summary) =>
+          (acc, summary: List[String]) =>
             assert(summary.size == 2)
             // val variableName = summary.head
             if (summary(1).forall(c => c.isDigit)) {
-              acc + MSumI(summaryList.head, Integer.parseInt(summaryList(1)))
+              acc + MSumI(summary.head, Integer.parseInt(summary(1)))
             } else {
-              acc + MSumV(summaryList.head, summaryList(1))
+              acc + MSumV(summary.head, summary(1))
             }
         }
       }
@@ -668,6 +671,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     } else {
       new HashSet[MSum]
     }
+    set
   }
 
   case class CallSite(node: MethodInvocationTree) {
