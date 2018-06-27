@@ -27,6 +27,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   protected val INVKWN: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvKwn])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
+  protected val INPUT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Input])
 
   var fieldLists: HashSet[VariableTree] = HashSet.empty
   var localLists: HashSet[VariableTree] = HashSet.empty
@@ -92,23 +93,36 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     }
   }
 
+  def getVarAnnoMap(annotation: AnnotationMirror): Map[String, String] = {
+    getVarAnnoMap(annotation, INV) ++ getVarAnnoMap(annotation, INPUT)
+  }
+
   /**
     *
     * @param annotation type annotation of a variable
     * @param invTyp     a specific type of annotation
-    * @return a set of collected annotations: self/self.f.g -> ...self...
+    * @return a set of collected annotations: self/self.f.g/self_init -> ...self...
     */
-  def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror = INV): HashMap[String, String] = {
+  private def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror): Map[String, String] = {
     val map = if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, invTyp)) {
       Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
         (acc, inv) =>
           // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
-          val invValidFormat = SmtUtils.rmParen(inv.trim)
-          val keys = SmtUtils.startsWithToken(invValidFormat, SmtUtils.SELF)
+          val wellFormatInv = SmtUtils.rmParen(inv.trim)
+          val keys = SmtUtils.startsWithToken(wellFormatInv, SmtUtils.SELF)
           if (keys.nonEmpty) { // E.g. self or self.f.g
-            keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> invValidFormat) }
-          } else { // E.g. x|c|n -> = self x|c|n
-            acc + (SmtUtils.SELF -> SmtUtils.invToSMTLIB2(invValidFormat))
+            keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
+          } else {
+            invTyp match {
+              case INV => // E.g. x|c|n => = self x|c|n
+                acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
+              case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
+                val initSelf = Utils.toInit(SmtUtils.SELF)
+                val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
+                val initVal = SmtUtils.mkEq(initSelf, inv)
+                acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
+              case _ => acc
+            }
           }
       }
     } else {
@@ -123,7 +137,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @param node tree representation of a variable
     * @return a set of collected annotations: self/self.f.g -> ...self...
     */
-  def getVarAnnoMap(node: Tree): HashMap[String, String] = {
+  def getVarAnnoMap(node: Tree): Map[String, String] = {
     /*
     val annotations = {
       node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
@@ -182,7 +196,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     val map = if (methodTree.getBody != null) {
       val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
         (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
-      } // ++ methodTree.getParameters.asScala
+      } ++ methodTree.getParameters.asScala
 
       stmts.foldLeft(new HashMap[String, String]) {
         (acc, stmt) =>
@@ -217,19 +231,23 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       val isSuperInc = AnnotationUtils.areSameIgnoringValues(superAnno, INC)
       val isSubInvKwn = AnnotationUtils.areSameIgnoringValues(subAnno, INVKWN)
       val isSuperInvKwn = AnnotationUtils.areSameIgnoringValues(superAnno, INVKWN)
+      val isSubInput = AnnotationUtils.areSameIgnoringValues(subAnno, INPUT)
+      val isSuperInput = AnnotationUtils.areSameIgnoringValues(superAnno, INPUT)
 
       val newSubAnno = {
         if (isSubInv) INV
-        else if (isSubInvUnk) INVTOP // INVUNK
-        else if (isSubInc) INVTOP // INC
-        else if (isSubInvKwn) INVTOP // INVKWN
+        else if (isSubInvUnk) INVTOP // @InvUnk
+        else if (isSubInc) INVTOP // @Inc
+        else if (isSubInvKwn) INVTOP // @InvKwn
+        else if (isSubInput) INVTOP // @Input
         else subAnno
       }
       val newSuperAnno = {
         if (isSuperInv) INV
-        else if (isSuperInvUnk) INVTOP // INVUNK
-        else if (isSuperInc) INVTOP // INC
-        else if (isSuperInvKwn) INVTOP // INVKWN
+        else if (isSuperInvUnk) INVTOP // @InvUnk
+        else if (isSuperInc) INVTOP // @Inc
+        else if (isSuperInvKwn) INVTOP // @InvKwn
+        else if (isSuperInput) INVTOP // @Input
         else superAnno
       }
 

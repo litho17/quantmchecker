@@ -13,7 +13,7 @@ import java.lang.annotation.*;
 @Documented
 // @Target({ElementType.LOCAL_VARIABLE, ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
 //Check these qualifiers: package org.checkerframework.framework.qual;
-public @interface Inc {
+public @interface Input {
     //@JavaExpression
     public String[] value();
 }

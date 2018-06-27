@@ -41,7 +41,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
   }
 
-  private var iters: HashMap[String, HashMap[String, String]] = HashMap.empty // Names of annotated iterators in current method
+  private var iters: HashMap[String, Map[String, String]] = HashMap.empty // Names of annotated iterators in current method
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
     iters = getVarsOfType(node, Utils.ITER_NEXT.map { case (c, m) => c })
@@ -54,43 +54,45 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           case e: Exception => assert(false)
         }
     }
-    typCxt.foreach { // Rule T-Init
-      case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
+    val inputVars = getInputVars(typCxt)
+    typCxt.foreach { // Rule T-Init: No need to check iterator's or input's type annotation
+      case (v, t) if !iters.contains(v) && !inputVars.contains(v) =>
         val init = initInv(t, typCxt)
         typecheck(SmtUtils.mkAssertionForall(init), node, "T-Init\n")
       case _ => true
     }
     if (node.getBody != null) { // Optimize for upper bound
-      val listVars = getVarsOfType(node, Utils.COLLECTION_ADD.map { case (c, m) => c })
+      val listVars = getVarsOfType(node, Utils.COLLECTION_ADD.map { case (c, m) => c }).keySet
       if (listVars.nonEmpty) { // Only consider list variables
         val constraints = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
           case (acc, (v, t)) =>
             acc + SmtUtils.mkAssertion({
               if (iters.contains(v)) {
-                val attachedList = SmtUtils.SMTLIB2Toinv({
+                val attachedList = SmtUtils.threeTokensToOne({
                   iters.get(v) match {
                     case Some(map) => assert(map.size == 1); map.head._2
-                    case None => "???"
+                    case None => ???
                   }
                 })
                 SmtUtils.mkAnd(">= " + v + " " + " 0", "<= " + v + " " + attachedList)
+              } else {
+                SmtUtils.substitute(t, List(SmtUtils.SELF, Utils.toInit(SmtUtils.SELF)), List(v, v))
               }
-              else SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
             })
         }
         val rcfa = (CFRelation.treeToCons(node.getBody) + SmtUtils.mkEq(Utils.hashCode(node.getBody), "1")).map(s => SmtUtils.mkAssertion(s))
         val syms = (rcfa ++ constraints).foldLeft(iters.keySet) { (acc, cons) => acc ++ SmtUtils.extractSyms(cons) }
         val decl = syms.foldLeft(new HashSet[String]) { (acc, sym) => acc + SmtUtils.mkDeclConst(sym) }
         val assertInit = syms.foldLeft(new HashSet[String]) {
-          (acc, sym) => if (isInit(sym)) acc + SmtUtils.mkAssertion(SmtUtils.mkEq(sym, "0")) else acc
+          (acc, sym) => if (Utils.isInit(sym) && !inputVars.contains(sym)) acc + SmtUtils.mkAssertion(SmtUtils.mkEq(sym, "0")) else acc
         }
         val objective = {
-          if (listVars.size == 1) listVars.head._1
-          else SmtUtils.mkAdd(listVars.keySet.toArray: _*)
+          if (listVars.size == 1) listVars.head
+          else SmtUtils.mkAdd(listVars.toArray: _*)
         }
         val preps = SmtUtils.mkQueries(decl.toList ::: assertInit.toList ::: constraints.toList ::: rcfa.toList)
         val query = SmtUtils.mkQueries(List(preps, SmtUtils.mkMaximize(objective), SmtUtils.CHECK_SAT))
-        // if (constraints.nonEmpty) println(query)
+        if (constraints.nonEmpty) println(query)
         // val ctx = Z3Solver.createContext
         // Z3Solver.optimize(Z3Solver.parseSMTLIB2String(preps, ctx), listVars.keySet, ctx)
         typecheck(query, node, "Method has unbounded size!")
@@ -138,7 +140,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     */
   private def getListIters(list: String, typMap: Map[String, String]): HashSet[String] = {
     typMap.foldLeft(new HashSet[String]) {
-      case (acc, (v, t)) => if (SmtUtils.SMTLIB2Toinv(t) == list) acc + v else acc
+      case (acc, (v, t)) => if (SmtUtils.threeTokensToOne(t) == list) acc + v else acc
     }
   }
 
@@ -147,9 +149,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param node method
     * @return all local variables (and their types) in the method that belong to one of the target types
     */
-  private def getVarsOfType(node: MethodTree, targetType: HashSet[String]): HashMap[String, HashMap[String, String]] = {
+  private def getVarsOfType(node: MethodTree, targetType: HashSet[String]): HashMap[String, Map[String, String]] = {
     if (node.getBody != null) {
-      Utils.flattenStmt(node.getBody).foldLeft(new HashMap[String, HashMap[String, String]]) {
+      Utils.flattenStmt(node.getBody).foldLeft(new HashMap[String, Map[String, String]]) {
         (acc, stmt) =>
           stmt match {
             case v: VariableTree =>
@@ -209,7 +211,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 }
                 {
                   val p = {
-                    val listName = SmtUtils.SMTLIB2Toinv(callerName)
+                    val listName = SmtUtils.threeTokensToOne(callerName)
                     // TODO: If x: List[t], get t's type annotation
                     SmtUtils.FALSE
                   }
@@ -429,15 +431,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val (iterators, lists) = { // init(it) = list_init
       typCxt.foldLeft(List[String](), List[String]()) {
         case (acc, (v, t)) => if (iters.contains(v)) {
-          (v :: acc._1, SmtUtils.SMTLIB2Toinv(t) + "_" + SmtUtils.INIT :: acc._2)
+          (v :: acc._1, SmtUtils.threeTokensToOne(t) + "_" + SmtUtils.INIT :: acc._2)
         } else acc
       }
     }
     val (vars, initVars) = { // init(x) = x_init; init(x_init) = x_init
       val vars = SmtUtils.extractSyms(inv).diff(iters.keySet).toList
-      (vars, vars.map {
-        v => if (isInit(v)) v else toInit(v)
-      })
+      (vars, vars.map { v => if (Utils.isInit(v)) v else Utils.toInit(v) })
     }
     val _old: List[String] = selfs ::: counters ::: vars ::: iterators
     val _new: List[String] = selfs.map(_ => "0") ::: counters.map(_ => "0") ::: initVars ::: lists
@@ -687,9 +687,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     set
   }
 
-  def toInit(v: String): String = v + "_" + SmtUtils.INIT
-
-  def isInit(v: String): Boolean = v.endsWith("_" + SmtUtils.INIT)
+  def getInputVars(typCxt: HashMap[String, String]): Set[String] = {
+    typCxt.filter {
+      case (v, t) => Utils.isInit(v) // Because v_init is automatically generated in getVarAnnoMap for @Input
+    }.keySet
+  }
 
   case class CallSite(node: MethodInvocationTree) {
     val callee: ExecutableElement = getMethodElementFromInvocation(node)

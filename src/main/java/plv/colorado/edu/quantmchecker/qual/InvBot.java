@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * @author Tianhan Lu
  */
 @InvisibleQualifier
-@SubtypeOf({Inv.class, Inc.class, InvUnk.class, InvKwn.class})
+@SubtypeOf({Inv.class, Inc.class, InvUnk.class, InvKwn.class, Input.class})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @Documented
 // Your type system should include a top qualifier and a bottom qualifier (Section 30.4.7). In most cases, the bottom qualifier should be meta-annotated with @ImplicitFor(literals=LiteralKind.NULL).
