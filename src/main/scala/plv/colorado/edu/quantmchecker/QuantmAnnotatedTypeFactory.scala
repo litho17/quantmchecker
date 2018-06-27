@@ -245,7 +245,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             val p = subMap.getOrElse(v, SmtUtils.TRUE)
             val q = superMap.getOrElse(v, SmtUtils.TRUE)
             val query = SmtUtils.mkImply(p, q)
-            Z3Solver.check(Z3Solver.parseSMTLIB2String(query))
+            val ctx = Z3Solver.createContext
+            Z3Solver.check(Z3Solver.parseSMTLIB2String(query, ctx), ctx)
         }
       }
 

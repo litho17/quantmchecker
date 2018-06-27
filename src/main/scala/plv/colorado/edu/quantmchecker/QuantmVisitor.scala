@@ -61,30 +61,40 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case _ => true
     }
     if (node.getBody != null) { // Optimize for upper bound
-      val constraints = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
-        case (acc, (v, t)) =>
-          acc + SmtUtils.mkAssertion({
-            if (iters.contains(v)) {
-              val attachedList = SmtUtils.SMTLIB2Toinv({
-                iters.get(v) match {
-                  case Some(map) => assert(map.size == 1); map.head._2
-                  case None => "???"
-                }
-              })
-              SmtUtils.mkAnd(">= " + v + " " + " 0", "<= " + v + " " + attachedList)
-            }
-            else SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
-          })
+      val listVars = getVarsOfType(node, Utils.COLLECTION_ADD.map { case (c, m) => c })
+      if (listVars.nonEmpty) { // Only consider list variables
+        val constraints = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
+          case (acc, (v, t)) =>
+            acc + SmtUtils.mkAssertion({
+              if (iters.contains(v)) {
+                val attachedList = SmtUtils.SMTLIB2Toinv({
+                  iters.get(v) match {
+                    case Some(map) => assert(map.size == 1); map.head._2
+                    case None => "???"
+                  }
+                })
+                SmtUtils.mkAnd(">= " + v + " " + " 0", "<= " + v + " " + attachedList)
+              }
+              else SmtUtils.substitute(t, List(SmtUtils.SELF), List(v))
+            })
+        }
+        val rcfa = (CFRelation.treeToCons(node.getBody) + SmtUtils.mkEq(Utils.hashCode(node.getBody), "1")).map(s => SmtUtils.mkAssertion(s))
+        val syms = (rcfa ++ constraints).foldLeft(iters.keySet) { (acc, cons) => acc ++ SmtUtils.extractSyms(cons) }
+        val decl = syms.foldLeft(new HashSet[String]) { (acc, sym) => acc + SmtUtils.mkDeclConst(sym) }
+        val assertInit = syms.foldLeft(new HashSet[String]) {
+          (acc, sym) => if (isInit(sym)) acc + SmtUtils.mkAssertion(SmtUtils.mkEq(sym, "0")) else acc
+        }
+        val objective = {
+          if (listVars.size == 1) listVars.head._1
+          else SmtUtils.mkAdd(listVars.keySet.toArray: _*)
+        }
+        val preps = SmtUtils.mkQueries(decl.toList ::: assertInit.toList ::: constraints.toList ::: rcfa.toList)
+        val query = SmtUtils.mkQueries(List(preps, SmtUtils.mkMaximize(objective), SmtUtils.CHECK_SAT))
+        // if (constraints.nonEmpty) println(query)
+        // val ctx = Z3Solver.createContext
+        // Z3Solver.optimize(Z3Solver.parseSMTLIB2String(preps, ctx), listVars.keySet, ctx)
+        typecheck(query, node, "Method has unbounded size!")
       }
-      val rcfa = (CFRelation.treeToCons(node.getBody) + SmtUtils.mkEq(Utils.hashCode(node.getBody), "1")).map(s => SmtUtils.mkAssertion(s))
-      val syms = (rcfa ++ constraints).foldLeft(iters.keySet) { (acc, cons) => acc ++ SmtUtils.extractSyms(cons) }
-      val decl = syms.foldLeft(new HashSet[String]) { (acc, sym) => acc + SmtUtils.mkDeclConst(sym) }
-      val assertInit = syms.foldLeft(new HashSet[String]) {
-        (acc, sym) => if (isInit(sym)) acc + SmtUtils.mkAssertion(SmtUtils.mkEq(sym, "0")) else acc
-      }
-      val objective = typCxt.filter { case (v, t) => !iters.contains(v) }
-      val query = SmtUtils.mkQueries(decl.toList ::: assertInit.toList ::: constraints.toList ::: rcfa.toList)
-      if (constraints.nonEmpty) println(query)
     }
     super.visitMethod(node, p)
   }
@@ -111,7 +121,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param errorMsg error message if query is not satisfiable
     */
   private def typecheck(query: String, node: Tree, errorMsg: String): Boolean = {
-    val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(query))
+    val ctx = Z3Solver.createContext
+    val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(query, ctx), ctx)
     if (!isChecked) {
       // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
       issueError(node, errorMsg)

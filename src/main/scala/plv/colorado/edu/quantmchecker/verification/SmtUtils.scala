@@ -20,9 +20,12 @@ object SmtUtils {
   val FALSE = "false"
   val SELF = "self"
   val CHECK_SAT = "(check-sat)"
+  val GET_MODEL = "(get-model)"
+  val GET_OBJECTIVES = "(get-objectives)"
   val INIT = "init"
   val ASSERT = "assert"
   val DECL_CONST = "declare-const"
+  val MAXIMIZE = "maximize"
 
   /**
     *
@@ -238,6 +241,8 @@ object SmtUtils {
   def mkDeclConst(v: String): String = "(" + DECL_CONST + " " + v + " Int)"
 
   def mkQueries(l: Iterable[String]): String = l.foldLeft("") { (acc, e) => acc + e + "\n" }
+
+  def mkMaximize(p: String): String = "(" + MAXIMIZE + " " + p + ")"
 
   /**
     *

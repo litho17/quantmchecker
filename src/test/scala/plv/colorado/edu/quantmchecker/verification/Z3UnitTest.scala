@@ -15,7 +15,9 @@ class Z3UnitTest extends FlatSpec with Matchers {
 
   def strQueryExample(): Unit = {
     TestCases.queries.foreach {
-      str => Z3Solver.check(Z3Solver.parseSMTLIB2String(str))
+      str =>
+        val ctx = Z3Solver.createContext
+        Z3Solver.check(Z3Solver.parseSMTLIB2String(str, ctx), ctx)
     }
   }
 }

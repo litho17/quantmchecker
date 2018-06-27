@@ -13,9 +13,8 @@ object Z3Solver {
 
   val cfg = new util.HashMap[String, String]
   cfg.put("model", "true")
-  val ctx = new Context(cfg)
 
-  val solver: Solver = {
+  def createSolver(ctx: Context): Solver = {
     val solver = ctx.mkSolver
     val params = ctx.mkParams()
     params.add("timeout", 10000)
@@ -23,13 +22,24 @@ object Z3Solver {
     solver
   }
 
-  def check(f: BoolExpr): Boolean = {
-    val s = ctx.mkSolver
+  def createContext: Context = new Context(cfg)
+
+  def optimize(f: BoolExpr, syms: Iterable[String], ctx: Context): Unit = {
+    val opt = ctx.mkOptimize()
+    opt.Add(f)
+    println(f)
+    f.
+    val obj = ctx.mkAdd(syms.map(sym => ctx.mkIntConst(sym).asInstanceOf[ArithExpr]).toArray:_*)
+    // println(opt.MkMaximize(obj))
+  }
+
+  def check(f: BoolExpr, ctx: Context): Boolean = {
+    val s = createSolver(ctx)
     s.add(f)
     interpretSolverOutput(s.check(), f)
   }
 
-  def parseSMTLIB2StringToArray(str: String): Array[BoolExpr] = {
+  def parseSMTLIB2StringToArray(str: String, ctx: Context): Array[BoolExpr] = {
     try {
       ctx.parseSMTLIB2String(str, null, null, null, null)
     } catch {
@@ -37,11 +47,11 @@ object Z3Solver {
     }
   }
 
-  def parseSMTLIB2String(str: String): BoolExpr = {
-    val array = parseSMTLIB2StringToArray(str)
+  def parseSMTLIB2String(str: String, ctx: Context): BoolExpr = {
+    val array = parseSMTLIB2StringToArray(str, ctx)
     if (array.length == 1) array.head
     else if (array.isEmpty) ctx.mkTrue()
-    else ctx.mkAnd(parseSMTLIB2StringToArray(str): _*)
+    else ctx.mkAnd(parseSMTLIB2StringToArray(str, ctx): _*)
   }
 
   private def interpretSolverOutput(status: Status, f: BoolExpr): Boolean = status match {
@@ -52,7 +62,9 @@ object Z3Solver {
       throw new Exception("Z3 decidability or timeout issue--got Status.UNKNOWN")
   }
 
+  @deprecated
   def optimizeExample(): Unit = {
+    val ctx = new Context(cfg)
     println("Opt")
     val opt = ctx.mkOptimize
     // Set constraints.

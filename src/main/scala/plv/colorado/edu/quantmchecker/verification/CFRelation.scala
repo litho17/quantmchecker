@@ -73,11 +73,14 @@ object CFRelation {
       case stmt: SwitchTree => // this = case1 + case2 + ...
         val cases = {
           val cases = stmt.getCases.asScala
-          if (cases.isEmpty) SmtUtils.TRUE
+          if (cases.isEmpty) ""
           else if (cases.size == 1) Utils.hashCode(cases.head)
           else SmtUtils.mkAdd(cases.map(casetree => Utils.hashCode(casetree)).toArray: _*)
         }
-        val cons = SmtUtils.mkEq(thisHashcode, cases)
+        val cons = {
+          if (cases == "") SmtUtils.TRUE
+          else SmtUtils.mkEq(thisHashcode, cases)
+        }
         stmt.getCases.asScala.foldLeft(HashSet[String](cons)) {
           (acc, casetree) => acc ++ treeToCons(casetree)
         }
@@ -92,11 +95,14 @@ object CFRelation {
         }
         val catches = {
           val catches = stmt.getCatches.asScala
-          if (catches.isEmpty) SmtUtils.TRUE
+          if (catches.isEmpty) ""
           else if (catches.size == 1) Utils.hashCode(catches.head)
           else SmtUtils.mkAdd(catches.map(catchtree => Utils.hashCode(catchtree)).toArray: _*)
         }
-        val cons3 = SmtUtils.mkEq(thisHashcode, catches)
+        val cons3 = {
+          if (catches == "") SmtUtils.TRUE
+          else SmtUtils.mkEq(thisHashcode, catches)
+        }
         stmt.getCatches.asScala.foldLeft(HashSet[String](cons1, cons2, cons3)) {
           (acc, catchtree) => acc ++ treeToCons(catchtree)
         } ++ treeToCons(stmt.getBlock) ++ treeToCons(stmt.getFinallyBlock)
