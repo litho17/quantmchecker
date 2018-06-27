@@ -72,19 +72,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         ve =>
           if (ve.asType() == classType)
             Utils.logging("Recursive data type: " + classType.toString)
-          // Print user defined classes with list field
-          types.asElement(ve.asType()) match {
-            case te: TypeElement =>
-              val tree = trees.getTree(te)
-              Utils.COLLECTION_ADD.foreach {
-                case (klass, method) =>
-                  if (klass == te.getQualifiedName.toString)
-                    Utils.logging("Class with list field: " + classType)
-              }
-            case _ =>
-          }
+        // Print user defined classes with list field
       }
     }
+    Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
     super.processClassTree(classTree)
   }
 
@@ -95,9 +86,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param errorMsg error message if query is not satisfiable
     */
   private def typecheck(query: String, node: Tree, errorMsg: String): Boolean = {
-    // Declare init as uninterpreted function
-    val declInit = "(declare-fun " + SmtUtils.INIT + " (Int) Int)\n"
-    val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(declInit + query))
+    val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(query))
     if (!isChecked) {
       // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
       issueError(node, errorMsg)
@@ -412,19 +401,25 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return the (symbolic) initial value of the invariant
     */
   private def initInv(inv: String, typCxt: Map[String, String]): String = {
+    def toInit(v: String): String = v + "_" + SmtUtils.INIT
+
+    def isInit(v: String): Boolean = v.endsWith("_" + SmtUtils.INIT)
+
     val tokens = SmtUtils.parseSmtlibToToken(inv)
-    val selfs = tokens.filter(t => t.toString().startsWith(SmtUtils.SELF)).map(t => t.toString())
+    val selfs = tokens.filter(t => t.toString().startsWith(SmtUtils.SELF)).map(t => t.toString()) // init(self) = 0
     val counters = tokens.filter(t => SmtUtils.isLineCounter(t.toString())).map(t => t.toString()) // init(counter) = 0
-    val (iterators, lists) = { // init(it) = init(list)
+    val (iterators, lists) = { // init(it) = list_init
       typCxt.foldLeft(List[String](), List[String]()) {
         case (acc, (v, t)) => if (iters.contains(v)) {
-          (v :: acc._1, SmtUtils.addParen(SmtUtils.INIT + " " + SmtUtils.SMTLIB2Toinv(t)) :: acc._2)
+          (v :: acc._1, SmtUtils.SMTLIB2Toinv(t) + "_" + SmtUtils.INIT :: acc._2)
         } else acc
       }
     }
-    val (vars, initVars) = { // init(x) = init(x)
+    val (vars, initVars) = { // init(x) = x_init; init(x_init) = x_init
       val vars = SmtUtils.extractSyms(inv).diff(iters).toList
-      (vars, vars.map(v => SmtUtils.addParen(SmtUtils.INIT + " " + v)))
+      (vars, vars.map {
+        v => if (isInit(v)) v else toInit(v)
+      })
     }
     val _old: List[String] = selfs ::: counters ::: vars ::: iterators
     val _new: List[String] = selfs.map(_ => "0") ::: counters.map(_ => "0") ::: initVars ::: lists

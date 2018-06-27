@@ -1,7 +1,7 @@
 package plv.colorado.edu.quantmchecker
 
 import java.util
-import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.{AnnotationMirror, TypeElement}
 
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
@@ -26,6 +26,9 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   protected val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
+
+  var fieldLists: HashSet[VariableTree] = HashSet.empty
+  var localLists: HashSet[VariableTree] = HashSet.empty
 
   // disable flow inference
   // super(checker, false);
@@ -133,6 +136,17 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     getVarAnnoMap(getTypeAnnotation(node))
   }
 
+  def isListVar(v: VariableTree): Boolean = {
+    types.asElement(TreeUtils.typeOf(v)) match {
+      case te: TypeElement =>
+        val tree = trees.getTree(te)
+        Utils.COLLECTION_ADD.exists {
+          case (klass, method) => if (klass == te.getQualifiedName.toString) true else false
+        }
+      case _ => false
+    }
+  }
+
   /**
     *
     * @param classTree a class definition
@@ -144,6 +158,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       (acc, member) =>
         member match {
           case member: VariableTree =>
+            if (isListVar(member)) fieldLists = fieldLists + member
             // Get annotations on class fields
             this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
               case (acc2, (v, typ)) =>
@@ -172,6 +187,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         (acc, stmt) =>
           stmt match {
             case stmt: VariableTree =>
+              if (isListVar(stmt)) localLists = localLists + stmt
               // Local invariants should only be on variable declarations
               // Otherwise, invariants are simply ignored
               this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f

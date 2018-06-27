@@ -109,7 +109,8 @@ object Utils {
     ("java.util.Deque", "iterator"),
     ("java.util.Stack", "iterator"),
     ("java.util.Vector", "iterator"),
-    ("java.util.Hashtable", "iterator")
+    ("java.util.Hashtable", "iterator"),
+    ("java.util.regex.Pattern", "matcher")
   )
 
   val ITER_NEXT: HashSet[(String, String)] = HashSet(
