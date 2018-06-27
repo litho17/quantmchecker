@@ -27,8 +27,6 @@ object Z3Solver {
   def optimize(f: BoolExpr, syms: Iterable[String], ctx: Context): Unit = {
     val opt = ctx.mkOptimize()
     opt.Add(f)
-    println(f)
-    f.
     val obj = ctx.mkAdd(syms.map(sym => ctx.mkIntConst(sym).asInstanceOf[ArithExpr]).toArray:_*)
     // println(opt.MkMaximize(obj))
   }

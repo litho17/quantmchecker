@@ -10,6 +10,7 @@ import com.sun.source.util.SourcePositions
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TypeAnnotationUtils}
 import plv.colorado.edu.quantmchecker.qual.Summary
+import plv.colorado.edu.quantmchecker.verification.SmtUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -21,6 +22,7 @@ object Utils {
   val DESKTOP_PATH: String = System.getProperty("user.home") + File.separator + "Desktop"
   val LOG_FILE: String = "log.txt"
   new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString)) // Clean up
+  val INIT_SUFFIX: String = "_" + SmtUtils.INIT
 
   val COLLECTION_ADD: HashSet[(String, String)] = HashSet(
     ("java.lang.StringBuilder", "append"),
@@ -242,4 +244,10 @@ object Utils {
       case _ => new HashSet[StatementTree]
     }
   }
+
+  def toInit(v: String): String = v + INIT_SUFFIX
+
+  def isInit(v: String): Boolean = v.endsWith(INIT_SUFFIX)
+
+  def rmInit(v: String): String = if (isInit(v)) v.substring(0, v.length - INIT_SUFFIX.length) else v
 }

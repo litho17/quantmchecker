@@ -263,7 +263,7 @@ object SmtUtils {
     * @param inv an invariant
     * @return if the invariant is composed of only 1 token, then return "= self inv"
     */
-  def invToSMTLIB2(inv: String): String = {
+  def oneTokenToThree(inv: String): String = {
     val tokens = parseSmtlibToToken(inv)
     if (tokens.length == 1) {
       val token = tokens.head.toString()
@@ -283,7 +283,7 @@ object SmtUtils {
     * @param inv an invariant
     * @return if the invariant is form "= self a", then return "a"
     */
-  def SMTLIB2Toinv(inv: String): String = { // TODO: not tested
+  def threeTokensToOne(inv: String): String = { // TODO: not tested
     val tokens = parseSmtlibToToken(inv)
     if (tokens.length == 3) {
       if (tokens(1).toString() == SELF) {
