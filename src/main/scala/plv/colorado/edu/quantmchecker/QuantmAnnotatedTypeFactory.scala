@@ -24,6 +24,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
   protected val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
+  protected val INVKWN: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvKwn])
   protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
   protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
 
@@ -214,17 +215,21 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       val isSuperInv = AnnotationUtils.areSameIgnoringValues(superAnno, INV)
       val isSubInc = AnnotationUtils.areSameIgnoringValues(subAnno, INC)
       val isSuperInc = AnnotationUtils.areSameIgnoringValues(superAnno, INC)
+      val isSubInvKwn = AnnotationUtils.areSameIgnoringValues(subAnno, INVKWN)
+      val isSuperInvKwn = AnnotationUtils.areSameIgnoringValues(superAnno, INVKWN)
 
       val newSubAnno = {
         if (isSubInv) INV
         else if (isSubInvUnk) INVTOP // INVUNK
         else if (isSubInc) INVTOP // INC
+        else if (isSubInvKwn) INVTOP // INVKWN
         else subAnno
       }
       val newSuperAnno = {
         if (isSuperInv) INV
         else if (isSuperInvUnk) INVTOP // INVUNK
         else if (isSuperInc) INVTOP // INC
+        else if (isSuperInvKwn) INVTOP // INVKWN
         else superAnno
       }
 

@@ -50,6 +50,7 @@ object Utils {
     ("java.util.Deque", "offer"),
     ("java.util.Stack", "push"),
     ("java.util.Vector", "add"),
+    ("java.util.Vector", "addElement"),
     ("java.util.Hashtable", "add"),
     ("java.util.ByteBuffer", "put")
   )
