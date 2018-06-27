@@ -1,15 +1,9 @@
 package plv.colorado.edu.quantmchecker.verification
 
-import com.sun.source.tree.MethodTree
-import net.sf.javailp._
-
-import scala.collection.immutable.HashSet
-import scala.collection.JavaConverters._
-
 /**
   * @author Tianhan Lu
   */
-object SolveLP {
+/*object SolveLP {
   def solveLp[T](constraints: Iterable[LpCons],
                  obj: Option[Linear],
                  // vars: Iterable[String],
@@ -62,3 +56,4 @@ object SolveLP {
       None
   }
 }
+*/

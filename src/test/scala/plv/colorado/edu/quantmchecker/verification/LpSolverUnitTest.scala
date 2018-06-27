@@ -1,14 +1,9 @@
 package plv.colorado.edu.quantmchecker.verification
 
-import net.sf.javailp._
-import org.scalatest.{FlatSpec, Matchers}
-
-import scala.collection.JavaConverters._
-
 /**
   * @author Tianhan Lu
   */
-class LpSolverUnitTest extends FlatSpec with Matchers {
+/*class LpSolverUnitTest extends FlatSpec with Matchers {
   private def debug(problem: Problem): Unit = {
     problem.getConstraints.asScala.foreach(c => println(c))
     println(problem.getObjective, problem.getOptType)
@@ -185,3 +180,4 @@ class LpSolverUnitTest extends FlatSpec with Matchers {
     println(result)
   }
 }
+*/

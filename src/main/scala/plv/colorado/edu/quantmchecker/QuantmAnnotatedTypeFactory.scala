@@ -140,7 +140,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   def isListVar(v: VariableTree): Boolean = {
     types.asElement(TreeUtils.typeOf(v)) match {
       case te: TypeElement =>
-        val tree = trees.getTree(te)
+        val tree: ClassTree = trees.getTree(te)
         Utils.COLLECTION_ADD.exists {
           case (klass, method) => if (klass == te.getQualifiedName.toString) true else false
         }

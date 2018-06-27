@@ -1,15 +1,9 @@
 package plv.colorado.edu.quantmchecker.verification
 
-import net.sf.javailp.Linear
-import org.scalatest.{FlatSpec, Matchers}
-import plv.colorado.edu.quantmchecker.invlang.InvSolver
-
-import scala.collection.immutable.HashSet
-
 /**
   * @author Tianhan Lu
   */
-class VerifySelfIncUnitTest extends FlatSpec with Matchers {
+/*class VerifySelfIncUnitTest extends FlatSpec with Matchers {
   "increment of self" should "be validated" in {
     TestCases.selfIncrement.foreach {
       x =>
@@ -61,3 +55,4 @@ class VerifySelfIncUnitTest extends FlatSpec with Matchers {
     }
   }
 }
+*/

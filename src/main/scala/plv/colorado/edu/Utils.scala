@@ -204,7 +204,7 @@ object Utils {
     logger.close()
   }
 
-  def hashCode(tree: Object): String = "h" + tree.hashCode().toString
+  def hashCode(o: Object): String = "h" + o.hashCode().toString
 
   def isValidId(str: String): Boolean = {
     val pattern = "(?:\\b[_a-zA-Z]|\\B\\$)[_$a-zA-Z0-9]*+"

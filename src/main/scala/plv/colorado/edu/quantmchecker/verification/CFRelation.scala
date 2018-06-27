@@ -1,10 +1,10 @@
 package plv.colorado.edu.quantmchecker.verification
 
 import com.sun.source.tree._
-import net.sf.javailp.Linear
+import plv.colorado.edu.Utils
 
-import scala.collection.immutable.HashSet
 import scala.collection.JavaConverters._
+import scala.collection.immutable.HashSet
 
 /**
   * @author Tianhan Lu
@@ -12,44 +12,39 @@ import scala.collection.JavaConverters._
 object CFRelation {
   val DEFAULT_LOOP_BOUND = 1000
 
-  private def genEqCons(stmts: Set[Tree]): Set[Linear] = {
+  private def genEqCons(stmts: Set[Tree]): Set[String] = {
     if (stmts.nonEmpty) {
-      val headHashcode = stmts.head.hashCode().toString
-      stmts.tail.foldLeft(new HashSet[Linear]) {
-        (acc, s) =>
-          val cons = new Linear // head = s1, head = s2, ...
-          cons.add(-1, headHashcode)
-          cons.add(1, s.hashCode().toString)
-          acc + cons
+      val headHashcode = Utils.hashCode(stmts.head)
+      stmts.tail.foldLeft(new HashSet[String]) {
+        (acc, s) => // head = s1, head = s2, ...
+          acc + SmtUtils.mkEq(headHashcode, Utils.hashCode(s))
       }
     } else
-      new HashSet[Linear]
+      new HashSet[String]
   }
 
-  def treeToCons(tree: CaseTree): Set[Linear] = genEqCons(tree.getStatements.asScala.toSet + tree)
+  def treeToCons(tree: CaseTree): Set[String] = genEqCons(tree.getStatements.asScala.toSet + tree)
 
-  def treeToCons(tree: CatchTree): Set[Linear] = genEqCons(tree.getBlock.getStatements.asScala.toSet + tree)
+  def treeToCons(tree: CatchTree): Set[String] = genEqCons(tree.getBlock.getStatements.asScala.toSet + tree)
 
   /**
     *
     * @param tree a statement tree (AST node)
-    * @return a set of linear constraints that describe the control flow relations inside the target AST node
+    * @return a set of String constraints that describe the control flow relations inside the target AST node
     */
-  def treeToCons(tree: StatementTree): Set[Linear] = {
+  def treeToCons(tree: StatementTree): Set[String] = {
     if (tree == null)
-      return new HashSet[Linear]
+      return new HashSet[String]
 
-    def genLoopCons(loop: StatementTree, body: StatementTree): Set[Linear] = {
-      if (loop.isInstanceOf[DoWhileLoopTree] || loop.isInstanceOf[EnhancedForLoopTree] || loop.isInstanceOf[WhileLoopTree]) {
-        val cons = new Linear // DEFAULT_LOOP_BOUND * this = block
-        cons.add(-DEFAULT_LOOP_BOUND, loop.hashCode().toString)
-        cons.add(1, body.hashCode().toString)
+    def genLoopCons(loop: StatementTree, body: StatementTree): Set[String] = {
+      if (loop.isInstanceOf[DoWhileLoopTree] || loop.isInstanceOf[EnhancedForLoopTree] || loop.isInstanceOf[WhileLoopTree]) { // block >= this
+        val cons = SmtUtils.mkGe(Utils.hashCode(body), Utils.hashCode(loop))
         treeToCons(body) + cons
       } else
-        new HashSet[Linear]
+        new HashSet[String]
     }
 
-    val thisHashcode = tree.hashCode().toString
+    val thisHashcode = Utils.hashCode(tree)
     tree match {
       case stmt: BlockTree =>
         stmt.getStatements.asScala.foldLeft(genEqCons(stmt.getStatements.asScala.toSet + stmt)) {
@@ -58,56 +53,55 @@ object CFRelation {
       case stmt: DoWhileLoopTree => genLoopCons(stmt, stmt.getStatement)
       case stmt: EnhancedForLoopTree => genLoopCons(stmt, stmt.getStatement)
       case stmt: WhileLoopTree => genLoopCons(stmt, stmt.getStatement)
-      case stmt: ForLoopTree =>
-        val initCons = genEqCons(stmt.getInitializer.asScala.toSet + tree) // this = init1 = init2 = ...
-      val cons = new Linear // DEFAULT_LOOP_BOUND * this = block
-        cons.add(-DEFAULT_LOOP_BOUND, thisHashcode)
-        cons.add(1, stmt.getStatement.hashCode().toString)
+      case stmt: ForLoopTree => // this = init1 = init2 = ...; block >= this
+        val initCons = genEqCons(stmt.getInitializer.asScala.toSet + tree)
+        val cons = SmtUtils.mkGe(Utils.hashCode(stmt.getStatement), thisHashcode)
         initCons ++ treeToCons(stmt.getStatement) + cons
-      case stmt: LabeledStatementTree =>
-        val cons1 = new Linear // this = body
-        cons1.add(-1, thisHashcode)
-        cons1.add(1, stmt.getStatement.hashCode().toString)
-
-        val cons2 = new Linear // this = label
-        cons2.add(-1, thisHashcode)
-        cons2.add(1, stmt.getLabel.toString)
-
+      case stmt: LabeledStatementTree => // this = body; this = label
+        val cons1 = SmtUtils.mkEq(thisHashcode, Utils.hashCode(stmt.getStatement))
+        val cons2 = SmtUtils.mkEq(thisHashcode, stmt.getLabel.toString)
         treeToCons(stmt.getStatement) + cons1 + cons2
-      case stmt: IfTree =>
-        val cons = new Linear // this = then + else
-        cons.add(-1, thisHashcode)
-        cons.add(1, stmt.getThenStatement.hashCode().toString)
-        if (stmt.getElseStatement != null)
-          cons.add(1, stmt.getElseStatement.hashCode().toString)
+      case stmt: IfTree => // this = then + else
+        val conditions = {
+          if (stmt.getElseStatement != null)
+            SmtUtils.mkAdd(Utils.hashCode(stmt.getThenStatement), Utils.hashCode(stmt.getElseStatement))
+          else
+            Utils.hashCode(stmt.getThenStatement)
+        }
+        val cons = SmtUtils.mkEq(thisHashcode, conditions)
         treeToCons(stmt.getThenStatement) ++ treeToCons(stmt.getElseStatement) + cons
-      case stmt: SwitchTree =>
-        val cons = new Linear // this = case1 + case2 + ...
-        cons.add(-1, thisHashcode)
-        stmt.getCases.asScala.foreach(casetree => cons.add(1, casetree.hashCode().toString))
-        stmt.getCases.asScala.foldLeft(HashSet[Linear](cons)) {
+      case stmt: SwitchTree => // this = case1 + case2 + ...
+        val cases = {
+          val cases = stmt.getCases.asScala
+          if (cases.isEmpty) SmtUtils.TRUE
+          else if (cases.size == 1) Utils.hashCode(cases.head)
+          else SmtUtils.mkAdd(cases.map(casetree => Utils.hashCode(casetree)).toArray: _*)
+        }
+        val cons = SmtUtils.mkEq(thisHashcode, cases)
+        stmt.getCases.asScala.foldLeft(HashSet[String](cons)) {
           (acc, casetree) => acc ++ treeToCons(casetree)
         }
-      case stmt: ExpressionStatementTree => new HashSet[Linear]
-      case stmt: ReturnTree => new HashSet[Linear]
-      case stmt: VariableTree => new HashSet[Linear]
-      case stmt: TryTree =>
-        val cons1 = new Linear // this = try
-        cons1.add(-1, thisHashcode)
-        cons1.add(1, stmt.getBlock.hashCode().toString)
-        val cons2 = new Linear // this = finally
-        if (stmt.getFinallyBlock != null) {
-          cons2.add(-1, thisHashcode)
-          cons2.add(1, stmt.getFinallyBlock.hashCode().toString)
+      case stmt: ExpressionStatementTree => new HashSet[String]
+      case stmt: ReturnTree => new HashSet[String]
+      case stmt: VariableTree => new HashSet[String]
+      case stmt: TryTree => // this = try; this = finally; this = catch1 + catch2 + ...
+        val cons1 = SmtUtils.mkEq(thisHashcode, Utils.hashCode(stmt.getBlock))
+        val cons2 = {
+          if (stmt.getFinallyBlock != null) SmtUtils.mkEq(thisHashcode, Utils.hashCode(stmt.getFinallyBlock))
+          else SmtUtils.TRUE
         }
-        val cons3 = new Linear // this = catch1 + catch2 + ...
-        cons3.add(-1, thisHashcode)
-        stmt.getCatches.asScala.foreach(catchtree => cons3.add(1, catchtree.hashCode().toString))
-        stmt.getCatches.asScala.foldLeft(HashSet[Linear](cons1, cons2, cons3)) {
+        val catches = {
+          val catches = stmt.getCatches.asScala
+          if (catches.isEmpty) SmtUtils.TRUE
+          else if (catches.size == 1) Utils.hashCode(catches.head)
+          else SmtUtils.mkAdd(catches.map(catchtree => Utils.hashCode(catchtree)).toArray: _*)
+        }
+        val cons3 = SmtUtils.mkEq(thisHashcode, catches)
+        stmt.getCatches.asScala.foldLeft(HashSet[String](cons1, cons2, cons3)) {
           (acc, catchtree) => acc ++ treeToCons(catchtree)
         } ++ treeToCons(stmt.getBlock) ++ treeToCons(stmt.getFinallyBlock)
       case stmt: SynchronizedTree => treeToCons(stmt.getBlock)
-      case _ => new HashSet[Linear]
+      case _ => new HashSet[String]
     }
   }
 }

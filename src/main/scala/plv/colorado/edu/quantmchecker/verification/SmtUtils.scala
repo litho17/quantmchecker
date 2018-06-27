@@ -21,6 +21,8 @@ object SmtUtils {
   val SELF = "self"
   val CHECK_SAT = "(check-sat)"
   val INIT = "init"
+  val ASSERT = "assert"
+  val DECL_CONST = "declare-const"
 
   /**
     *
@@ -179,10 +181,8 @@ object SmtUtils {
   @deprecated
   def parseSmtlibStrToLpCons(str: String): Option[Linear] = {
     val transformedStr = {
-      if (str.contains(" "))
-        "(assert (" + str + "))" // e.g. - (+ c2 c3) (- c5 c6)
-      else
-        "(declare-fun " + str + " () Int)" // e.g. c151
+      if (str.contains(" ")) "(" + ASSERT + " (" + str + "))" // e.g. - (+ c2 c3) (- c5 c6)
+      else "(declare-fun " + str + " () Int)" // e.g. c151
     }
     // println(transformedStr)
     val cmds = SmtUtils.parseSmtlibToAST(transformedStr)
@@ -217,11 +217,27 @@ object SmtUtils {
     if (ret.startsWith("(") && ret.endsWith(")")) ret.substring(1, ret.length - 1) else ret.trim
   }
 
-  def mkEq(a: String, b: String): String = "(= " + a + " " + b + ")"
+  def mkGe(a: String, b: String): String = "(>= " + addParen(a) + " " + addParen(b) + ")"
 
-  def mkAdd(list: String*): String = list.foldLeft("(+")((acc, a) => acc + " " + a) + ")"
+  def mkGt(a: String, b: String): String = "(> " + addParen(a) + " " + addParen(b) + ")"
 
-  def mkSub(list: String*): String = list.foldLeft("(-")((acc, a) => acc + " " + a) + ")"
+  def mkLe(a: String, b: String): String = "(<= " + addParen(a) + " " + addParen(b) + ")"
+
+  def mkLt(a: String, b: String): String = "(< " + addParen(a) + " " + addParen(b) + ")"
+
+  def mkEq(a: String, b: String): String = "(= " + addParen(a) + " " + addParen(b) + ")"
+
+  def mkAdd(list: String*): String = list.foldLeft("(+")((acc, a) => acc + " " + addParen(a)) + ")"
+
+  def mkSub(list: String*): String = list.foldLeft("(-")((acc, a) => acc + " " + addParen(a)) + ")"
+
+  def mkAnd(list: String*): String = list.foldLeft("(and")((acc, a) => acc + " " + addParen(a)) + ")"
+
+  def mkAssertion(p: String): String = "(" + ASSERT + " " + addParen(p) + ")"
+
+  def mkDeclConst(v: String): String = "(" + DECL_CONST + " " + v + " Int)"
+
+  def mkQueries(l: Iterable[String]): String = l.foldLeft("") { (acc, e) => acc + e + "\n" }
 
   /**
     *
@@ -279,8 +295,9 @@ object SmtUtils {
     * @param str a SMTLIB2 string
     * @return a set of symbols in the string
     */
-  def extractSyms(str: String): Set[String] = {
-    val reserved = List("+", "-", "*", "/", "=", "and", TRUE, FALSE, INIT)
+  def extractSyms(str: String): HashSet[String] = {
+    val reserved = List("+", "-", "*", "/", "=", "and", TRUE, FALSE, INIT, ASSERT)
+    val ignoreDiscarded = List("<=", ">=", "Assert", "-1")
     parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
       (acc, t) =>
         t.kind match {
@@ -294,12 +311,13 @@ object SmtUtils {
               }
               if (isValidDotExpr || isValidId) acc + content
               else {
-                println("Discarded symbol: " + t.toString())
+                if (!ignoreDiscarded.contains(t.toString())) println("Discarded symbol: " + t.toString())
                 acc
               }
             } else acc
           case NumeralLitKind | OParen | CParen | StringLitKind | KeywordKind => acc
-          case x@_ => println("Discarded symbol: " + t.toString()); acc // discarded
+          case x@_ => // discarded
+            if (!ignoreDiscarded.contains(t.toString())) println("Discarded symbol: " + t.toString()); acc
         }
     }
   }
@@ -324,9 +342,9 @@ object SmtUtils {
   /**
     *
     * @param p an SMTLIB2 string
-    * @return assert
+    * @return assert that for all variables in the query, the query holds
     */
-  def mkAssertion(p: String): String = {
+  def mkAssertionForall(p: String): String = {
     val prefix = "(assert\n\t(forall\n"
     val suffix = "\n\t)\n)"
 
