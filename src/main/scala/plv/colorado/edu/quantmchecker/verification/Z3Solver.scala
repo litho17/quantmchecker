@@ -45,7 +45,7 @@ object Z3Solver {
   }
 
   private def interpretSolverOutput(status: Status, f: BoolExpr): Boolean = status match {
-    case Status.UNSATISFIABLE => if (DEBUG) println("Unsat query:\n" + f); false
+    case Status.UNSATISFIABLE => if (DEBUG) PrintStuff.printRedString("Unsat query:\n" + f); false
     case Status.SATISFIABLE => true
     case Status.UNKNOWN =>
       // this usually happens because of timeouts

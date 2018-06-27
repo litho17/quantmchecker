@@ -21,10 +21,9 @@ import scala.collection.immutable.{HashMap, HashSet}
   * @author Tianhan Lu
   */
 class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnnotatedTypeFactory](checker) {
-  private val DEBUT_CHECK = true
   private val DEBUG_PATHS = false
   private val DEBUG_WHICH_UNHANDLED_CASE = false
-  private val ISSUE_ALL_UNANNOTATED_LISTS = true
+  // private val ISSUE_ALL_UNANNOTATED_LISTS = true
 
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
@@ -60,6 +59,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val init = initInv(t, typCxt)
         typecheck(SmtUtils.mkAssertion(init), node, "T-Init\n")
       case _ => true
+    }
+    typCxt.foreach {
+      case (v, t) if !iters.contains(v) => // No need to check iterator's type annotation
+      case _ =>
     }
     super.visitMethod(node, p)
   }
@@ -248,7 +251,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       // val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
       val calleeSummary = getMethodSummaries(getMethodElementFromInvocation(node))
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
-      if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " (" + root.getSourceFile.getName + ")")
+      if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " (" + getFileName + ")")
       val iterators = getListIters(callerName, typingCxt).toList
       typingCxt.foreach { // Do not check iterator's and self's type annotation
         case (v, t) if !iters.contains(v) && !v.startsWith(callerName) =>
@@ -260,24 +263,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               val n = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkAdd(callerName, "1") ::
                 iterators.map(s => SmtUtils.mkAdd(s, "1"))
               (o, n, HashSet.empty)
-              /*} else if (calleeTypCxt.nonEmpty) { // E.g. o.m() may affect o.f1's length
-                val (arg, delta) = argInc.zipWithIndex.foldLeft(List[String](), List[String]()) {
-                  case (acc, (map, idx)) =>
-                    if (map.nonEmpty) {
-                      val actualArg = node.getArguments.asScala(idx).toString
-                      map.foldLeft(acc) {
-                        case (acc2, (v, t)) =>
-                          val vp = SmtUtils.substitute(v, List(SmtUtils.SELF), List(actualArg))
-                          val delta = Utils.hashCode(vp)
-                          (vp :: acc2._1, delta :: acc2._2, acc2._3)
-                      }
-                    } else acc
-                }
-
-                val o = label
-                val n = SmtUtils.mkAdd(label, "1")
-
-                (o, n)*/
             } else {
               val (_o, _n) = getArgUpdates(calleeSummary, callerName)
               val o = label :: _o ::: iterators
@@ -451,7 +436,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     val dependentTyp = typCxt.foldLeft(new HashSet[String]) {
       case (acc2, (vInEnv, typInEnv)) =>
-        if (SmtUtils.containsToken(typInEnv, v))
+        if (SmtUtils.containsToken(typInEnv, v) && !iters.contains(vInEnv)) // Do not consider iterators as being dependent on
           acc2 + SmtUtils.substitute(typInEnv, List(SmtUtils.SELF), List(vInEnv), true) // E.g. self -> vInEnv
         else acc2
     }
