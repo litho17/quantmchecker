@@ -3,6 +3,7 @@ package plv.colorado.edu.quantmchecker
 import java.io.File
 import javax.lang.model.element._
 
+import com.microsoft.z3.AST
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
@@ -64,7 +65,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (node.getBody != null) { // Optimize for upper bound
       val listVars = getVarsOfType(node, Utils.COLLECTION_ADD.map { case (c, m) => c }).keySet
       if (listVars.nonEmpty) { // Only consider list variables
-        val constraints = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
+        val solver = new Z3Solver
+        val cfRelation = new CFRelation(node.getBody, solver)
+        /*val constraints = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
           case (acc, (v, t)) =>
             acc + SmtUtils.mkAssertion({
               if (iters.contains(v)) {
@@ -79,23 +82,22 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 SmtUtils.substitute(t, List(SmtUtils.SELF, Utils.toInit(SmtUtils.SELF)), List(v, v))
               }
             })
-        }
-        val rcfa = (CFRelation.treeToCons(node.getBody) + SmtUtils.mkEq(Utils.hashCode(node.getBody), "1")).map(s => SmtUtils.mkAssertion(s))
-        val syms = (rcfa ++ constraints).foldLeft(iters.keySet) { (acc, cons) => acc ++ SmtUtils.extractSyms(cons) }
-        val decl = syms.foldLeft(new HashSet[String]) { (acc, sym) => acc + SmtUtils.mkDeclConst(sym) }
-        val assertInit = syms.foldLeft(new HashSet[String]) {
-          (acc, sym) => if (Utils.isInit(sym) && !inputVars.contains(sym)) acc + SmtUtils.mkAssertion(SmtUtils.mkEq(sym, "0")) else acc
+        }*/
+        val body = solver.mkEq(solver.getVar(Utils.hashCode(node.getBody)), solver.mkIntVal(1))
+        iters.keySet.map(iter => solver.getVar(iter))
+        val inits = solver.names.foldLeft(List[AST]()) {
+          case (acc, (v, ast)) =>
+            if (Utils.isInit(v) && !inputVars.contains(v)) solver.mkEq(solver.getVar(v), solver.mkIntVal(0)) :: acc
+            else acc
         }
         val objective = {
-          if (listVars.size == 1) listVars.head
-          else SmtUtils.mkAdd(listVars.toArray: _*)
+          if (listVars.size == 1) solver.getVar(listVars.head)
+          else solver.mkAdd(listVars.map(list => solver.getVar(list)).toArray: _*)
         }
-        val preps = SmtUtils.mkQueries(decl.toList ::: assertInit.toList ::: constraints.toList ::: rcfa.toList)
-        val query = SmtUtils.mkQueries(List(preps, SmtUtils.mkMaximize(objective), SmtUtils.CHECK_SAT))
-        if (constraints.nonEmpty) println(query)
-        // val ctx = Z3Solver.createContext
-        // Z3Solver.optimize(Z3Solver.parseSMTLIB2String(preps, ctx), listVars.keySet, ctx)
-        typecheck(query, node, "Method has unbounded size!")
+        (body :: cfRelation.constraints ::: inits).foreach(s => solver.mkAssert(s))
+        // solver.solver.getAssertions.foreach(b => println(b.toString))
+        // if (constraints.nonEmpty) println(query)
+        // typecheck(query, node, "Method has unbounded size!")
       }
     }
     super.visitMethod(node, p)
