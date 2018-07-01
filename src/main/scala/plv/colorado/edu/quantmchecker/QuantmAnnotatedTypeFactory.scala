@@ -11,7 +11,6 @@ import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQ
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual._
-import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
 
 import scala.collection.JavaConverters._
@@ -102,7 +101,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     *
     * @param annotation type annotation of a variable
     * @param invTyp     a specific type of annotation
-    * @return a set of collected annotations: self/self.f.g/self_init -> ...self...
+    * @return a set of collected annotations: self/self.f.g/self_init -> ...self/self.f.g/self_init...
     */
   private def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror): Map[String, String] = {
     val map = if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, invTyp)) {
@@ -111,26 +110,28 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
           // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
           val wellFormatInv = SmtUtils.rmParen(inv.trim)
           val keys = SmtUtils.startsWithToken(wellFormatInv, SmtUtils.SELF)
-          // TODO: Should branch on one token or not
-          if (keys.nonEmpty) { // E.g. self or self.f.g
-            keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
-          } else {
-            invTyp match {
-              case INV => // E.g. x|c|n => "self" -> (= self x|c|n)
+          val tokens = SmtUtils.parseSmtlibToToken(wellFormatInv)
+          invTyp match {
+            case INV =>
+              if (tokens.isEmpty) acc
+              else if (tokens.size == 1) { // E.g. x|c|n => "self" -> (= self x|c|n)
                 acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
-              case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
-                val initSelf = Utils.toInit(SmtUtils.SELF)
-                val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
-                val initVal = SmtUtils.mkEq(initSelf, inv)
-                try {
-                  Integer.parseInt(inv)
-                }
-                catch {
-                  case e: Exception => PrintStuff.printRedString("Size of input should be an integer"); sys.exit(-1)
-                }
-                acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
-              case _ => acc
-            }
+              } else { // E.g. self or self.f.g
+                assert(keys.nonEmpty)
+                keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
+              }
+            case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
+              val initSelf = Utils.toInit(SmtUtils.SELF)
+              val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
+              val initVal = SmtUtils.mkEq(initSelf, inv)
+              try {
+                Integer.parseInt(inv)
+              }
+              catch {
+                case e: Exception => assert(false, "Size of input should be an integer")
+              }
+              acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
+            case _ => acc
           }
       }
     } else {
@@ -143,7 +144,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   /**
     *
     * @param node tree representation of a variable
-    * @return a set of collected annotations: self/self.f.g -> ...self...
+    * @return a set of collected annotations: self/self.f.g/self_init -> ...self/self.f.g/self_init...
     */
   def getVarAnnoMap(node: Tree): Map[String, String] = {
     /*
@@ -173,7 +174,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   /**
     *
     * @param classTree a class definition
-    * @return a typing context collected from class field declarations: v/v.f.g -> ...self...
+    * @return a typing context collected from class field declarations: v/v.f.g/v_init -> ...self/self.f.g/self_init...
     *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getFieldTypCxt(classTree: ClassTree): HashMap[String, String] = {
@@ -197,7 +198,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   /**
     *
     * @param methodTree a method
-    * @return a typing context collected from local variable declarations: v/v.f.g/v_init -> ...self...
+    * @return a typing context collected from local variable declarations: v/v.f.g/v_init -> ...self/self.f.g/self_init...
     *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getLocalTypCxt(methodTree: MethodTree): HashMap[String, String] = {
