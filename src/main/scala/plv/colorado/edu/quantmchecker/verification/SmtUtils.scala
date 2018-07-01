@@ -238,7 +238,7 @@ object SmtUtils {
 
   def mkAssertion(p: String): String = "(" + ASSERT + " " + addParen(p) + ")"
 
-  def mkDeclConst(v: String): String = "(" + DECL_CONST + " " + v + " Int)"
+  def mkConstDecl(v: String): String = "(" + DECL_CONST + " " + v + " Int)"
 
   def mkQueries(l: Iterable[String]): String = l.foldLeft("") { (acc, e) => acc + e + "\n" }
 

@@ -83,7 +83,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               }
             })
         }*/
-        val body = solver.mkEq(solver.getVar(Utils.hashCode(node.getBody)), solver.mkIntVal(1))
+        val methodBody = solver.mkEq(solver.getVar(Utils.hashCode(node.getBody)), solver.mkIntVal(1))
         iters.keySet.map(iter => solver.getVar(iter))
         val inits = solver.names.foldLeft(List[AST]()) {
           case (acc, (v, ast)) =>
@@ -94,7 +94,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           if (listVars.size == 1) solver.getVar(listVars.head)
           else solver.mkAdd(listVars.map(list => solver.getVar(list)).toArray: _*)
         }
-        (body :: cfRelation.constraints ::: inits).foreach(s => solver.mkAssert(s))
+        (methodBody :: cfRelation.constraints ::: inits).foreach(s => solver.mkAssert(s))
         // solver.solver.getAssertions.foreach(b => println(b.toString))
         // if (constraints.nonEmpty) println(query)
         // typecheck(query, node, "Method has unbounded size!")

@@ -11,6 +11,7 @@ import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQ
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual._
+import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
 
 import scala.collection.JavaConverters._
@@ -110,16 +111,23 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
           // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
           val wellFormatInv = SmtUtils.rmParen(inv.trim)
           val keys = SmtUtils.startsWithToken(wellFormatInv, SmtUtils.SELF)
+          // TODO: Should branch on one token or not
           if (keys.nonEmpty) { // E.g. self or self.f.g
             keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
           } else {
             invTyp match {
-              case INV => // E.g. x|c|n => = self x|c|n
+              case INV => // E.g. x|c|n => "self" -> (= self x|c|n)
                 acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
               case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
                 val initSelf = Utils.toInit(SmtUtils.SELF)
                 val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
                 val initVal = SmtUtils.mkEq(initSelf, inv)
+                try {
+                  Integer.parseInt(inv)
+                }
+                catch {
+                  case e: Exception => PrintStuff.printRedString("Size of input should be an integer"); sys.exit(-1)
+                }
                 acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
               case _ => acc
             }
@@ -189,7 +197,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   /**
     *
     * @param methodTree a method
-    * @return a typing context collected from local variable declarations: v/v.f.g -> ...self...
+    * @return a typing context collected from local variable declarations: v/v.f.g/v_init -> ...self...
     *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getLocalTypCxt(methodTree: MethodTree): HashMap[String, String] = {

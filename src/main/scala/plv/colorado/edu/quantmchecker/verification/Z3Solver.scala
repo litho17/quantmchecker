@@ -10,7 +10,7 @@ import scala.collection.immutable.HashMap
 /**
   * @author Tianhan Lu
   */
-class Z3Solver {
+class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
   val ctx: Context = new Context
   val solver = {
     val solver = ctx.mkSolver
@@ -41,7 +41,7 @@ class Z3Solver {
       throw new Exception("Z3 decidability or timeout issue--got Status.UNKNOWN")
   }
 
-  def getVar(k: String): AST ={
+  def getVar(k: String): AST = {
     names.get(k) match {
       case Some(v) => v
       case None =>
@@ -69,7 +69,7 @@ class Z3Solver {
 
   def mkAdd(lhs: AST, rhs: AST): AST = ctx.mkAdd(lhs.asInstanceOf[ArithExpr], rhs.asInstanceOf[ArithExpr])
 
-  def mkAdd(ast: AST*): AST = ctx.mkAdd(ast.map(a => a.asInstanceOf[ArithExpr]):_*)
+  def mkAdd(ast: AST*): AST = ctx.mkAdd(ast.map(a => a.asInstanceOf[ArithExpr]): _*)
 
   def mkSub(lhs: AST, rhs: AST): AST = ctx.mkSub(lhs.asInstanceOf[ArithExpr], rhs.asInstanceOf[ArithExpr])
 
