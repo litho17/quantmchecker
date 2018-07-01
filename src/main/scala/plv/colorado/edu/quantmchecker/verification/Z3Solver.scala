@@ -94,6 +94,24 @@ class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
   def mkIntVar(s: String): AST = ctx.mkIntConst(s)
 
   def mkBoolVar(s: String): AST = ctx.mkBoolConst(s)
+
+  /**
+    *
+    * @param obj the objective to optimize for
+    * @param max maximize or minimize
+    */
+  def optimize(obj: Expr, max: Boolean = true): Unit = {
+    val opt = ctx.mkOptimize
+    val objExpr = if (max) opt.MkMaximize(obj) else opt.MkMinimize(obj)
+    opt.Add(solver.getAssertions:_*)
+    println(opt.Check(), obj, objExpr)
+    // println(getAssertions)
+  }
+
+  def getAssertions: String = {
+    val decls = names.foldLeft("") { case (acc, (name, decl)) => acc + SmtUtils.mkConstDecl(name)+ "\n"}
+    solver.getAssertions.foldLeft(decls) { (acc, assertion) => acc + SmtUtils.mkAssertion(assertion.toString) + "\n"}
+  }
 }
 
 object Z3Solver {
@@ -136,6 +154,34 @@ object Z3Solver {
     if (array.length == 1) array.head
     else if (array.isEmpty) ctx.mkTrue()
     else ctx.mkAnd(parseSMTLIB2StringToArray(str, ctx): _*)
+  }
+
+  /**
+    *
+    * @param str    an SMTLIB2 string
+    * @param solver Z3 solver
+    * @return Z3 AST representation of the string
+    */
+  def parseStrToZ3AST(str: String, solver: Z3Solver): BoolExpr = {
+    val tokens = SmtUtils.parseSmtlibToToken(str)
+    val (decl, assertion) = {
+      if (tokens.size == 1) {
+        val decl = List(SmtUtils.mkConstDecl(SmtUtils.SELF), SmtUtils.mkConstDecl(tokens.head.toString()))
+        val assertion = SmtUtils.mkAssertion(SmtUtils.oneTokenToThree(str))
+        solver.getVar(tokens.head.toString())
+        (decl, assertion)
+      } else {
+        val syms = SmtUtils.extractSyms(str)
+        syms.foreach(sym => solver.getVar(sym))
+        val decl = syms.foldLeft(List[String]()) {
+          (acc, sym) => SmtUtils.mkConstDecl(sym) :: acc
+        }
+        val assertion = SmtUtils.mkAssertion(str)
+        (decl, assertion)
+      }
+    }
+    val query = SmtUtils.mkQueries(decl ::: List(assertion))
+    parseSMTLIB2String(query, solver.ctx)
   }
 
   private def interpretSolverOutput(status: Status, f: BoolExpr): Boolean = status match {
