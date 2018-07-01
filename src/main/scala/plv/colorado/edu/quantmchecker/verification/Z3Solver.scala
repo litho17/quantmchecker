@@ -100,12 +100,18 @@ class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
     * @param obj the objective to optimize for
     * @param max maximize or minimize
     */
-  def optimize(obj: Expr, max: Boolean = true): Unit = {
+  def optimize(obj: Expr, max: Boolean = true): Integer = {
     val opt = ctx.mkOptimize
     val objExpr = if (max) opt.MkMaximize(obj) else opt.MkMinimize(obj)
     opt.Add(solver.getAssertions:_*)
-    println(opt.Check(), obj, objExpr)
+    val check = opt.Check()
+    // println(check, obj, objExpr)
     // println(getAssertions)
+    try{
+      Integer.parseInt(objExpr.toString)
+    } catch {
+      case e: Exception => Integer.MAX_VALUE
+    }
   }
 
   def getAssertions: String = {

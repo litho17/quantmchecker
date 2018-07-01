@@ -3,7 +3,7 @@ package plv.colorado.edu.quantmchecker
 import java.io.File
 import javax.lang.model.element._
 
-import com.microsoft.z3.AST
+import com.microsoft.z3.{AST, ArithExpr}
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
@@ -67,10 +67,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       if (listVars.nonEmpty) { // Only consider list variables
         val solver = new Z3Solver
         val cfRelation = new CFRelation(node.getBody, solver)
-        /*val constraints = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
+        val constraints: List[AST] = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
           case (acc, (v, t)) =>
-            acc + SmtUtils.mkAssertion({
-              if (iters.contains(v)) {
+            val constraint = {
+              if (iters.contains(v)) { // it => 0 <= it <= list
                 val attachedList = SmtUtils.threeTokensToOne({
                   iters.get(v) match {
                     case Some(map) => assert(map.size == 1); map.head._2
@@ -79,25 +79,31 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 })
                 SmtUtils.mkAnd(">= " + v + " " + " 0", "<= " + v + " " + attachedList)
               } else {
-                SmtUtils.substitute(t, List(SmtUtils.SELF, Utils.toInit(SmtUtils.SELF)), List(v, v))
+                val varName = {
+                  if (Utils.isInit(v)) Utils.rmInit(v) // v_init => v
+                  else if (v.split('.').nonEmpty) { // v.f.g => v
+                    v.split('.').head
+                  } else v // v => v
+                }
+                SmtUtils.substitute(t, List(SmtUtils.SELF), List(varName), true)
               }
-            })
-        }*/
-        val methodBody = solver.mkEq(solver.getVar(Utils.hashCode(node.getBody)), solver.mkIntVal(1))
+            }
+            acc + constraint
+        }.map(s => Z3Solver.parseStrToZ3AST(s, solver)).toList
+        val methodBody: AST = solver.mkEq(solver.getVar(Utils.hashCode(node.getBody)), solver.mkIntVal(1))
         iters.keySet.map(iter => solver.getVar(iter))
-        val inits = solver.names.foldLeft(List[AST]()) {
+        val inits: List[AST] = solver.names.foldLeft(List[AST]()) {
           case (acc, (v, ast)) =>
             if (Utils.isInit(v) && !inputVars.contains(v)) solver.mkEq(solver.getVar(v), solver.mkIntVal(0)) :: acc
             else acc
         }
-        val objective = {
+        val objective: AST = {
           if (listVars.size == 1) solver.getVar(listVars.head)
           else solver.mkAdd(listVars.map(list => solver.getVar(list)).toArray: _*)
         }
-        (methodBody :: cfRelation.constraints ::: inits).foreach(s => solver.mkAssert(s))
-        // solver.solver.getAssertions.foreach(b => println(b.toString))
-        // if (constraints.nonEmpty) println(query)
-        // typecheck(query, node, "Method has unbounded size!")
+        (methodBody :: cfRelation.constraints ::: inits ::: constraints).foreach(s => solver.mkAssert(s))
+        val max = solver.optimize(objective.asInstanceOf[ArithExpr])
+        if (max == Integer.MAX_VALUE) issueError(node, "Method has unbounded size!")
       }
     }
     super.visitMethod(node, p)
@@ -690,9 +696,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   def getInputVars(typCxt: HashMap[String, String]): Set[String] = {
-    typCxt.filter {
+    val set = typCxt.filter {
       case (v, t) => Utils.isInit(v) // Because v_init is automatically generated in getVarAnnoMap for @Input
     }.keySet
+    set
   }
 
   case class CallSite(node: MethodInvocationTree) {
