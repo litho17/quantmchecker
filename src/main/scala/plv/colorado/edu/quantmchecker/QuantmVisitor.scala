@@ -10,7 +10,6 @@ import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
 import plv.colorado.edu.Utils
-import plv.colorado.edu.quantmchecker.qual._
 import plv.colorado.edu.quantmchecker.summarylang.{MSum, MSumI, MSumV, MethodSumUtils}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{CFRelation, SmtUtils, Z3Solver}
@@ -25,12 +24,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_PATHS = false
   private val DEBUG_WHICH_UNHANDLED_CASE = false
   // private val ISSUE_ALL_UNANNOTATED_LISTS = true
-
-  protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
-  protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
-  protected val TOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
-  protected val BOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
-  protected val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   private val NOT_SUPPORTED = "NOT SUPPORTED"
   // private val LIST_NOT_ANNOTATED = "List add found, but the receiver is not annotated"
@@ -246,7 +239,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             }
           }
         } else {
-          if (avoidAssignSubtyCheck(node.getExpression)) {
+          val lhsAnnotation = atypeFactory.getTypeAnnotation(atypeFactory.getAnnotatedTypeLhs(lhs).getAnnotations)
+          if (avoidAssignSubtyCheck(lhsAnnotation, node.getExpression)) {
             null
           } else {
             super.visitAssignment(node, p)
@@ -380,15 +374,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitVariable(node: VariableTree, p: Void): Void = {
-    if (avoidAssignSubtyCheck(node.getInitializer))
+    val lhsAnnotation = atypeFactory.getTypeAnnotation(atypeFactory.getAnnotatedTypeLhs(node).getAnnotations)
+    if (avoidAssignSubtyCheck(lhsAnnotation, node.getInitializer))
       return null
-    if (node.getInitializer != null) {
-      node.getInitializer match { // Integer_literal
-        case x@_ => super.visitVariable(node, p)
-      }
-    } else {
-      super.visitVariable(node, p)
-    }
+    super.visitVariable(node, p)
   }
 
   /**
@@ -397,22 +386,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return Whether should we do subtype checking for assignments: lhs = rhs
     *         This is flow sensitive checking
     */
-  private def avoidAssignSubtyCheck(rhs: ExpressionTree): Boolean = {
+  private def avoidAssignSubtyCheck(lhsType: AnnotationMirror, rhs: ExpressionTree): Boolean = {
     if (rhs == null)
       return false
-    val isDeclaration = {
+    /*val isDeclaration = {
       val element = TreeUtils.elementFromTree(rhs)
       val path = trees.getPath(element)
       if (path == null) false else TreeUtils.enclosingVariable(path) == null
     }
     if (isDeclaration)
-      return true
+      return true*/
 
     val rhsStr = rhs.toString
     rhs match {
       case t: NewClassTree => // E.g. x = new C(), where x has explicit annotation and C doesn't, don't type check.
         val rhsAnno = atypeFactory.getTypeAnnotation(t)
-        rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, TOP) // If rhs's annotation is empty or TOP
+        if (rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, atypeFactory.INVTOP)) // If rhs's annotation is empty or TOP
+          return true
       case m: MethodInvocationTree =>
         val callee = getMethodElementFromInvocation(m)
         val receiver = TreeUtils.getReceiverTree(m)
@@ -424,12 +414,16 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val isRhsEmp = rhsStr.startsWith(EMP_COLLECTION_PREFIX) // || rhsStr.startsWith("Collections.unmodifiable")
         if (isIter || isClone || isRhsEmp)
           return true
-        false
       case _ =>
-        val isRhsNull = rhsStr == "null"
-        // val isInit = if (getEnclosingMethod(node) != null) getEnclosingMethod(node).toString.contains("init") else false
-        isRhsNull // || isInit // unsound
+        if (rhsStr == "null") return true // || isInit // unsound
+      // val isInit = if (getEnclosingMethod(node) != null) getEnclosingMethod(node).toString.contains("init") else false
     }
+
+    // Don't do assignment check for Inputs
+    if (AnnotationUtils.areSameIgnoringValues(lhsType, atypeFactory.INPUT))
+      return true
+
+    false
   }
 
   /**
@@ -693,7 +687,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def getMethodSummaries(method: ExecutableElement): HashSet[MSum] = {
     if (method == null)
       return new HashSet[MSum]
-    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, SUMMARY)).toList
+    val summaries = atypeFactory.getDeclAnnotations(method).asScala.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, atypeFactory.SUMMARY)).toList
     val set = if (summaries.size == 1) {
       val summaryList = Utils.extractArrayValues(summaries.head, "value")
       if (summaryList.size % 2 != 0) {

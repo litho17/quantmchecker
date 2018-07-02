@@ -21,13 +21,14 @@ import scala.collection.immutable.{HashMap, HashSet}
   */
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
-  protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
-  protected val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
-  protected val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
-  protected val INVKWN: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvKwn])
-  protected val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
-  protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
-  protected val INPUT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Input])
+  val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
+  val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
+  val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
+  val INVKWN: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvKwn])
+  val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
+  val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
+  val INPUT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Input])
+  val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
 
   var fieldLists: HashSet[VariableTree] = HashSet.empty
   var localLists: HashSet[VariableTree] = HashSet.empty
