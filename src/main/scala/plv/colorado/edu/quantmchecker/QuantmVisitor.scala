@@ -141,6 +141,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(query, ctx), ctx)
     if (!isChecked) {
       // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
+      Utils.logging("\n" + query + "\n")
       issueError(node, errorMsg)
     }
     isChecked
@@ -199,7 +200,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // val lhsAnno = lhsTyp.getAnnotations
     val lhsTyp = inferVarType(node.getVariable.toString, typingCxt) // self -> ...self...
     val rhsTyp = { // self -> ...self...
-      val set = inferExprType(node.getExpression, typingCxt)
+      val set = inferExprType(node.getExpression, typingCxt)._1
       if (set.nonEmpty) set + SmtUtils.mkEq(Utils.hashCode(rhs), SmtUtils.SELF) else set
     }.map { s => SmtUtils.substitute(s, List(label, lhs.toString), List(SmtUtils.mkAdd(label, "1"), SmtUtils.SELF)) }
 
@@ -385,10 +386,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitVariable(node: VariableTree, p: Void): Void = {
-    // val lhsAnno = getAnnotationFromVariableTree(node, INV)
     if (avoidAssignSubtyCheck(node.getInitializer))
       return null
-    super.visitVariable(node, p)
+    if (node.getInitializer != null) {
+      node.getInitializer match { // Integer_literal
+        case x@_ => super.visitVariable(node, p)
+      }
+    } else {
+      super.visitVariable(node, p)
+    }
   }
 
   /**
@@ -488,7 +494,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         else acc2
     }
     // Check separately for the case where v does not have any type annotation
-    if (dependentTyp.isEmpty && selfTyp.isEmpty) HashSet.empty
+    if (dependentTyp.isEmpty && selfTyp.isEmpty) HashSet(SmtUtils.TRUE) // Empty annotation means: TRUE
     else (selfTyp ++ dependentTyp).map(s => SmtUtils.substitute(s, List(v), List(SmtUtils.SELF)))
   }
 
@@ -496,33 +502,38 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     *
     * @param expr   an expression
     * @param typCxt a typing context
-    * @return type constraints on the expression
+    * @return type constraints on the expression, the prefix representation of the expression
     */
-  private def inferExprType(expr: ExpressionTree, typCxt: Map[String, String]): HashSet[String] = {
+  private def inferExprType(expr: ExpressionTree, typCxt: Map[String, String]): (HashSet[String], String) = {
+    val ERROR_VAL = ""
     expr match {
-      case e: MemberSelectTree => inferVarType(e.toString, typCxt) // E.g. v.f
-      case e: IdentifierTree => inferVarType(e.toString, typCxt)
+      case e: MemberSelectTree => (inferVarType(e.toString, typCxt), e.toString) // E.g. v.f
+      case e: IdentifierTree => (inferVarType(e.toString, typCxt), e.toString)
       case e: LiteralTree =>
         e.getKind match {
           case Tree.Kind.INT_LITERAL =>
             // To make it consistent that, it means cannot infer a type when returning an empty set
-            HashSet[String](SmtUtils.mkEq(e.toString, e.toString))
-          case _ => new HashSet[String] // ignored
+            (HashSet[String](SmtUtils.mkEq(e.toString, e.toString)), e.toString)
+          case _ => (new HashSet[String], ERROR_VAL) // ignored
         }
       case e: BinaryTree =>
-        val left = e.getLeftOperand.toString
-        val right = e.getRightOperand.toString
-        val leftCons = inferExprType(e.getLeftOperand, typCxt)
-        val rightCons = inferExprType(e.getRightOperand, typCxt)
-        val eq = e.getKind match {
-          case Tree.Kind.PLUS => SmtUtils.mkEq(Utils.hashCode(e), SmtUtils.mkAdd(left, right))
-          case Tree.Kind.MINUS => SmtUtils.mkEq(Utils.hashCode(e), SmtUtils.mkSub(left, right))
-          case _ => "" // ignored
+        val leftOperand = e.getLeftOperand.toString
+        val rightOperand = e.getRightOperand.toString
+        // TODO: left -> infix
+        val (leftCons, leftPrefix) = inferExprType(e.getLeftOperand, typCxt)
+        val (rightCons, rightPrefix) = inferExprType(e.getRightOperand, typCxt)
+        val thisPrefix = e.getKind match {
+          case Tree.Kind.PLUS => SmtUtils.mkAdd(leftPrefix, rightPrefix)
+          case Tree.Kind.MINUS => SmtUtils.mkSub(leftPrefix, rightPrefix)
+          case _ => ERROR_VAL // ignored
         }
-        // If cannot infer constraints for any operand, then cannot infer constraints for the binary expression
-        if (leftCons.nonEmpty && rightCons.nonEmpty && eq != "") leftCons ++ rightCons + eq else new HashSet[String]
+        val eq = if (thisPrefix != ERROR_VAL) SmtUtils.mkEq(Utils.hashCode(e), thisPrefix) else ERROR_VAL
+        // If we can't infer constraints for any of the operands,
+        // then we can't infer constraints for the binary expression
+        if (leftCons.nonEmpty && rightCons.nonEmpty && eq != ERROR_VAL) (leftCons ++ rightCons + eq, thisPrefix)
+        else (new HashSet[String], ERROR_VAL) // ignored
       // case e: MethodInvocationTree =>
-      case _ => new HashSet[String] // ignored
+      case _ => (new HashSet[String], ERROR_VAL) // ignored
     }
   }
 
