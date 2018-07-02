@@ -3,7 +3,7 @@ package plv.colorado.edu.quantmchecker
 import java.io.File
 import javax.lang.model.element._
 
-import com.microsoft.z3.{AST, ArithExpr}
+import com.microsoft.z3.AST
 import com.sun.source.tree._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
@@ -102,8 +102,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           else solver.mkAdd(listVars.map(list => solver.getVar(list)).toArray: _*)
         }
         (methodBody :: cfRelation.constraints ::: inits ::: constraints).foreach(s => solver.mkAssert(s))
-        val max = solver.optimize(objective.asInstanceOf[ArithExpr])
-        if (max == Integer.MAX_VALUE) issueError(node, "Method has unbounded size!")
+        solver.mkAssert(solver.mkLe(objective, solver.mkIntVal(Integer.MAX_VALUE)))
+        // solver.optimize(objective.asInstanceOf[ArithExpr])
+        val check = solver.checkSAT
+        if (!check) {
+          Utils.logging("Typing context:\n" + typCxt)
+          Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.mkMaximize(objective.toString), SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
+          issueError(node, "Method has unbounded size!")
+        }
       }
     }
     super.visitMethod(node, p)
@@ -120,7 +126,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // Print user defined classes with list field
       }
     }
-    Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
+    // Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
     super.processClassTree(classTree)
   }
 
@@ -298,7 +304,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       // val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
       val calleeSummary = getMethodSummaries(getMethodElementFromInvocation(node))
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
-      if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " (" + getFileName + ")")
+      // if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " (" + getFileName + ")")
       val iterators = getListIters(callerName, typingCxt).toList
       typingCxt.foreach { // Do not check iterator's and self's type annotation
         case (v, t) if !iters.contains(v) && !v.startsWith(callerName) =>

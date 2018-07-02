@@ -1,18 +1,10 @@
 package plv.colorado.edu.quantmchecker
 
-import javax.lang.model.`type`.TypeMirror
-import javax.lang.model.element.{AnnotationMirror, Element, ExecutableElement}
+import javax.lang.model.element.AnnotationMirror
 
-import com.sun.source.tree.{AssignmentTree, MemberSelectTree}
-import org.checkerframework.dataflow.analysis.{TransferInput, TransferResult}
-import org.checkerframework.dataflow.cfg.node.AssignmentContext.MethodReturnContext
-import org.checkerframework.dataflow.cfg.node.{AssignmentNode, ReturnNode, VariableDeclarationNode}
-import org.checkerframework.framework.`type`.AnnotatedTypeMirror.AnnotatedExecutableType
 import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
-import org.checkerframework.javacutil.{AnnotationBuilder, ElementUtils, TreeUtils}
+import org.checkerframework.javacutil.AnnotationBuilder
 import plv.colorado.edu.quantmchecker.qual.{Inv, InvBot, InvTop}
-
-import scala.collection.JavaConverters._
 /**
   * @author Tianhan Lu
   */
@@ -24,7 +16,7 @@ class QuantmTransfer(analysis: CFAbstractAnalysis[CFValue, CFStore, CFTransfer])
   protected val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
   protected val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
 
-  override def visitReturn(n: ReturnNode, p: TransferInput[CFValue, CFStore]): TransferResult[CFValue, CFStore] = {
+  /*override def visitReturn(n: ReturnNode, p: TransferInput[CFValue, CFStore]): TransferResult[CFValue, CFStore] = {
     val result = super.visitReturn(n, p)
     n.getResult.getAssignmentContext match {
       case mcxt: MethodReturnContext =>
@@ -77,7 +69,7 @@ class QuantmTransfer(analysis: CFAbstractAnalysis[CFValue, CFStore, CFTransfer])
       case _ =>
     }
     result
-  }
+  }*/
 
   // val receiver = FlowExpressions.internalReprOf(analysis.getTypeFactory, n.getExpression)
   // result.getRegularStore.insertValue(receiver, lhsAnno.asScala.head)

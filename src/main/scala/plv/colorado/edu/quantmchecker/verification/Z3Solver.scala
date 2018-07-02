@@ -51,6 +51,12 @@ class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
     }
   }
 
+  def getNatVar(k: String): AST = {
+    val ast = getVar(k)
+    mkAssert(mkGe(ast, mkIntVal(0)))
+    ast
+  }
+
   def mkAssert(a: AST): Unit = solver.add(a.asInstanceOf[BoolExpr])
 
   def mkNot(o: AST): AST = ctx.mkNot(o.asInstanceOf[BoolExpr])
