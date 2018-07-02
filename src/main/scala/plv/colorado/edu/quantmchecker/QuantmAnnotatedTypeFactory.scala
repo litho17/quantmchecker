@@ -60,7 +60,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @param annotations
     * @return
     */
-  def getTypeAnnotation(annotations: util.Collection[AnnotationMirror]): AnnotationMirror = {
+  def getTypeAnnotation(annotations: util.Collection[_ <:AnnotationMirror]): AnnotationMirror = {
     this.getQualifierHierarchy
       .findAnnotationInHierarchy(annotations, this.getQualifierHierarchy.getTopAnnotations.iterator().next())
   }
@@ -70,7 +70,17 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @param rcvr tree representation of a variable
     * @return annotation of the receiver of a method invocation
     */
-  def getTypeAnnotation(rcvr: Tree): AnnotationMirror = getTypeAnnotation(getAnnotatedType(rcvr).getAnnotations)
+  def getTypeAnnotation(rcvr: Tree): AnnotationMirror = {
+    val annotations: util.Collection[_ <: AnnotationMirror] = rcvr match {
+      case s: VariableTree =>
+        // I don't understand why the following does not work
+        // TreeUtils.elementFromDeclaration(s).getAnnotationMirrors
+        // atypeFactory.getDeclAnnotations(TreeUtils.elementFromDeclaration(s))
+        TreeUtils.elementFromDeclaration(s).asType().getAnnotationMirrors
+      case _ => getAnnotatedType(rcvr).getAnnotations
+    }
+    getTypeAnnotation(annotations)
+  }
 
   @deprecated
   def getExprAnnotations(node: ExpressionTree): Option[AnnotationMirror] = {
@@ -104,38 +114,40 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @return a set of collected annotations: self/self.f.g/self_init -> ...self/self.f.g/self_init...
     */
   private def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror): Map[String, String] = {
-    val map = if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, invTyp)) {
-      Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
-        (acc, inv) =>
-          // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
-          val wellFormatInv = SmtUtils.rmParen(inv.trim)
-          val keys = SmtUtils.startsWithToken(wellFormatInv, SmtUtils.SELF)
-          val tokens = SmtUtils.parseSmtlibToToken(wellFormatInv)
-          invTyp match {
-            case INV =>
-              if (tokens.isEmpty) acc
-              else if (tokens.size == 1) { // E.g. x|c|n => "self" -> (= self x|c|n)
-                acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
-              } else { // E.g. self or self.f.g
-                assert(keys.nonEmpty)
-                keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
-              }
-            case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
-              val initSelf = Utils.toInit(SmtUtils.SELF)
-              val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
-              val initVal = SmtUtils.mkEq(initSelf, inv)
-              try {
-                Integer.parseInt(inv)
-              }
-              catch {
-                case e: Exception => assert(false, "Size of input should be an integer")
-              }
-              acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
-            case _ => acc
-          }
+    val map = {
+      if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, invTyp)) {
+        Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
+          (acc, inv) =>
+            // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
+            val wellFormatInv = SmtUtils.rmParen(inv.trim)
+            val keys = SmtUtils.startsWithToken(wellFormatInv, SmtUtils.SELF)
+            val tokens = SmtUtils.parseSmtlibToToken(wellFormatInv)
+            invTyp match {
+              case INV =>
+                if (tokens.isEmpty) acc
+                else if (tokens.size == 1) { // E.g. x|c|n => "self" -> (= self x|c|n)
+                  acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
+                } else { // E.g. self or self.f.g
+                  assert(keys.nonEmpty)
+                  keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
+                }
+              case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
+                val initSelf = Utils.toInit(SmtUtils.SELF)
+                val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
+                val initVal = SmtUtils.mkEq(initSelf, inv)
+                try {
+                  Integer.parseInt(inv)
+                }
+                catch {
+                  case e: Exception => assert(false, "Size of input should be an integer")
+                }
+                acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
+              case _ => acc
+            }
+        }
+      } else {
+        new HashMap[String, String]
       }
-    } else {
-      new HashMap[String, String]
     }
     assert(map.forall { case (v, t) => v.startsWith(SmtUtils.SELF) })
     map
@@ -178,18 +190,20 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getFieldTypCxt(classTree: ClassTree): HashMap[String, String] = {
-    val map = classTree.getMembers.asScala.foldLeft(new HashMap[String, String]) {
-      (acc, member) =>
-        member match {
-          case member: VariableTree =>
-            if (isListVar(member)) fieldLists = fieldLists + member
-            // Get annotations on class fields
-            this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
-              case (acc2, (v, typ)) =>
-                acc2 + (SmtUtils.substitute(v, List(SmtUtils.SELF), List(member.getName.toString), true) -> typ)
-            }
-          case _ => acc
-        }
+    val map = {
+      classTree.getMembers.asScala.foldLeft(new HashMap[String, String]) {
+        (acc, member) =>
+          member match {
+            case member: VariableTree =>
+              if (isListVar(member)) fieldLists = fieldLists + member
+              // Get annotations on class fields
+              this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
+                case (acc2, (v, typ)) =>
+                  acc2 + (SmtUtils.substitute(v, List(SmtUtils.SELF), List(member.getName.toString), true) -> typ)
+              }
+            case _ => acc
+          }
+      }
     }
     assert(map.forall { case (v, t) => !v.startsWith(SmtUtils.SELF) })
     map
@@ -202,29 +216,31 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     */
   def getLocalTypCxt(methodTree: MethodTree): HashMap[String, String] = {
-    val map = if (methodTree.getBody != null) {
-      val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
-        (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
-      } ++ methodTree.getParameters.asScala
+    val map = {
+      if (methodTree.getBody != null) {
+        val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
+          (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
+        } ++ methodTree.getParameters.asScala
 
-      stmts.foldLeft(new HashMap[String, String]) {
-        (acc, stmt) =>
-          stmt match {
-            case stmt: VariableTree =>
-              if (isListVar(stmt)) localLists = localLists + stmt
-              // Local invariants should only be on variable declarations
-              // Otherwise, invariants are simply ignored
-              this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f
-                case (acc2, (v, typ)) => acc2 +
-                  (SmtUtils.substitute(v, List(SmtUtils.SELF), List(stmt.getName.toString), true) -> typ)
-              }
-            case x@_ =>
-              if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
-              acc
-          }
+        stmts.foldLeft(new HashMap[String, String]) {
+          (acc, stmt) =>
+            stmt match {
+              case stmt: VariableTree =>
+                if (isListVar(stmt)) localLists = localLists + stmt
+                // Local invariants should only be on variable declarations
+                // Otherwise, invariants are simply ignored
+                this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f
+                  case (acc2, (v, typ)) => acc2 +
+                    (SmtUtils.substitute(v, List(SmtUtils.SELF), List(stmt.getName.toString), true) -> typ)
+                }
+              case x@_ =>
+                if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
+                acc
+            }
+        }
+      } else {
+        new HashMap[String, String]
       }
-    } else {
-      new HashMap[String, String]
     }
     assert(map.forall { case (v, t) => !v.startsWith(SmtUtils.SELF) })
     map
