@@ -86,7 +86,7 @@ object Utils {
     ("java.util.Hashtable", "remove")
   )
 
-  val ITER: HashSet[(String, String)] = HashSet(
+  val ITER_METHOD: HashSet[(String, String)] = HashSet(
     ("java.lang.ArrayList", "iterator"),
     ("java.util.List", "iterator"),
     ("java.util.LinkedList", "iterator"),
@@ -124,7 +124,8 @@ object Utils {
     ("java.util.StringTokenizer", "nextToken"),
     ("java.util.Enumeration", "nextElement"),
     ("java.io.BufferedReader", "readLine"),
-    ("java.io.InputStreamReader", "read")
+    ("java.io.InputStreamReader", "read"),
+    ("org.htmlparser.lexer.Lexer", "nextNode")
     // ("java.util.Queue", "poll")
   )
 
@@ -177,7 +178,7 @@ object Utils {
     val map = HashMap[String, HashSet[(String, String)]](
       "add" -> COLLECTION_ADD,
       "remove" -> COLLECTION_REMOVE,
-      "iterator" -> ITER,
+      "iterator" -> ITER_METHOD,
       "next" -> ITER_NEXT
     )
 

@@ -112,7 +112,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     *
     * @param annotation type annotation of a variable
     * @param invTyp     a specific type of annotation
-    * @return a set of collected annotations: self/self.f.g/self_init -> ...self/self.f.g/self_init...
+    * @return a set of collected annotations: "self/self.f.g/self_init" -> "...self/self.f.g/self_init..."
+    *         !!!!!Invariant: Give v -> t, self in t always refers to v!!!!!
     */
   private def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror): Map[String, String] = {
     val map = {
@@ -126,11 +127,13 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             invTyp match {
               case INV =>
                 if (tokens.isEmpty) acc
-                else if (tokens.size == 1) { // E.g. x|c|n => "self" -> (= self x|c|n)
+                else if (tokens.size == 1) { // E.g. "x|c|n" => "self" -> (= self x|c|n)
                   acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
-                } else { // E.g. self or self.f.g
+                } else {
                   assert(keys.nonEmpty)
-                  keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
+                  keys.foldLeft(acc) {
+                    (acc2, t) => // E.g. "= self.f 1" => self.f -> (= self 1)
+                      acc2 + (t -> SmtUtils.substitute(wellFormatInv, List(t), List(SmtUtils.SELF))) }
                 }
               case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self 100)
                 val initSelf = Utils.toInit(SmtUtils.SELF)

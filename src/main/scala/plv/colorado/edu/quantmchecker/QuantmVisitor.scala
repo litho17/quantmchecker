@@ -35,12 +35,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
   }
 
-  private var iters: HashMap[String, Map[String, String]] = HashMap.empty // Names of annotated iterators in current method
+  // Names of annotated iterators in current method
+  // Do not consider iterators in field
+  private var iters: HashMap[String, Map[String, String]] = HashMap.empty
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
     iters = getVarsOfType(node, Utils.ITER_NEXT.map { case (c, m) => c })
     val typCxt = atypeFactory.getLocalTypCxt(node)
-    typCxt.foreach { // Check each invariant is a valid SMTLIB2 string
+    typCxt.foreach { // Check if each invariant is a valid SMTLIB2 string
       case (v, t) =>
         try {
           SmtUtils.parseSmtlibToToken(t)
@@ -49,13 +51,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
     }
     val inputVars = getInputVars(typCxt)
-    typCxt.foreach { // Rule T-Init: No need to check iterator's or input's type annotation
+    typCxt.foreach { // Check if Rule T-Init holds: No need to check iterator's or input's type annotation
       case (v, t) if !iters.contains(v) && !inputVars.contains(v) =>
         val init = initInv(t, typCxt, v, inputVars)
         typecheck(SmtUtils.mkAssertionForall(init), node, "T-Init\n")
       case _ => true
     }
-    if (node.getBody != null) { // Optimize for upper bound
+    if (node.getBody != null) { // Check if method's upper bound is less than Integer.MAX_VALUE
       val listVars = getVarsOfType(node, Utils.COLLECTION_ADD.map { case (c, m) => c }).keySet
       if (listVars.nonEmpty) { // Only consider list variables
         val solver = new Z3Solver
