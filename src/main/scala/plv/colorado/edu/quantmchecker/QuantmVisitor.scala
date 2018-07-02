@@ -58,7 +58,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val inputVars = getInputVars(typCxt)
     typCxt.foreach { // Rule T-Init: No need to check iterator's or input's type annotation
       case (v, t) if !iters.contains(v) && !inputVars.contains(v) =>
-        val init = initInv(t, typCxt)
+        val init = initInv(t, typCxt, v, inputVars)
         typecheck(SmtUtils.mkAssertionForall(init), node, "T-Init\n")
       case _ => true
     }
@@ -79,13 +79,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 })
                 SmtUtils.mkAnd(">= " + v + " " + " 0", "<= " + v + " " + attachedList)
               } else {
-                val varName = {
-                  if (Utils.isInit(v)) Utils.rmInit(v) // v_init => v
-                  else if (v.split('.').nonEmpty) { // v.f.g => v
-                    v.split('.').head
-                  } else v // v => v
-                }
-                SmtUtils.substitute(t, List(SmtUtils.SELF), List(varName), true)
+                SmtUtils.substitute(t, List(SmtUtils.SELF), List(v), true)
               }
             }
             acc + constraint
@@ -107,7 +101,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val check = solver.checkSAT
         if (!check) {
           Utils.logging("Typing context:\n" + typCxt)
-          Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.mkMaximize(objective.toString), SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
+          Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
           issueError(node, "Method has unbounded size!")
         }
       }
@@ -444,9 +438,23 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @param typCxt typing context
     * @return the (symbolic) initial value of the invariant
     */
-  private def initInv(inv: String, typCxt: Map[String, String]): String = {
+  private def initInv(inv: String, typCxt: Map[String, String], v: String, inputVars: Map[String, String]): String = {
     val tokens = SmtUtils.parseSmtlibToToken(inv)
-    val selfs = tokens.filter(t => t.toString().startsWith(SmtUtils.SELF)).map(t => t.toString()) // init(self) = 0
+    val (selfs, newSelfs) = {
+      tokens.foldLeft(List[String](), List[String]()) {
+        (acc, token) =>
+          if (token.toString().startsWith(SmtUtils.SELF)) {
+            val (self: String, newSelf: String) = {
+              inputVars.get(v) match {
+                case Some(t) =>
+                  (t, SmtUtils.threeTokensToOne(t)) // If self represent inputs
+                case None => (token.toString(), "0") // If self does not represent inputs
+              }
+            }
+            (self :: acc._1, newSelf :: acc._2)
+          } else acc
+      }
+    } // init(self) = 0; init(INPUT) = INPUT's initial value
     val counters = tokens.filter(t => SmtUtils.isLineCounter(t.toString())).map(t => t.toString()) // init(counter) = 0
     val (iterators, lists) = { // init(it) = list_init
       typCxt.foldLeft(List[String](), List[String]()) {
@@ -460,7 +468,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       (vars, vars.map { v => if (Utils.isInit(v)) v else Utils.toInit(v) })
     }
     val _old: List[String] = selfs ::: counters ::: vars ::: iterators
-    val _new: List[String] = selfs.map(_ => "0") ::: counters.map(_ => "0") ::: initVars ::: lists
+    val _new: List[String] = newSelfs ::: counters.map(_ => "0") ::: initVars ::: lists
     SmtUtils.substitute(inv, _old, _new)
   }
 
@@ -712,11 +720,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     set
   }
 
-  def getInputVars(typCxt: HashMap[String, String]): Set[String] = {
-    val set = typCxt.filter {
+  def getInputVars(typCxt: HashMap[String, String]): HashMap[String, String] = {
+    typCxt.filter {
       case (v, t) => Utils.isInit(v) // Because v_init is automatically generated in getVarAnnoMap for @Input
-    }.keySet
-    set
+    }
   }
 
   case class CallSite(node: MethodInvocationTree) {

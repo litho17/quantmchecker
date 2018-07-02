@@ -131,10 +131,10 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
                   assert(keys.nonEmpty)
                   keys.foldLeft(acc) { (acc2, t) => acc2 + (t -> wellFormatInv) }
                 }
-              case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self_init 100)
+              case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self 100)
                 val initSelf = Utils.toInit(SmtUtils.SELF)
                 val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
-                val initVal = SmtUtils.mkEq(initSelf, inv)
+                val initVal = SmtUtils.mkEq(SmtUtils.SELF, inv)
                 try {
                   Integer.parseInt(inv)
                 }
