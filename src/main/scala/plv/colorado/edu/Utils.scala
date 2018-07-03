@@ -26,6 +26,7 @@ object Utils {
 
   val COLLECTION_ADD: HashSet[(String, String)] = HashSet(
     ("java.lang.StringBuilder", "append"),
+    ("java.lang.StringBuilder", "insert"),
     ("java.lang.StringBuffer", "append"),
     ("java.util.ArrayList", "add"),
     ("java.util.List", "add"),

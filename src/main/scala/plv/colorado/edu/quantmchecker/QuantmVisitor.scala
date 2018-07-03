@@ -450,7 +450,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             (self :: acc._1, newSelf :: acc._2)
           } else acc
       }
-    } // init(self) = 0; init(INPUT) = INPUT's initial value
+    } // init(self) = 0; init(self) = INPUT's initial value, when self refers to INPUT
     val counters = tokens.filter(t => SmtUtils.isLineCounter(t.toString())).map(t => t.toString()) // init(counter) = 0
     val (iterators, lists) = { // init(it) = list_init
       typCxt.foldLeft(List[String](), List[String]()) {
