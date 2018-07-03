@@ -39,7 +39,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   // Do not consider iterators in field
   private var iters: HashMap[String, Map[String, String]] = HashMap.empty
 
+  private var methodTrees = HashSet[MethodTree]()
+  private var verifiedMethods = HashSet[MethodTree]()
+
   override def visitMethod(node: MethodTree, p: Void): Void = {
+    methodTrees += node
     iters = getVarsOfType(node, Utils.ITER_NEXT.map { case (c, m) => c })
     val typCxt = atypeFactory.getLocalTypCxt(node)
     typCxt.foreach { // Check if each invariant is a valid SMTLIB2 string
@@ -98,6 +102,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           Utils.logging("Typing context:\n" + typCxt)
           Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
           issueError(node, "Method has unbounded size!")
+        } else {
+          verifiedMethods += node
         }
       }
     }
@@ -115,6 +121,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       }
     }*/
     // Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
+    Utils.logging("Statistics: " + verifiedMethods.size + ", " + methodTrees.size)
     super.processClassTree(classTree)
   }
 

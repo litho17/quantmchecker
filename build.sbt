@@ -13,3 +13,4 @@ libraryDependencies += "com.regblanc" %% "scala-smtlib" % "0.2.2"
 
 // https://mvnrepository.com/artifact/org.checkerframework/checker
 libraryDependencies += "org.checkerframework" % "checker" % "2.5.3"
+// libraryDependencies += "org.checkerframework" % "checker" % "2.4.0"

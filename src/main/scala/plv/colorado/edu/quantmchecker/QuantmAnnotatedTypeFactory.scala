@@ -61,7 +61,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     * @param annotations
     * @return
     */
-  def getTypeAnnotation(annotations: util.Collection[_ <:AnnotationMirror]): AnnotationMirror = {
+  def getTypeAnnotation(annotations: util.Collection[AnnotationMirror]): AnnotationMirror = {
     this.getQualifierHierarchy
       .findAnnotationInHierarchy(annotations, this.getQualifierHierarchy.getTopAnnotations.iterator().next())
   }
@@ -80,7 +80,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         TreeUtils.elementFromDeclaration(s).asType().getAnnotationMirrors
       case _ => getAnnotatedType(rcvr).getAnnotations
     }
-    getTypeAnnotation(annotations)
+    val filter: util.Collection[AnnotationMirror] = annotations.asScala.filter(p => AnnotationUtils.areSameIgnoringValues(p, INV) || AnnotationUtils.areSameIgnoringValues(p, INPUT)).map(anno => anno.asInstanceOf[AnnotationMirror]).asJavaCollection
+    getTypeAnnotation(filter)
   }
 
   @deprecated
