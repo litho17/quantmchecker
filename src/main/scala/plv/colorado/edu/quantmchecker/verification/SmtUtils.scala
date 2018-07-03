@@ -252,7 +252,7 @@ object SmtUtils {
   def isLineCounter(str: String): Boolean = {
     val tokens = parseSmtlibToToken(str)
     if (tokens.length == 1) {
-      if (str.length >= 1) {
+      if (str.length > 1) {
         str.startsWith("c") && str.substring(1).forall(c => c.isDigit)
       } else false
     } else false

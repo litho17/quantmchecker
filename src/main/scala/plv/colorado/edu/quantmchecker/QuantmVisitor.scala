@@ -1,10 +1,10 @@
 package plv.colorado.edu.quantmchecker
 
 import java.io.File
-import javax.lang.model.element._
 
 import com.microsoft.z3.AST
 import com.sun.source.tree._
+import javax.lang.model.element._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
@@ -105,16 +105,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def processClassTree(classTree: ClassTree): Unit = {
-    val classType = TreeUtils.typeOf(classTree)
+    /*val classType = TreeUtils.typeOf(classTree)
     val allFlds: Iterable[VariableElement] = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala
     if (classTree.getKind != Tree.Kind.ENUM) {
       allFlds.foreach { // Print recursive data types
-        ve =>
+        ve => // Print user defined classes with list field
           if (ve.asType() == classType)
             Utils.logging("Recursive data type: " + classType.toString)
-        // Print user defined classes with list field
       }
-    }
+    }*/
     // Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
     super.processClassTree(classTree)
   }
@@ -260,6 +259,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             }
         }
     }
+
     /**
       * This is unsound because of breaking subtype checking, but it is implemented for reducing annotation burden
       */
@@ -295,7 +295,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       // val callerSummary = getMethodSummaries(getMethodElementFromDecl(getEnclosingMethod(node)))
       val calleeSummary = getMethodSummaries(getMethodElementFromInvocation(node))
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp.getUnderlyingType), callee, atypeFactory)
-      // if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " (" + getFileName + ")")
+      if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
       val iterators = getListIters(callerName, typingCxt).toList
       typingCxt.foreach { // Do not check iterator's and self's type annotation
         case (v, t) if !iters.contains(v) && !v.startsWith(callerName) =>

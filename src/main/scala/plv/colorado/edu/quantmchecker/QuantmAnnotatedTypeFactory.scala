@@ -130,7 +130,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
                 else if (tokens.size == 1) { // E.g. "x|c|n" => "self" -> (= self x|c|n)
                   acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
                 } else {
-                  assert(keys.nonEmpty)
+                  assert(keys.nonEmpty, inv)
                   keys.foldLeft(acc) {
                     (acc2, t) => // E.g. "= self.f 1" => self.f -> (= self 1)
                       acc2 + (t -> SmtUtils.substitute(wellFormatInv, List(t), List(SmtUtils.SELF))) }
