@@ -121,7 +121,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       }
     }*/
     // Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
-    Utils.logging("Statistics: " + verifiedMethods.size + ", " + methodTrees.size)
+    Utils.logging("Statistics: " + verifiedMethods.size + ", " + methodTrees.size + ", " + Z3Solver.TOTAL_QUERY + ", " + Z3Solver.TOTAL_TIME)
     super.processClassTree(classTree)
   }
 

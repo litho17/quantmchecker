@@ -3,6 +3,7 @@ package plv.colorado.edu.quantmchecker.verification
 import java.util
 
 import com.microsoft.z3._
+import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 
 import scala.collection.immutable.HashMap
@@ -22,7 +23,14 @@ class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
 
   var names: HashMap[String, AST] = new HashMap[String, AST]
 
-  def checkSAT: Boolean = interpretSolverOutput(solver.check)
+  def checkSAT: Boolean = {
+    val start = System.nanoTime()
+    val res = interpretSolverOutput(solver.check)
+    val end = System.nanoTime()
+    Z3Solver.TOTAL_TIME += (end - start).toDouble/Utils.NANO
+    Z3Solver.TOTAL_QUERY += 1
+    res
+  }
 
   def checkSATWithAssumptions(assumes: List[String]): Boolean =
     interpretSolverOutput(solver.check(assumes.map(assume => ctx.mkBoolConst(assume)): _*))
@@ -127,6 +135,9 @@ class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
 }
 
 object Z3Solver {
+  var TOTAL_TIME: Double = 0
+  var TOTAL_QUERY: Int = 0
+
   val DEBUG = true
 
   val cfg = new util.HashMap[String, String]
@@ -150,7 +161,12 @@ object Z3Solver {
   def check(f: BoolExpr, ctx: Context): Boolean = {
     val s = createSolver(ctx)
     s.add(f)
-    interpretSolverOutput(s.check(), f)
+    val start = System.nanoTime()
+    val res = interpretSolverOutput(s.check(), f)
+    val end = System.nanoTime()
+    Z3Solver.TOTAL_TIME += (end - start).toDouble/Utils.NANO
+    Z3Solver.TOTAL_QUERY += 1
+    res
   }
 
   def parseSMTLIB2StringToArray(str: String, ctx: Context): Array[BoolExpr] = {

@@ -19,6 +19,7 @@ import scala.collection.immutable.{HashMap, HashSet}
   * @author Tianhan Lu
   */
 object Utils {
+  val NANO = 1000000000
   val DESKTOP_PATH: String = System.getProperty("user.home") + File.separator + "Desktop"
   val LOG_FILE: String = "log.txt"
   new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString)) // Clean up
