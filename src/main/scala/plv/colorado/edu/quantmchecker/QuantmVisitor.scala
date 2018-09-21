@@ -35,6 +35,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
   }
 
+  Utils.logging("# of verified methods, # of methods, # of queries, Z3 time")
+
   // Names of annotated iterators in current method
   // Do not consider iterators in field
   private var iters: HashMap[String, Map[String, String]] = HashMap.empty
@@ -95,7 +97,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           else solver.mkAdd(listVars.map(list => solver.getVar(list)).toArray: _*)
         }
         (methodBody :: cfRelation.constraints ::: inits ::: constraints).foreach(s => solver.mkAssert(s))
-        solver.mkAssert(solver.mkLe(objective, solver.mkIntVal(Integer.MAX_VALUE)))
+        solver.mkAssert(solver.mkLe(objective, solver.mkIntVal(200)))
         // solver.optimize(objective.asInstanceOf[ArithExpr])
         val check = solver.checkSAT
         if (!check) {
