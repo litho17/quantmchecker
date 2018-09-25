@@ -112,19 +112,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     super.visitMethod(node, p)
   }
 
-  override def processClassTree(classTree: ClassTree): Unit = {
-    /*val classType = TreeUtils.typeOf(classTree)
-    val allFlds: Iterable[VariableElement] = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala
-    if (classTree.getKind != Tree.Kind.ENUM) {
-      allFlds.foreach { // Print recursive data types
-        ve => // Print user defined classes with list field
-          if (ve.asType() == classType)
-            Utils.logging("Recursive data type: " + classType.toString)
-      }
-    }*/
+  override def processClassTree(tree: ClassTree): Unit = {
     // Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
     Utils.logging("Statistics: " + verifiedMethods.size + ", " + methodTrees.size + ", " + Z3Solver.TOTAL_QUERY + ", " + Z3Solver.TOTAL_TIME)
-    super.processClassTree(classTree)
+    super.processClassTree(tree)
   }
 
   /**
@@ -385,6 +376,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitVariable(node: VariableTree, p: Void): Void = {
+    trees.getTree(TreeUtils.elementFromDeclaration(node))
+    // How to get class tree???
+    //if (Utils.isUnsharingClass(tree, elements, trees))
+      //println("Yes: " + tree.getSimpleName.toString)
+    //else
+      //println("No: " + tree.getSimpleName.toString)
     val lhsAnnotation = atypeFactory.getTypeAnnotation(atypeFactory.getAnnotatedTypeLhs(node).getAnnotations)
     if (avoidAssignSubtyCheck(lhsAnnotation, node.getInitializer))
       return null
@@ -575,7 +572,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def getMethodElementFromInvocation(node: MethodInvocationTree): ExecutableElement = {
-    atypeFactory.methodFromUse(node).first.getElement
+    atypeFactory.methodFromUse(node).methodType.getElement
   }
 
   private def getMethodElementFromDecl(node: MethodTree): ExecutableElement = {

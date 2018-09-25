@@ -5,7 +5,7 @@
 # ==========================Please configure the following paths============================
 scala_lib="$HOME/.sbt/preloaded/org.scala-lang/scala-library/2.12.1/jars/scala-library.jar"
 scala_smtlib="$HOME/.ivy2/cache/com.regblanc/scala-smtlib_2.12/jars/scala-smtlib_2.12-0.2.2.jar"
-checker_framework_bin="$HOME/Documents/workspace/checker-framework-2.4.0/checker/bin"
+checker_framework_bin="$HOME/Documents/workspace/checker-framework-2.5.5/checker/bin"
 # ==========================================================================================
 
 #javac -cp .:/Users/lumber/.sbt/preloaded/org.scala-lang/scala-library/2.12.1/jars/scala-library.jar -AprintErrorStack -processor plv.colorado.edu.quantmchecker.QuantmChecker ~/Documents/workspace/quantmchecker/src/test/java/unit/MotivatingExample.java

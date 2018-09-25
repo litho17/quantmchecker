@@ -1,6 +1,6 @@
 package plv.colorado.edu.quantmchecker.verification
 
-import java.io.{File, IOException, PrintWriter}
+/*import java.io.{File, IOException, PrintWriter}
 import java.util.StringTokenizer
 
 import com.ibm.wala.analysis.typeInference.TypeInference
@@ -170,6 +170,7 @@ class TestWala extends FlatSpec with Matchers {
     writer.close()
   }
 }
+*/
 
 // https://github.com/wala/WALA/tree/0752bf321c9a62548ebe38f1dc09b882916c7130/com.ibm.wala.core/src/com/ibm/wala/ipa/callgraph/propagation
 // https://github.com/wala/WALA/wiki/Getting-Started

@@ -2,13 +2,14 @@ package plv.colorado.edu
 
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.nio.file.Paths
-import javax.lang.model.`type`.TypeMirror
-import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
 
 import com.sun.source.tree._
-import com.sun.source.util.SourcePositions
+import com.sun.source.util.{SourcePositions, Trees}
+import javax.lang.model.`type`.TypeMirror
+import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
+import javax.lang.model.util.Elements
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory
-import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TypeAnnotationUtils}
+import org.checkerframework.javacutil._
 import plv.colorado.edu.quantmchecker.qual.Summary
 import plv.colorado.edu.quantmchecker.verification.SmtUtils
 
@@ -246,6 +247,41 @@ object Utils {
       case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
       case _ => new HashSet[StatementTree]
     }
+  }
+
+  def isUnsharingClass(classTree: ClassTree, elements: Elements, trees: Trees): Boolean = {
+    val classType = TreeUtils.typeOf(classTree)
+    val isAllFldUnsharing = ElementUtils.getAllFieldsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala.forall { // All fields have to be unsharing
+      variableElement =>
+        val fldClsTypElement = ElementUtils.enclosingClass(variableElement.getEnclosingElement)
+        val fldClsTree = trees.getTree(fldClsTypElement)
+        if (fldClsTree != null && fldClsTree.getSimpleName.toString != classTree.getSimpleName.toString) {
+          // Don't recursively traverse access paths
+          isUnsharingClass(fldClsTree, elements, trees)
+        } else true
+    }
+    val isAllAssignmentUnsharing = ElementUtils.getAllMethodsIn(TreeUtils.elementFromDeclaration(classTree), elements).asScala.forall { // All assignments to class fields should have a new instruction on rhs
+      methodElement =>
+        val methodTree = trees.getTree(methodElement)
+        if (methodTree != null && methodTree.getBody != null) {
+          flattenStmt(methodTree.getBody).forall {
+            case stmt: ExpressionStatementTree =>
+              stmt.getExpression match {
+                case assignment: AssignmentTree =>
+                  if (TreeUtils.isSelfAccess(assignment.getVariable)) {
+                    val rhs = assignment.getExpression
+                    rhs.isInstanceOf[NewClassTree] || rhs.isInstanceOf[NewArrayTree]
+                  } else true
+                case _ => true
+              }
+            case stmt@_ =>
+              if (stmt.toString.contains("table = newTab"))
+                println(stmt.getKind)
+              true
+          }
+        } else true
+    }
+    isAllFldUnsharing && isAllAssignmentUnsharing
   }
 
   def toInit(v: String): String = v + INIT_SUFFIX
