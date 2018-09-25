@@ -1,9 +1,9 @@
 package plv.colorado.edu.quantmchecker
 
 import java.util
-import javax.lang.model.element.{AnnotationMirror, TypeElement}
 
 import com.sun.source.tree._
+import javax.lang.model.element.{AnnotationMirror, TypeElement}
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
@@ -11,7 +11,7 @@ import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQ
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual._
-import plv.colorado.edu.quantmchecker.verification.{SmtUtils, Z3Solver}
+import plv.colorado.edu.quantmchecker.verification.SmtUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -29,9 +29,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   val INVTOP: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvTop])
   val INPUT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Input])
   val SUMMARY: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Summary])
-
-  var fieldLists: HashSet[VariableTree] = HashSet.empty
-  var localLists: HashSet[VariableTree] = HashSet.empty
 
   // disable flow inference
   // super(checker, false);
@@ -80,7 +77,9 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         TreeUtils.elementFromDeclaration(s).asType().getAnnotationMirrors
       case _ => getAnnotatedType(rcvr).getAnnotations
     }
-    val filter: util.Collection[AnnotationMirror] = annotations.asScala.filter(p => AnnotationUtils.areSameIgnoringValues(p, INV) || AnnotationUtils.areSameIgnoringValues(p, INPUT)).map(anno => anno.asInstanceOf[AnnotationMirror]).asJavaCollection
+    val filter: util.Collection[AnnotationMirror] = annotations.asScala
+      .filter(p => AnnotationUtils.areSameIgnoringValues(p, INV) || AnnotationUtils.areSameIgnoringValues(p, INPUT))
+      .map(anno => anno.asInstanceOf[AnnotationMirror]).asJavaCollection
     getTypeAnnotation(filter)
   }
 
@@ -180,7 +179,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   def isListVar(v: VariableTree): Boolean = {
     types.asElement(TreeUtils.typeOf(v)) match {
       case te: TypeElement =>
-        val tree: ClassTree = trees.getTree(te)
+        // val tree: ClassTree = trees.getTree(te)
         Utils.COLLECTION_ADD.exists {
           case (klass, method) => if (klass == te.getQualifiedName.toString) true else false
         }
@@ -200,7 +199,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         (acc, member) =>
           member match {
             case member: VariableTree =>
-              if (isListVar(member)) fieldLists = fieldLists + member
               // Get annotations on class fields
               this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
                 case (acc2, (v, typ)) =>
@@ -231,7 +229,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
           (acc, stmt) =>
             stmt match {
               case stmt: VariableTree =>
-                if (isListVar(stmt)) localLists = localLists + stmt
                 // Local invariants should only be on variable declarations
                 // Otherwise, invariants are simply ignored
                 this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f
@@ -279,23 +276,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
         else if (isSuperInvKwn) INVTOP // @InvKwn
         else if (isSuperInput) INVTOP // @Input
         else superAnno
-      }
-
-      // Check subtyping for invariants
-      if (isSubInv && isSuperInv) {
-        val subMap = getVarAnnoMap(subAnno) // E.g. self -> inv1; self.f -> inv2
-        val superMap = getVarAnnoMap(superAnno) // E.g. self -> inv3; self.g -> inv4
-        val keySet = subMap.keySet.union(superMap.keySet)
-        if (keySet != subMap.keySet || keySet != superMap.keySet)
-          return false
-        keySet.forall { // TODO: "true" for unannotated types
-          v =>
-            val p = subMap.getOrElse(v, SmtUtils.TRUE)
-            val q = superMap.getOrElse(v, SmtUtils.TRUE)
-            val query = SmtUtils.mkImply(p, q)
-            val ctx = Z3Solver.createContext
-            Z3Solver.check(Z3Solver.parseSMTLIB2String(query, ctx), ctx)
-        }
       }
 
       // Check subtyping for base types

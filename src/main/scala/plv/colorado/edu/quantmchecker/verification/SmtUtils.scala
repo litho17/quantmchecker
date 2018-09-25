@@ -302,7 +302,7 @@ object SmtUtils {
     */
   def extractSyms(str: String): HashSet[String] = {
     val reserved = List("+", "-", "*", "/", "=", "and", TRUE, FALSE, INIT, ASSERT)
-    val ignoreDiscarded = List("<=", ">=", "Assert", "-1")
+    val ignored = List("<=", ">=", "Assert", "-1")
     parseSmtlibToToken(str).foldLeft(new HashSet[String]) {
       (acc, t) =>
         t.kind match {
@@ -316,13 +316,13 @@ object SmtUtils {
               }
               if (isValidDotExpr || isValidId) acc + content
               else {
-                if (!ignoreDiscarded.contains(t.toString())) println("Discarded symbol: " + t.toString())
+                if (!ignored.contains(t.toString())) println("Discarded symbol: " + t.toString())
                 acc
               }
             } else acc
           case NumeralLitKind | OParen | CParen | StringLitKind | KeywordKind => acc
           case x@_ => // discarded
-            if (!ignoreDiscarded.contains(t.toString())) println("Discarded symbol: " + t.toString()); acc
+            if (!ignored.contains(t.toString())) println("Discarded symbol: " + t.toString()); acc
         }
     }
   }
@@ -371,7 +371,7 @@ object SmtUtils {
     * @param q
     * @return an SMTLIB2 string: for all free variables in p and q, p => q
     */
-  def mkImply(p: String, q: String): String = {
+  def mkForallImply(p: String, q: String): String = {
     if (p == q) return TRUE
     val prefix = "(assert\n\t(forall\n"
     val implies = "\t\t(implies\n"

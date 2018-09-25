@@ -6,8 +6,8 @@ import java.nio.file.Paths
 import com.sun.source.tree._
 import com.sun.source.util.{SourcePositions, Trees}
 import javax.lang.model.`type`.TypeMirror
-import javax.lang.model.element.{AnnotationMirror, ExecutableElement}
-import javax.lang.model.util.Elements
+import javax.lang.model.element.{AnnotationMirror, ExecutableElement, TypeElement}
+import javax.lang.model.util.{Elements, Types}
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory
 import org.checkerframework.javacutil._
 import plv.colorado.edu.quantmchecker.qual.Summary
@@ -284,9 +284,59 @@ object Utils {
     isAllFldUnsharing && isAllAssignmentUnsharing
   }
 
+  def getReachableCollectionFields(typeElement: TypeElement, elements: Elements, types: Types, accessPaths: HashSet[List[AccessPathElement]]): HashSet[List[AccessPathElement]] = {
+    ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[List[AccessPathElement]]) {
+      (acc, variableElement) =>
+        val fldTypMirror = types.erasure(variableElement.asType())
+        val fldTypEle: TypeElement = elements.getTypeElement(fldTypMirror.toString)
+        if (fldTypEle != null) {
+          val newAccessPathElement = AccessPathElement(variableElement.getSimpleName.toString, fldTypEle)
+          val newAccessPaths = accessPaths.map(l => newAccessPathElement :: l)
+          if (Utils.isCollectionTyp(fldTypEle)) {
+            acc ++ newAccessPaths
+          } else if (getTopPackageName(fldTypEle, types) != getTopPackageName(typeElement, types)) { // Terminate when encountering non user defined classes
+            acc
+          } else { // Terminate when encountering recursive typed fields
+            if (accessPaths.forall(l => !l.contains(newAccessPathElement)))
+              acc ++ getReachableCollectionFields(fldTypEle, elements, types, newAccessPaths)
+            else acc
+          }
+        } else acc
+    }
+  }
+
+  def getReachableCollectionFields(tree: ClassTree, elements: Elements,
+                                   types: Types): HashSet[List[AccessPathElement]] = {
+    val clsTypEle = TreeUtils.elementFromDeclaration(tree)
+    getReachableCollectionFields(clsTypEle, elements, types,
+      HashSet[List[AccessPathElement]](List(AccessPathElement(tree.getSimpleName.toString, clsTypEle))))
+  }
+
+  def getTopPackageName(typeElement: TypeElement, types: Types): String = {
+    val typName = types.erasure(typeElement.asType()).toString.split('.')
+    typName.head
+  }
+
+  def isCollectionTyp(typeElement: TypeElement): Boolean = {
+    Utils.COLLECTION_ADD.exists {
+      case (klass, method) => if (klass == typeElement.toString) true else false
+    }
+  }
+
   def toInit(v: String): String = v + INIT_SUFFIX
 
   def isInit(v: String): Boolean = v.endsWith(INIT_SUFFIX)
 
   def rmInit(v: String): String = if (isInit(v)) v.substring(0, v.length - INIT_SUFFIX.length) else v
+}
+
+case class AccessPathElement(name: String, typ: TypeElement) {
+  override def equals(obj: scala.Any): Boolean = {
+    obj match {
+      case element: AccessPathElement => element.name == name && element.typ == typ
+      case _ => false
+    }
+  }
+
+  override def toString: String = name + ": " + typ.toString
 }

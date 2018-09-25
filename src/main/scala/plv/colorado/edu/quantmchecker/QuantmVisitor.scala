@@ -209,7 +209,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   val p = tp
                   val q = SmtUtils.substitute(p, List(label, callerName),
                     List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(callerName, "1")))
-                  val implication = SmtUtils.mkImply(p, q)
+                  val implication = SmtUtils.mkForallImply(p, q)
                   typecheck(implication, node, "y = x.next: invariant broken due to line counter increment")
                 }
                 {
@@ -219,7 +219,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     SmtUtils.FALSE
                   }
                   val q = SmtUtils.conjunctionAll(lhsTyp)
-                  val implication = SmtUtils.mkImply(p, q)
+                  val implication = SmtUtils.mkForallImply(p, q)
                   typecheck(implication, node,
                     "y = x.next: invariant broken due to incompatible types between x's element and y")
                 }
@@ -235,7 +235,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 val _new = SmtUtils.mkAdd(label, "1") :: SmtUtils.mkSub(SmtUtils.SELF, "1") ::
                   iterators.map(s => SmtUtils.mkSub(s, "1"))
                 val q = SmtUtils.substitute(p, _old, _new)
-                val implication = SmtUtils.mkImply(p, q)
+                val implication = SmtUtils.mkForallImply(p, q)
                 typecheck(implication, node, "y = x.remove: invariant broken")
             }
           }
@@ -248,13 +248,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           }
         }
       case _ =>
-        val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
+        val implication = SmtUtils.mkForallImply(SmtUtils.conjunctionAll(rhsTyp), SmtUtils.conjunctionAll(lhsTyp))
         typecheck(implication, node, "x = e: rhs's type doesn't imply lhs's")
         typingCxt.foreach {
           case (v, t) =>
             if (!atypeFactory.isDependentOn(lhs.toString, t)) { // No need to check because this is already checked above
               val q = SmtUtils.substitute(t, List(label), List(SmtUtils.mkAdd(label, "1")))
-              val implication = SmtUtils.mkImply(t, q)
+              val implication = SmtUtils.mkForallImply(t, q)
               typecheck(implication, node, "x = e: invariant invalidated due to counter increment")
             }
         }
@@ -315,7 +315,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             }
           }
           val q = SmtUtils.substitute(p, _old, _new)
-          val implication = SmtUtils.mkImply(SmtUtils.conjunctionAll(p :: extraCons.toList), q)
+          val implication = SmtUtils.mkForallImply(SmtUtils.conjunctionAll(p :: extraCons.toList), q)
           typecheck(implication, node, "y.add(x): invariant broken on dependent types")
         case _ =>
       }
@@ -330,7 +330,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val _old = label :: _o ::: iterators
             val _new = SmtUtils.mkAdd(label, "1") :: _n ::: iterators.map(s => SmtUtils.mkAdd(s, "1"))
             val q = SmtUtils.substitute(p, _old, _new)
-            val implication = SmtUtils.mkImply(p, q)
+            val implication = SmtUtils.mkForallImply(p, q)
             typecheck(implication, node, "y.add(x): invariant broken on self type")
         }
       }

@@ -83,8 +83,8 @@ public class Driver {
             } else if (Math.random() > 0.4) {
                 // read to string
                 InputStreamReader is = new  InputStreamReader(fis);
-                @Inv("= (+ self br2) (- (+ inps_init c91) c89 c92)") StringBuilder sb = new  StringBuilder();
-                BufferedReader br2 = new  BufferedReader(is);
+                @Inv("= (+ self br2) (- (+ is_init c91) c89 c92)") StringBuilder sb = new  StringBuilder();
+                @Inv("is") BufferedReader br2 = new  BufferedReader(is);
                 String read;
                 c89: read = br2.readLine();
                 while (read != null) {
