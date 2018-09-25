@@ -4,8 +4,6 @@
 
 # ==========================Please configure the following paths============================
 scala_lib="$HOME/.sbt/preloaded/org.scala-lang/scala-library/2.12.1/jars/scala-library.jar"
-# scala_parser_lib="$HOME/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.12/bundles/scala-parser-combinators_2.12-1.1.0.jar"
-# scalaz3_lib="`pwd`/lib/scalaz3_2.12-3.0.jar"
 scala_smtlib="$HOME/.ivy2/cache/com.regblanc/scala-smtlib_2.12/jars/scala-smtlib_2.12-0.2.2.jar"
 checker_framework_bin="$HOME/Documents/workspace/checker-framework-2.4.0/checker/bin"
 # ==========================================================================================
@@ -31,11 +29,9 @@ rm -rf output/
 mkdir output/
 
 # set -x
-fully_qualified_name_prefix="plv.colorado.edu."
-QUANTMCHECKER="quantmchecker.QuantmChecker"
-LISTADDCHECKER="listaddchecker.ListaddChecker"
+QUANTMCHECKER="plv.colorado.edu.quantmchecker.QuantmChecker"
 
 classpath=".:$internal_lib:$external_lib:$scala_lib:$scala_smtlib"
-javac -Xmaxwarns 10000 -Xmaxerrs 10000 -cp $classpath -AprintErrorStack -processor $fully_qualified_name_prefix$QUANTMCHECKER `find $src_dir -name "*.java"` -d output/
+javac -Xmaxwarns 10000 -Xmaxerrs 10000 -cp $classpath -AprintErrorStack -processor $QUANTMCHECKER `find $src_dir -name "*.java"` -d output/
 
 #-AignoreRawTypeArguments

@@ -17,7 +17,9 @@ dist/*
 .worksheet
 .idea
 
+*.zip
+
 out/
 lib/
 target/
-src/test/java
+# src/test/java
