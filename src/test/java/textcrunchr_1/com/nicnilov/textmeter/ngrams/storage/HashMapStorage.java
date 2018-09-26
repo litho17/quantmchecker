@@ -1,7 +1,8 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams.storage;
 
-import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
+
+import java.util.HashMap;
 
 /**
  * Created as part of textmeter project

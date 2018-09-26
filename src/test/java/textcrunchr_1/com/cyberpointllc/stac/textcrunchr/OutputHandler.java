@@ -1,12 +1,12 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 import plv.colorado.edu.quantmchecker.qual.Summary;
-import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

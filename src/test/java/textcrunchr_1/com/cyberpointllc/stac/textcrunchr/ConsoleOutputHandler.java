@@ -1,9 +1,9 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 import plv.colorado.edu.quantmchecker.qual.Summary;
-import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
 import textcrunchr_1.com.cyberpointllc.stac.template.TemplateEngine;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

@@ -3,15 +3,15 @@ package plv.colorado.edu.quantmchecker
 import java.util
 
 import com.sun.source.tree._
-import javax.lang.model.element.{AnnotationMirror, TypeElement}
+import javax.lang.model.element.AnnotationMirror
 import org.checkerframework.common.basetype.{BaseAnnotatedTypeFactory, BaseTypeChecker}
 import org.checkerframework.framework.`type`.QualifierHierarchy
 import org.checkerframework.framework.flow.{CFAbstractAnalysis, CFStore, CFTransfer, CFValue}
 import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQualifierHierarchy}
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
-import plv.colorado.edu.Utils
 import plv.colorado.edu.quantmchecker.qual._
 import plv.colorado.edu.quantmchecker.verification.SmtUtils
+import plv.colorado.edu.{Utils, VarTyp}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -45,19 +45,6 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   // Learned from KeyForAnnotatedTypeFactory.java
   override def createQualifierHierarchy(factory: MultiGraphQualifierHierarchy.MultiGraphFactory): QualifierHierarchy = new QuantmQualifierHierarchy(factory)
 
-  /**
-    *
-    * @param v   variable name
-    * @param inv invariant
-    * @return if the invariant is dependent on variable v
-    */
-  def isDependentOn(v: String, inv: String): Boolean = SmtUtils.containsToken(inv, v)
-
-  /**
-    *
-    * @param annotations
-    * @return
-    */
   def getTypeAnnotation(annotations: util.Collection[AnnotationMirror]): AnnotationMirror = {
     this.getQualifierHierarchy
       .findAnnotationInHierarchy(annotations, this.getQualifierHierarchy.getTopAnnotations.iterator().next())
@@ -104,65 +91,21 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     }
   }
 
-  def getVarAnnoMap(annotation: AnnotationMirror): Map[String, String] = {
-    getVarAnnoMap(annotation, INV) ++ getVarAnnoMap(annotation, INPUT)
-  }
-
-  /**
-    *
-    * @param annotation type annotation of a variable
-    * @param invTyp     a specific type of annotation
-    * @return a set of collected annotations: "self/self.f.g/self_init" -> "...self/self.f.g/self_init..."
-    *         !!!!!Invariant: Give v -> t, self in t always refers to v!!!!!
-    */
-  private def getVarAnnoMap(annotation: AnnotationMirror, invTyp: AnnotationMirror): Map[String, String] = {
-    val map = {
-      if (annotation != null && AnnotationUtils.areSameIgnoringValues(annotation, invTyp)) {
-        Utils.extractArrayValues(annotation, "value").foldLeft(new HashMap[String, String]) {
-          (acc, inv) =>
-            // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
-            val wellFormatInv = SmtUtils.rmParen(inv.trim)
-            val keys = SmtUtils.startsWithToken(wellFormatInv, SmtUtils.SELF)
-            val tokens = SmtUtils.parseSmtlibToToken(wellFormatInv)
-            invTyp match {
-              case INV =>
-                if (tokens.isEmpty) acc
-                else if (tokens.size == 1) { // E.g. "x|c|n" => "self" -> (= self x|c|n)
-                  acc + (SmtUtils.SELF -> SmtUtils.oneTokenToThree(wellFormatInv))
-                } else {
-                  assert(keys.nonEmpty, inv)
-                  keys.foldLeft(acc) {
-                    (acc2, t) => // E.g. "= self.f 1" => self.f -> (= self 1)
-                      acc2 + (t -> SmtUtils.substitute(wellFormatInv, List(t), List(SmtUtils.SELF))) }
-                }
-              case INPUT => // E.g. "100" => self -> (= self self_init); self_init -> (= self 100)
-                val initSelf = Utils.toInit(SmtUtils.SELF)
-                val initEq = SmtUtils.mkEq(SmtUtils.SELF, initSelf)
-                val initVal = SmtUtils.mkEq(SmtUtils.SELF, inv)
-                try {
-                  Integer.parseInt(inv)
-                }
-                catch {
-                  case e: Exception => assert(false, "Size of input should be an integer")
-                }
-                acc + (SmtUtils.SELF -> initEq) + (initSelf -> initVal)
-              case _ => acc
-            }
-        }
-      } else {
-        new HashMap[String, String]
-      }
+  private def getVarAnnoMap(annoMirror: AnnotationMirror): (String, Boolean) = {
+    if (annoMirror == null) return (SmtUtils.TRUE, false)
+    val isInput = {
+      if (AnnotationUtils.areSameIgnoringValues(annoMirror, INV)) false
+      else if (AnnotationUtils.areSameIgnoringValues(annoMirror, INPUT)) true
+      else false
     }
-    assert(map.forall { case (v, t) => v.startsWith(SmtUtils.SELF) })
-    map
+    // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
+    val annotations =
+      Utils.extractArrayValues(annoMirror, "value").map(s => SmtUtils.rmParen(s.trim)).toSet
+    // Only use the first element in the annotation string array as the type refinement
+    (annotations.head, isInput)
   }
 
-  /**
-    *
-    * @param node tree representation of a variable
-    * @return a set of collected annotations: self/self.f.g/self_init -> ...self/self.f.g/self_init...
-    */
-  def getVarAnnoMap(node: Tree): Map[String, String] = {
+  def getVarAnnoMap(node: Tree): VarTyp = {
     /*
     val annotations = {
       node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
@@ -173,79 +116,46 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, targetAnnot))
     val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     */
-    getVarAnnoMap(getTypeAnnotation(node))
+    val res = getVarAnnoMap(getTypeAnnotation(node))
+    node match {
+      case v: VariableTree => VarTyp(TreeUtils.elementFromDeclaration(v), res._1, res._2)
+      case _ => ???
+    }
   }
 
-  def isListVar(v: VariableTree): Boolean = {
-    types.asElement(TreeUtils.typeOf(v)) match {
-      case te: TypeElement =>
-        // val tree: ClassTree = trees.getTree(te)
-        Utils.COLLECTION_ADD.exists {
-          case (klass, method) => if (klass == te.getQualifiedName.toString) true else false
+  def getFieldTypCxt(classTree: ClassTree): Map[String, VarTyp] = {
+    val empRet = new HashMap[String, VarTyp]
+    if (classTree == null) return empRet
+    classTree.getMembers.asScala.foldLeft(empRet) {
+      (acc, member) =>
+        member match {
+          case member: VariableTree =>
+            // Get annotations on class fields
+            // We consider class fields as inputs (e.g. this.f is an input variable to a member method)
+            val varTyp = this.getVarAnnoMap(member)
+            acc + (member.getName.toString -> VarTyp(varTyp.varElement, varTyp.anno, true))
+          case _ => acc
         }
-      case _ => false
     }
   }
 
-  /**
-    *
-    * @param classTree a class definition
-    * @return a typing context collected from class field declarations: v/v.f.g/v_init -> ...self/self.f.g/self_init...
-    *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
-    */
-  def getFieldTypCxt(classTree: ClassTree): HashMap[String, String] = {
-    val map = {
-      classTree.getMembers.asScala.foldLeft(new HashMap[String, String]) {
-        (acc, member) =>
-          member match {
-            case member: VariableTree =>
-              // Get annotations on class fields
-              this.getVarAnnoMap(member).foldLeft(acc) { // E.g. self.f -> v.f
-                case (acc2, (v, typ)) =>
-                  acc2 + (SmtUtils.substitute(v, List(SmtUtils.SELF), List(member.getName.toString), true) -> typ)
-              }
-            case _ => acc
-          }
-      }
-    }
-    assert(map.forall { case (v, t) => !v.startsWith(SmtUtils.SELF) })
-    map
-  }
+  def getLocalTypCxt(methodTree: MethodTree): Map[String, VarTyp] = {
+    val empRet = new HashMap[String, VarTyp]
+    if (methodTree == null || methodTree.getBody == null) return empRet
+    val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
+      (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
+    } ++ methodTree.getParameters.asScala
 
-  /**
-    *
-    * @param methodTree a method
-    * @return a typing context collected from local variable declarations: v/v.f.g/v_init -> ...self/self.f.g/self_init...
-    *         Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
-    */
-  def getLocalTypCxt(methodTree: MethodTree): HashMap[String, String] = {
-    val map = {
-      if (methodTree.getBody != null) {
-        val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
-          (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
-        } ++ methodTree.getParameters.asScala
-
-        stmts.foldLeft(new HashMap[String, String]) {
-          (acc, stmt) =>
-            stmt match {
-              case stmt: VariableTree =>
-                // Local invariants should only be on variable declarations
-                // Otherwise, invariants are simply ignored
-                this.getVarAnnoMap(stmt).foldLeft(acc) { // E.g. self.f -> v.f
-                  case (acc2, (v, typ)) => acc2 +
-                    (SmtUtils.substitute(v, List(SmtUtils.SELF), List(stmt.getName.toString), true) -> typ)
-                }
-              case x@_ =>
-                if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
-                acc
-            }
+    stmts.foldLeft(empRet) {
+      (acc, stmt) =>
+        stmt match {
+          case stmt: VariableTree =>
+            acc + (stmt.getName.toString -> this.getVarAnnoMap(stmt))
+          case x@_ =>
+            if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
+            acc
         }
-      } else {
-        new HashMap[String, String]
-      }
     }
-    assert(map.forall { case (v, t) => !v.startsWith(SmtUtils.SELF) })
-    map
   }
 
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {

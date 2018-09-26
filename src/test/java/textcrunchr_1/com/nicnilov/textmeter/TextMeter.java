@@ -1,6 +1,7 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
-import textcrunchr_1.com.cyberpointllc.stac.hashmap.HashMap;
+
+import java.util.HashMap;
 
 public class TextMeter {
 

@@ -83,7 +83,10 @@ class Z3Solver { // Copied from hopper: https://github.com/cuplv/hopper
 
   def mkAdd(lhs: AST, rhs: AST): AST = ctx.mkAdd(lhs.asInstanceOf[ArithExpr], rhs.asInstanceOf[ArithExpr])
 
-  def mkAdd(ast: AST*): AST = ctx.mkAdd(ast.map(a => a.asInstanceOf[ArithExpr]): _*)
+  def mkAdd(ast: AST*): AST = {
+    if (ast.isEmpty) mkIntVal(0)
+    else ctx.mkAdd(ast.map(a => a.asInstanceOf[ArithExpr]): _*)
+  }
 
   def mkSub(lhs: AST, rhs: AST): AST = ctx.mkSub(lhs.asInstanceOf[ArithExpr], rhs.asInstanceOf[ArithExpr])
 
@@ -193,20 +196,13 @@ object Z3Solver {
   def parseStrToZ3AST(str: String, solver: Z3Solver): BoolExpr = {
     val tokens = SmtUtils.parseSmtlibToToken(str)
     val (decl, assertion) = {
-      if (tokens.size == 1) {
-        val decl = List(SmtUtils.mkConstDecl(SmtUtils.SELF), SmtUtils.mkConstDecl(tokens.head.toString()))
-        val assertion = SmtUtils.mkAssertion(SmtUtils.oneTokenToThree(str))
-        solver.getVar(tokens.head.toString())
-        (decl, assertion)
-      } else {
-        val syms = SmtUtils.extractSyms(str)
-        syms.foreach(sym => solver.getVar(sym))
-        val decl = syms.foldLeft(List[String]()) {
-          (acc, sym) => SmtUtils.mkConstDecl(sym) :: acc
-        }
-        val assertion = SmtUtils.mkAssertion(str)
-        (decl, assertion)
+      val syms = SmtUtils.extractSyms(str)
+      syms.foreach(sym => solver.getVar(sym))
+      val decl = syms.foldLeft(List[String]()) {
+        (acc, sym) => SmtUtils.mkConstDecl(sym) :: acc
       }
+      val assertion = SmtUtils.mkAssertion(str)
+      (decl, assertion)
     }
     val query = SmtUtils.mkQueries(decl ::: List(assertion))
     parseSMTLIB2String(query, solver.ctx)

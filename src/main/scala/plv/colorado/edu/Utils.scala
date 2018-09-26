@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import com.sun.source.tree._
 import com.sun.source.util.{SourcePositions, Trees}
 import javax.lang.model.`type`.TypeMirror
-import javax.lang.model.element.{AnnotationMirror, ExecutableElement, TypeElement}
+import javax.lang.model.element.{AnnotationMirror, ExecutableElement, TypeElement, VariableElement}
 import javax.lang.model.util.{Elements, Types}
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory
 import org.checkerframework.javacutil._
@@ -284,20 +284,20 @@ object Utils {
     isAllFldUnsharing && isAllAssignmentUnsharing
   }
 
-  def getReachableCollectionFields(typeElement: TypeElement, elements: Elements, types: Types, accessPaths: HashSet[List[AccessPathElement]]): HashSet[List[AccessPathElement]] = {
-    ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[List[AccessPathElement]]) {
+  def getReachableCollectionFields(typeElement: TypeElement, elements: Elements, types: Types, accessPaths: HashSet[AccessPath]): HashSet[AccessPath] = {
+    ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[AccessPath]) {
       (acc, variableElement) =>
         val fldTypMirror = types.erasure(variableElement.asType())
         val fldTypEle: TypeElement = elements.getTypeElement(fldTypMirror.toString)
         if (fldTypEle != null) {
           val newAccessPathElement = AccessPathElement(variableElement.getSimpleName.toString, fldTypEle)
-          val newAccessPaths = accessPaths.map(l => newAccessPathElement :: l)
+          val newAccessPaths = accessPaths.map(l => AccessPath(newAccessPathElement :: l.path))
           if (Utils.isCollectionTyp(fldTypEle)) {
             acc ++ newAccessPaths
           } else if (getTopPackageName(fldTypEle, types) != getTopPackageName(typeElement, types)) { // Terminate when encountering non user defined classes
             acc
           } else { // Terminate when encountering recursive typed fields
-            if (accessPaths.forall(l => !l.contains(newAccessPathElement)))
+            if (accessPaths.forall(l => !l.path.contains(newAccessPathElement)))
               acc ++ getReachableCollectionFields(fldTypEle, elements, types, newAccessPaths)
             else acc
           }
@@ -306,10 +306,11 @@ object Utils {
   }
 
   def getReachableCollectionFields(tree: ClassTree, elements: Elements,
-                                   types: Types): HashSet[List[AccessPathElement]] = {
+                                   types: Types): HashSet[AccessPath] = {
+    if (tree == null) return new HashSet[AccessPath]
     val clsTypEle = TreeUtils.elementFromDeclaration(tree)
-    getReachableCollectionFields(clsTypEle, elements, types,
-      HashSet[List[AccessPathElement]](List(AccessPathElement(tree.getSimpleName.toString, clsTypEle))))
+    val initPath = AccessPath(List(AccessPathElement(tree.getSimpleName.toString, clsTypEle)))
+    getReachableCollectionFields(clsTypEle, elements, types, HashSet[AccessPath](initPath))
   }
 
   def getTopPackageName(typeElement: TypeElement, types: Types): String = {
@@ -322,21 +323,31 @@ object Utils {
       case (klass, method) => if (klass == typeElement.toString) true else false
     }
   }
-
-  def toInit(v: String): String = v + INIT_SUFFIX
-
-  def isInit(v: String): Boolean = v.endsWith(INIT_SUFFIX)
-
-  def rmInit(v: String): String = if (isInit(v)) v.substring(0, v.length - INIT_SUFFIX.length) else v
 }
 
-case class AccessPathElement(name: String, typ: TypeElement) {
+case class AccessPathElement(fieldName: String, fieldTyp: TypeElement) {
   override def equals(obj: scala.Any): Boolean = {
     obj match {
-      case element: AccessPathElement => element.name == name && element.typ == typ
+      case element: AccessPathElement => element.fieldName == fieldName && element.fieldTyp == fieldTyp
       case _ => false
     }
   }
 
-  override def toString: String = name + ": " + typ.toString
+  override def toString: String = fieldName + ": " + fieldTyp.toString
+}
+
+case class AccessPath(path: List[AccessPathElement]) {
+  override def toString: String = {
+    if (path.isEmpty) ""
+    else if (path.size == 1) path.head.toString
+    else path.foldLeft(path.head.toString){ (acc, e) => acc + "." + e.toString }
+  }
+}
+
+case class VarTyp(varElement: VariableElement, anno: String, isInput: Boolean) {
+  def getTypMirror(types: Types): TypeMirror = types.erasure(varElement.asType())
+
+  def getTypElement(types: Types): TypeElement = TypesUtils.getTypeElement(getTypMirror(types))
+
+  //elements.getTypeElement(getTypMirror(types).toString)
 }
