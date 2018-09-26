@@ -2,7 +2,6 @@ package plv.colorado.edu.quantmchecker
 
 import java.io.File
 
-import com.microsoft.z3.AST
 import com.sun.source.tree._
 import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element._
@@ -25,6 +24,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_PATHS = false
   private val DEBUG_WHICH_UNHANDLED_CASE = false
   private val EMP_COLLECTION_PREFIX = "Collections.empty"
+  private val SIZE_BOUND = 1000
 
   if (DEBUG_PATHS) {
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
@@ -58,7 +58,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
       case _ => true
     }
-    if (node.getBody != null) { // Check if method's upper bound is less than Integer.MAX_VALUE
+    if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
       val reachableListFlds = localTypCxt.foldLeft(new HashSet[AccessPath]) {
         case (acc, (v, t)) =>
           val cls = trees.getTree(t.getTypElement(types))
@@ -72,26 +72,25 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             else acc + v
           }
       }
-      val solver = new Z3Solver
-      val cfRelation = new CFRelation(node.getBody, solver)
-      val constraints: List[AST] = typCxt.foldLeft(new HashSet[String]) { // Collect constraints from types
-        case (acc, (v, t)) => acc + t.anno
-      }.map(s => Z3Solver.parseStrToZ3AST(s, solver)).toList
-      val methodBody: AST = solver.mkEq(solver.getVar(Utils.hashCode(node.getBody)), solver.mkIntVal(1))
-      val objective: AST = solver.mkAdd(sizes.map {
-        size =>
-          if (size.forall(_.isDigit)) solver.mkIntVal(size.toInt)
-          else solver.getVar(size)
-      }.toArray: _*)
-      (methodBody :: cfRelation.constraints ::: constraints).foreach(s => solver.mkAssert(s))
-      solver.mkAssert(solver.mkLe(objective, solver.mkIntVal(200)))
+      val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
+      val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
+      val typRefinements = typCxt.values.map(t => t.anno).toArray
+      val totalSize = SmtUtils.mkAdd(sizes.toList: _*)
+      val isBounded = SmtUtils.mkLe(totalSize, SIZE_BOUND.toString)
+      val constraints = {
+        val array: Array[String] = cfRelation ++ typRefinements :+ methodBodyCounter
+        SmtUtils.mkAnd(array: _*)
+      }
+      val query = SmtUtils.mkForallImply(constraints, isBounded)
+      val check = typecheck(query, node, "Method has unbounded size!")
       // solver.optimize(objective.asInstanceOf[ArithExpr])
-      val check = solver.checkSAT
+      if (sizes.nonEmpty) {
+        Utils.logging(node.getName.toString + "\n" + sizes.toString() + "\n" + typCxt.toString() + "\n\n")
+      }
       if (!check) {
-        // Utils.logging("Typing context:\n" + typCxt)
-        Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
-        issueError(node, "Method has unbounded size!")
+        // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
       } else {
+        // println(query)
         verifiedMethods += node
       }
     }
@@ -176,9 +175,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   }
               }
             } else { // Class types
-              // May create alias
-              if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
-                issueError(node, "x = y, x = y.f: Annotation must be false")
+              // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
+              val reachableListFlds = Utils.getReachableCollectionFields(lhsTypElement, elements, types, new HashSet[AccessPath])
+              if (reachableListFlds.nonEmpty) {
+                if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
+                  issueError(node, "x = y, x = y.f: Annotation must be false")
+              }
             }
           case rhs@(_: BinaryTree | _: LiteralTree) => // Must not create alias
             typCxt.foreach {

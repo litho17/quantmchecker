@@ -141,7 +141,7 @@ object Z3Solver {
   var TOTAL_TIME: Double = 0
   var TOTAL_QUERY: Int = 0
 
-  val DEBUG = true
+  val DEBUG = false
 
   val cfg = new util.HashMap[String, String]
   cfg.put("model", "true")

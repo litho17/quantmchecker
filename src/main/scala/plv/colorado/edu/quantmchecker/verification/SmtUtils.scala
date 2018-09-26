@@ -163,11 +163,20 @@ object SmtUtils {
 
   def mkEq(a: String, b: String): String = "(= " + addParen(a) + " " + addParen(b) + ")"
 
-  def mkAdd(list: String*): String = list.foldLeft("(+")((acc, a) => acc + " " + addParen(a)) + ")"
+  def mkAdd(list: String*): String = {
+    if (list.isEmpty) "0"
+    else list.foldLeft("(+")((acc, a) => acc + " " + addParen(a)) + ")"
+  }
 
-  def mkSub(list: String*): String = list.foldLeft("(-")((acc, a) => acc + " " + addParen(a)) + ")"
+  def mkSub(list: String*): String = {
+    if (list.isEmpty) "0"
+    else list.foldLeft("(-")((acc, a) => acc + " " + addParen(a)) + ")"
+  }
 
-  def mkAnd(list: String*): String = list.foldLeft("(and")((acc, a) => acc + " " + addParen(a)) + ")"
+  def mkAnd(list: String*): String = {
+    if (list.isEmpty) TRUE
+    else list.foldLeft("(and")((acc, a) => acc + " " + addParen(a)) + ")"
+  }
 
   def mkAssertion(p: String): String = "(" + ASSERT + " " + addParen(p) + ")"
 

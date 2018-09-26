@@ -340,7 +340,7 @@ case class AccessPath(path: List[AccessPathElement]) {
   override def toString: String = {
     if (path.isEmpty) ""
     else if (path.size == 1) path.head.toString
-    else path.foldLeft(path.head.toString){ (acc, e) => acc + "." + e.toString }
+    else path.foldLeft(path.head.fieldName){ (acc, e) => acc + "." + e.fieldName }
   }
 }
 

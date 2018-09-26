@@ -43,11 +43,11 @@ public class EnigmaMachine {
     // Encode the input string and return the result
     public String encodeLine(String s) {
         // StringBuilder is used to build the result
-        @Inv("= (- self i) (- c53 c47 i_init)") StringBuilder sb = new  StringBuilder();
+        @Inv("= (- self i) (- c53 c47)") StringBuilder sb = new  StringBuilder();
         // Reuse the same StringBuilder.
         sb.setLength(0);
         // int i;
-        @Input("100") int i = 0;
+        @Input("= i 100") int i = 0;
         for (; i < s.length();) {
             char currentChar = s.charAt(i);
             // Only encode symbols which are not ignored
