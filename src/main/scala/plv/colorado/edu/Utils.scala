@@ -287,7 +287,15 @@ object Utils {
   def getReachableFieldsAndRecTyps(typeElement: TypeElement, elements: Elements,
                                    types: Types, trees: Trees,
                                    accessPaths: Set[AccessPath]): (Set[AccessPath], Set[TypeElement]) = {
-    ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[AccessPath], new HashSet[TypeElement]) {
+    val allFields: Iterable[VariableElement] = {
+      try {
+        ElementUtils.getAllFieldsIn(typeElement, elements).asScala.toSet
+      } catch {
+        case e: NullPointerException => new HashSet[VariableElement]
+        case e: Throwable => e.printStackTrace(); new HashSet[VariableElement]
+      }
+    }
+    allFields.foldLeft(new HashSet[AccessPath], new HashSet[TypeElement]) {
       case ((pathAcc, typAcc), variableElement) =>
         val fldTypMirror = types.erasure(variableElement.asType())
         val fldTypElement = elements.getTypeElement(fldTypMirror.toString)

@@ -84,7 +84,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
         // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
       } else {
-        // println(query)
         verifiedMethods += node
       }
     }
@@ -92,7 +91,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def processClassTree(tree: ClassTree): Unit = {
-    // Utils.logging("Field lists: " + atypeFactory.fieldLists.size + "\nLocal lists: " + atypeFactory.localLists.size)
     Utils.logging("Statistics: " + verifiedMethods.size + ", " + methodTrees.size + ", " + Z3Solver.TOTAL_QUERY + ", " + Z3Solver.TOTAL_TIME)
     super.processClassTree(tree)
   }
@@ -125,7 +123,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val lhsTypMirror = lhsTyp.getErasedTypMirror(types)
         val lhsTypElement = lhsTyp.getTypElement(types)
         rhs match {
-          case rhs: MethodInvocationTree => // z = x.iter and x = z.next
+          case rhs: MethodInvocationTree =>
             val callSite = CallSite(rhs)
             val (method, _, receiverName, methodType) =
               (callSite.method, callSite.receiver, callSite.receiverName, callSite.methodType)
@@ -138,20 +136,21 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               typCxt.foreach {
                 case (v, t) =>
                   if (!t.isInput) {
-                    if (isNext) {
+                    if (isNext) { // x = z.next
                       val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                         List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
                       val implication = SmtUtils.mkForallImply(t.anno, newAnno)
                       typecheck(implication, node, "x = z.next")
-                    } else if (isIter) {
+                    } else if (isIter) { // z = x.iter
                       val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                         List(SmtUtils.mkAdd(label, "1"), "0"))
                       val implication = SmtUtils.mkForallImply(t.anno, newAnno)
                       typecheck(implication, node, "z = x.iter")
-                    } else {
-                      val q = SmtUtils.substitute(t.anno, List(label), List(SmtUtils.mkAdd(label, "1")))
-                      val implication = SmtUtils.mkForallImply(t.anno, q)
-                      typecheck(implication, node, "x = m()")
+                    } else { // May be arbitrary update
+                      val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
+                      if (reachableListFlds.nonEmpty) {
+                        issueWarning(node, "x = m(): May be arbitrary update!")
+                      }
                     }
                   }
               }
@@ -172,10 +171,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             } else { // Class types
               // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
               val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
-              if (reachableListFlds.nonEmpty) {
-                // if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
-                issueError(node, "x = y, x = y.f: Creating alias")
-              }
+              if (reachableListFlds.nonEmpty)
+                issueWarning(node, "x = y, x = y.f: May create alias!")
             }
           case rhs: BinaryTree => // Must not create alias
             typCxt.foreach {
@@ -236,18 +233,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                       typecheck(implication, node, "x = new List")
                     }
                 }
-              } else { // Assume: class initializers are inlined; Must not create alias
-                TreeUtils.constructor(rhs) // TODO: Inline class initializers
-                typCxt.foreach {
-                  case (v, t) =>
-                    if (!t.isInput) {
-                      val q = SmtUtils.substitute(t.anno,
-                        List(label, lhs.toString),
-                        List(SmtUtils.mkAdd(label, "1"), "0")
-                      )
-                      val implication = SmtUtils.mkForallImply(t.anno, q)
-                      typecheck(implication, node, "x = new Class()")
-                    }
+              } else {
+                val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
+                if (reachableListFlds.nonEmpty) {
+                  issueWarning(node, "x = new Class(): May be arbitrary update!")
                 }
               }
             }
@@ -305,28 +294,26 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       *         and their corresponding new values after invoking the current method
       */
     def getArgUpdates(calleeSummary: HashSet[MSum], callerName: String): (List[String], List[String]) = {
-      val UNKNOWN_VAL = Integer.MIN_VALUE
-      val UNKNOWN = "unknown"
+      // val MAX_VAL = Integer.MAX_VALUE
+      val MAY_CREATE_ALIAS = "alias"
+      val UNKNOWN_UPDATE = "unknown"
       val (arg, argUpdate) = calleeSummary.foldLeft(List[String](), List[String]()) {
         (acc, summary) =>
           val increment: Integer = summary match {
             case MSumI(_, i) => i
-            case MSumV(name, i) => if (i == UNKNOWN) UNKNOWN_VAL else 0
+            case MSumV(name, i) =>
+              name match {
+                case MAY_CREATE_ALIAS => issueWarning(node, "x.m(): May create alias!"); 0
+                case UNKNOWN_UPDATE => issueWarning(node, "x.m(): May be arbitrary update!"); 0
+                case _ => 0
+              }
           }
           val (idx, accessPath) = MethodSumUtils.whichVar(summary, method.getElement)
           val target = {
             if (idx == -1) callerName
             else {
               node.getArguments.get(idx) match { // Assume all actual arguments are variables (i.e. have names)
-                case arg: IdentifierTree =>
-                  if (increment == UNKNOWN_VAL) {
-                    typCxt.get(arg.toString) match {
-                      case Some(argTyp) => // if (argTyp.anno != SmtUtils.ASSERT_FALSE)
-                        issueError(node, "x.m(): Creating alias!")
-                      case None => // ???
-                    }
-                  }
-                  arg
+                case arg: IdentifierTree => arg
                 case _ => ""
               }
             }
@@ -353,6 +340,13 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (avoidAssignSubtyCheck(atypeFactory.getVarAnnoMap(node).isInput, node.getInitializer))
       return null
     super.visitVariable(node, p)
+  }
+
+  override def visitNewClass(node: NewClassTree, p: Void): Void = {
+    // Consider new class also as a method invocation => Consider side effects (i.e. alias)
+    // Assume: class initializers are inlined; Must not create alias
+    // TreeUtils.constructor(node) // TODO: Inline class initializers
+    super.visitNewClass(node, p)
   }
 
   /**
