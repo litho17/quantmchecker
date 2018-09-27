@@ -137,7 +137,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
               typCxt.foreach {
                 case (v, t) =>
-                  if (t.isInput) {
+                  if (!t.isInput) {
                     if (isNext) {
                       val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                         List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
@@ -160,7 +160,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
               typCxt.foreach { // Must not create alias
                 case (v, t) =>
-                  if (t.isInput) {
+                  if (!t.isInput) {
                     val q = SmtUtils.substitute(t.anno,
                       List(label, lhs.toString),
                       List(SmtUtils.mkAdd(label, "1"), rhs.toString)
@@ -173,27 +173,48 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
               val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
               if (reachableListFlds.nonEmpty) {
-                if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
-                  issueError(node, "x = y, x = y.f: Annotation must be false")
+                // if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
+                issueError(node, "x = y, x = y.f: Creating alias")
               }
             }
-          case rhs@(_: BinaryTree | _: LiteralTree) => // Must not create alias
+          case rhs: BinaryTree => // Must not create alias
             typCxt.foreach {
               case (v, t) =>
-                if (t.isInput) {
+                if (!t.isInput) {
+                  val left = rhs.getLeftOperand.toString
+                  val right = rhs.getRightOperand.toString
+                  val prefix = {
+                    rhs.getKind match {
+                      case Tree.Kind.PLUS => SmtUtils.mkAdd(left, right)
+                      case Tree.Kind.MINUS => SmtUtils.mkSub(left, right)
+                      case _ => rhs.toString // Let it fail
+                    }
+                  }
+                  val q = SmtUtils.substitute(t.anno,
+                    List(label, lhs.toString),
+                    List(SmtUtils.mkAdd(label, "1"), prefix)
+                  )
+                  val implication = SmtUtils.mkForallImply(t.anno, q)
+                  typecheck(implication, node, "x = e_1 + e_2")
+                }
+            }
+          case rhs: LiteralTree => // Must not create alias
+            typCxt.foreach {
+              case (v, t) =>
+                if (!t.isInput) {
                   val q = SmtUtils.substitute(t.anno,
                     List(label, lhs.toString),
                     List(SmtUtils.mkAdd(label, "1"), rhs.toString)
                   )
                   val implication = SmtUtils.mkForallImply(t.anno, q)
-                  typecheck(implication, node, "x = e_1 + e_2, x = n")
+                  typecheck(implication, node, "x = n")
                 }
             }
           case rhs: NewClassTree =>
             if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
               typCxt.foreach { // Must not create alias
                 case (v, t) =>
-                  if (t.isInput) {
+                  if (!t.isInput) {
                     val q = SmtUtils.substitute(t.anno,
                       List(label),
                       List(SmtUtils.mkAdd(label, "1"))
@@ -206,7 +227,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               if (Utils.isCollectionTyp(lhsTypElement)) { // Must not create alias
                 typCxt.foreach {
                   case (v, t) =>
-                    if (t.isInput) {
+                    if (!t.isInput) {
                       val q = SmtUtils.substitute(t.anno,
                         List(label, lhs.toString),
                         List(SmtUtils.mkAdd(label, "1"), "0")
@@ -219,7 +240,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 TreeUtils.constructor(rhs) // TODO: Inline class initializers
                 typCxt.foreach {
                   case (v, t) =>
-                    if (t.isInput) {
+                    if (!t.isInput) {
                       val q = SmtUtils.substitute(t.anno,
                         List(label, lhs.toString),
                         List(SmtUtils.mkAdd(label, "1"), "0")
@@ -300,8 +321,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                 case arg: IdentifierTree =>
                   if (increment == UNKNOWN_VAL) {
                     typCxt.get(arg.toString) match {
-                      case Some(argTyp) => if (argTyp.anno != SmtUtils.ASSERT_FALSE)
-                        issueError(node, "x.m(): Annotation must be false")
+                      case Some(argTyp) => // if (argTyp.anno != SmtUtils.ASSERT_FALSE)
+                        issueError(node, "x.m(): Creating alias!")
                       case None => // ???
                     }
                   }
