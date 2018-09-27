@@ -38,7 +38,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
     methodTrees += node
-    val localTypCxt = atypeFactory.getLocalTypCxt(node)
+    val localTypCxt = atypeFactory.getLocalTypCxt(node, false)
     val fldTypCxt = atypeFactory.getFieldTypCxt(getEnclosingClass(node))
     val typCxt = localTypCxt ++ fldTypCxt
     typCxt.foreach { // Check if each invariant is a valid SMTLIB2 string
@@ -84,10 +84,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val query = SmtUtils.mkForallImply(constraints, isBounded)
       val check = typecheck(query, node, "Method has unbounded size!")
       // solver.optimize(objective.asInstanceOf[ArithExpr])
-      if (sizes.nonEmpty) {
-        Utils.logging(node.getName.toString + "\n" + sizes.toString() + "\n" + typCxt.toString() + "\n\n")
-      }
       if (!check) {
+        if (sizes.nonEmpty) {
+          Utils.logging(node.getName.toString + "\n" + sizes.toString() + "\n" + typCxt.toString() + "\n\n")
+        }
         // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
       } else {
         // println(query)
@@ -414,7 +414,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     val localInv = {
       if (enclosingMethod == null) new HashMap[String, VarTyp]
-      else atypeFactory.getLocalTypCxt(enclosingMethod)
+      else atypeFactory.getLocalTypCxt(enclosingMethod, true)
     }
     (fldInv, localInv, updatedLabel)
   }

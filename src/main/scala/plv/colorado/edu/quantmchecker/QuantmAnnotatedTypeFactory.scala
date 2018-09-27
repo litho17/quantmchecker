@@ -139,12 +139,16 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     }
   }
 
-  def getLocalTypCxt(methodTree: MethodTree): Map[String, VarTyp] = {
+  def getLocalTypCxt(methodTree: MethodTree, includeParameters: Boolean): Map[String, VarTyp] = {
     val empRet = new HashMap[String, VarTyp]
     if (methodTree == null || methodTree.getBody == null) return empRet
-    val stmts = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
-      (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
-    } ++ methodTree.getParameters.asScala
+    val stmts = {
+      val ret = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
+        (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
+      }
+      if (includeParameters) ret ++ methodTree.getParameters.asScala
+      else ret
+    }
 
     stmts.foldLeft(empRet) {
       (acc, stmt) =>

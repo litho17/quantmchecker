@@ -299,7 +299,7 @@ object Utils {
               if (noLoop) acc + AccessPath(newAccessPathElement :: l.path)
               else acc
           }
-          println(newAccessPaths)
+          // println(newAccessPaths)
           if (Utils.isCollectionTyp(fldTypEle)) {
             acc ++ newAccessPaths
           } else if (getTopPackageName(fldTypEle, types) != getTopPackageName(typeElement, types)) { // Terminate when encountering non user defined classes
@@ -321,6 +321,10 @@ object Utils {
     val clsTypEle = TreeUtils.elementFromDeclaration(tree)
     val initPath = AccessPath(List(AccessPathElement(tree.getSimpleName.toString, clsTypEle)))
     getReachableCollectionFields(clsTypEle, elements, types, HashSet[AccessPath](initPath))
+  }
+
+  def getReachableSize(tree: ClassTree, elements: Elements, types: Types): Int = {
+    ???
   }
 
   def getTopPackageName(typeElement: TypeElement, types: Types): String = {
