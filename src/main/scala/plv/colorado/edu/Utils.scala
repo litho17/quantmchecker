@@ -288,18 +288,28 @@ object Utils {
     ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[AccessPath]) {
       (acc, variableElement) =>
         val fldTypMirror = types.erasure(variableElement.asType())
-        val fldTypEle: TypeElement = elements.getTypeElement(fldTypMirror.toString)
+        val fldTypEle: TypeElement = ElementUtils.enclosingClass(variableElement)
+        // elements.getTypeElement(fldTypMirror.toString)
         if (fldTypEle != null) {
           val newAccessPathElement = AccessPathElement(variableElement.getSimpleName.toString, fldTypEle)
-          val newAccessPaths = accessPaths.map(l => AccessPath(newAccessPathElement :: l.path))
+          val newAccessPaths = accessPaths.foldLeft(new HashSet[AccessPath]) {
+            (acc, l) =>
+              val noLoop = l.path.forall(e => e.fieldTyp != fldTypEle)
+              // Terminate when encountering recursive typed fields
+              if (noLoop) acc + AccessPath(newAccessPathElement :: l.path)
+              else acc
+          }
+          println(newAccessPaths)
           if (Utils.isCollectionTyp(fldTypEle)) {
             acc ++ newAccessPaths
           } else if (getTopPackageName(fldTypEle, types) != getTopPackageName(typeElement, types)) { // Terminate when encountering non user defined classes
             acc
-          } else { // Terminate when encountering recursive typed fields
-            if (accessPaths.forall(l => !l.path.contains(newAccessPathElement)))
+          } else {
+            // println(typeElement, fldTypEle.asType().toString, newAccessPathElement)
+            if (newAccessPaths.nonEmpty)
               acc ++ getReachableCollectionFields(fldTypEle, elements, types, newAccessPaths)
-            else acc
+            else
+              acc
           }
         } else acc
     }
@@ -339,8 +349,7 @@ case class AccessPathElement(fieldName: String, fieldTyp: TypeElement) {
 case class AccessPath(path: List[AccessPathElement]) {
   override def toString: String = {
     if (path.isEmpty) ""
-    else if (path.size == 1) path.head.toString
-    else path.foldLeft(path.head.fieldName){ (acc, e) => acc + "." + e.fieldName }
+    else path.foldLeft(path.head.fieldName) { (acc, e) => acc + "." + e.fieldName }
   }
 }
 
