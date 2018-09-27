@@ -12,7 +12,7 @@ import org.checkerframework.javacutil._
 import plv.colorado.edu.quantmchecker.summarylang.{MSum, MSumI, MSumV, MethodSumUtils}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{CFRelation, SmtUtils, Z3Solver}
-import plv.colorado.edu.{AccessPath, AccessPathElement, Utils, VarTyp}
+import plv.colorado.edu._
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -121,7 +121,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // val lhsAnno = lhsTyp.getAnnotations
     typCxt.get(lhs.toString) match {
       case Some(lhsTyp) =>
-        val lhsTypMirror = lhsTyp.getTypMirror(types)
+        val lhsTypMirror = lhsTyp.getErasedTypMirror(types)
         val lhsTypElement = lhsTyp.getTypElement(types)
         rhs match {
           case rhs: MethodInvocationTree => // z = x.iter and x = z.next
@@ -170,7 +170,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               }
             } else { // Class types
               // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
-              val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathElement(lhs.toString, lhsTypElement), List())))
+              val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
               if (reachableListFlds.nonEmpty) {
                 if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
                   issueError(node, "x = y, x = y.f: Annotation must be false")
@@ -253,6 +253,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
     if (callerTyp != null) {
       val calleeSummary = getMethodSummaries(getMethodTypFromInvocation(node).getElement)
+      Utils.logging(callee.getSimpleName.toString) // TODO???
       val isAdd = Utils.isColWhat("add", types.erasure(callerTyp), callee, atypeFactory)
       val isRmv = Utils.isColWhat("remove", types.erasure(callerTyp), callee, atypeFactory)
       if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
