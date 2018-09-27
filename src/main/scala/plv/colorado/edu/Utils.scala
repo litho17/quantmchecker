@@ -356,7 +356,7 @@ object Utils {
                   else p.path.last.typeMirror == accessPath.path.last.typeMirror
               } > 1
             }
-            if (existAlias) acc + INFINITY // If alias, then let the size be infinity
+            if (existAlias) acc + INFINITY // If may alias, then let size be infinity
             else acc + accessPath.toString
           } else acc + "4"
       }

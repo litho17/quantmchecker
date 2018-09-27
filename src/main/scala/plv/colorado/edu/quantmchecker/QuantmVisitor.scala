@@ -3,16 +3,15 @@ package plv.colorado.edu.quantmchecker
 import java.io.File
 
 import com.sun.source.tree._
-import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element._
 import org.checkerframework.common.basetype.{BaseTypeChecker, BaseTypeVisitor}
 import org.checkerframework.framework.`type`.AnnotatedTypeMirror
 import org.checkerframework.framework.source.Result
 import org.checkerframework.javacutil._
+import plv.colorado.edu._
 import plv.colorado.edu.quantmchecker.summarylang.{MSum, MSumI, MSumV, MethodSumUtils}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{CFRelation, SmtUtils, Z3Solver}
-import plv.colorado.edu._
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -21,6 +20,7 @@ import scala.collection.immutable.{HashMap, HashSet}
   * @author Tianhan Lu
   */
 class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnnotatedTypeFactory](checker) {
+  private val DEBUG = true
   private val DEBUG_PATHS = false
   private val DEBUG_WHICH_UNHANDLED_CASE = false
   private val EMP_COLLECTION_PREFIX = "Collections.empty"
@@ -54,7 +54,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case (v, t) =>
         if (!t.isInput) {
           val init = initInv(t.anno, typCxt)
-          typecheck(SmtUtils.mkAssertionForall(init), node, "T-Decl: " + v + ": " + t.anno)
+          typecheck(SmtUtils.mkAssertionForall(init), node, "T-Decl: " + t.anno)
         }
       case _ => true
     }
@@ -80,7 +80,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       // solver.optimize(objective.asInstanceOf[ArithExpr])
       if (!check) {
         if (sizes.nonEmpty) {
-          Utils.logging(node.getName.toString + "\nVariables: " + sizes.toString() + "\nTypCxt: " + typCxt.toString() + "\nQuery: " + query + "\n\n")
+          Utils.logging("Method: " + getEnclosingClass(node).getSimpleName + "." + node.getName.toString + "\nVariables: " + sizes.toString() + "\nTypCxt: " + typCxt.toString() + "\nQuery: " + query + "\n\n")
         }
         // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
       } else {
@@ -102,7 +102,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(query, ctx), ctx)
     if (!isChecked) {
       // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
-      // Utils.logging("\n" + query + "\n")
+      if (DEBUG)
+        Utils.logging("\n" + query + "\n")
       issueError(node, errorMsg)
     }
     isChecked
@@ -126,24 +127,24 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         rhs match {
           case rhs: MethodInvocationTree => // z = x.iter and x = z.next
             val callSite = CallSite(rhs)
-            val (callee, caller, callerName, callerTyp) =
-              (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp)
-            if (callerTyp == null) {
+            val (method, _, receiverName, methodType) =
+              (callSite.method, callSite.receiver, callSite.receiverName, callSite.methodType)
+            if (methodType == null) {
               if (avoidAssignSubtyCheck(lhsTyp.isInput, node.getExpression))
                 return null
             } else {
-              val isNext = Utils.isColWhat("next", types.erasure(callerTyp), callee, atypeFactory)
-              val isIter = Utils.isColWhat("iterator", types.erasure(callerTyp), callee, atypeFactory)
+              val isNext = Utils.isColWhat("next", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
+              val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
               typCxt.foreach {
                 case (v, t) =>
                   if (t.isInput) {
                     if (isNext) {
-                      val newAnno = SmtUtils.substitute(t.anno, List(label, callerName),
-                        List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(callerName, "1")))
+                      val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
+                        List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
                       val implication = SmtUtils.mkForallImply(t.anno, newAnno)
                       typecheck(implication, node, "x = z.next")
                     } else if (isIter) {
-                      val newAnno = SmtUtils.substitute(t.anno, List(label, callerName),
+                      val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                         List(SmtUtils.mkAdd(label, "1"), "0"))
                       val implication = SmtUtils.mkForallImply(t.anno, newAnno)
                       typecheck(implication, node, "z = x.iter")
@@ -248,25 +249,24 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val (fldTypCxt, localTypCxt, label) = prepare(node)
     val typCxt = fldTypCxt ++ localTypCxt
     val callSite = CallSite(node)
-    val (callee, caller, callerName, callerTyp, vtPairs) =
-      (callSite.callee, callSite.caller, callSite.callerName, callSite.callerTyp, callSite.vtPairs)
+    val (method, _, receiverName, methodType) =
+      (callSite.method, callSite.receiver, callSite.receiverName, callSite.methodType)
 
-    if (callerTyp != null) {
+    if (methodType != null) {
       val calleeSummary = getMethodSummaries(getMethodTypFromInvocation(node).getElement)
-      Utils.logging(callee.getSimpleName.toString) // TODO???
-      val isAdd = Utils.isColWhat("add", types.erasure(callerTyp), callee, atypeFactory)
-      val isRmv = Utils.isColWhat("remove", types.erasure(callerTyp), callee, atypeFactory)
+      val isAdd = Utils.isColWhat("add", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
+      val isRmv = Utils.isColWhat("remove", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
       if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
       typCxt.foreach { // Do not check iterator's and self's type annotation
         case (v, t) =>
           if (!t.isInput) {
             val (_old: List[String], _new: List[String]) = {
               if (isAdd) { // y.add(x)
-                (List(label, callerName), List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(callerName, "1")))
+                (List(label, receiverName), List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
               } else if (isRmv) { // y.rmv()
-                (List(label, callerName), List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(callerName, "1")))
+                (List(label, receiverName), List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkSub(receiverName, "1")))
               } else { // x.m(); Assume method body has already been inlined
-                val (_o, _n) = getArgUpdates(calleeSummary, callerName)
+                val (_o, _n) = getArgUpdates(calleeSummary, receiverName)
                 val o = label :: _o
                 val n = SmtUtils.mkAdd(label, "1") :: _n
                 (o, n)
@@ -292,7 +292,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             case MSumI(_, i) => i
             case MSumV(name, i) => if (i == UNKNOWN) UNKNOWN_VAL else 0
           }
-          val (idx, accessPath) = MethodSumUtils.whichVar(summary, callee)
+          val (idx, accessPath) = MethodSumUtils.whichVar(summary, method.getElement)
           val target = {
             if (idx == -1) callerName
             else {
@@ -507,11 +507,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   case class CallSite(node: MethodInvocationTree) {
-    val callee: ExecutableElement = getMethodTypFromInvocation(node).getElement
-    val caller: ExpressionTree = TreeUtils.getReceiverTree(node)
-    val callerName: String = if (caller == null) "" else caller.toString
-    val callerTyp: TypeMirror = callee.getReceiverType // getTypeFactory.getReceiverType(node)
-    val vtPairs: List[(VariableElement, AnnotatedTypeMirror)] = callee.getParameters.asScala.zip(atypeFactory.fromElement(callee).getParameterTypes.asScala).toList
+    val method: AnnotatedTypeMirror.AnnotatedExecutableType = getMethodTypFromInvocation(node)
+    val methodType: AnnotatedTypeMirror.AnnotatedDeclaredType = method.getReceiverType // method.getReceiverType // getTypeFactory.getReceiverType(node)
+    val receiver: ExpressionTree = TreeUtils.getReceiverTree(node)
+    val receiverName: String = if (receiver == null) "" else receiver.toString
+    // val vtPairs: List[(VariableElement, AnnotatedTypeMirror)] = callee.getParameters.asScala.zip(atypeFactory.fromElement(callee).getParameterTypes.asScala).toList
   }
 
   /**
