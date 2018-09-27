@@ -223,14 +223,17 @@ object Utils {
     * @return collect a set of all leave statements
     *         Note: All other StatementTrees are ignored
     */
-  def flattenStmt(node: StatementTree): HashSet[StatementTree] = {
+  def flattenStmt(node: StatementTree): Set[StatementTree] = {
     node match {
       case stmt: BlockTree =>
         stmt.getStatements.asScala.foldLeft(new HashSet[StatementTree])((acc, s) => acc ++ flattenStmt(s))
       case stmt: DoWhileLoopTree => flattenStmt(stmt.getStatement)
       case stmt: EnhancedForLoopTree => flattenStmt(stmt.getStatement)
       case stmt: ForLoopTree =>
-        stmt.getInitializer.asScala.foldLeft(flattenStmt(stmt.getStatement)) {
+        val set = stmt.getUpdate.asScala.foldLeft(flattenStmt(stmt.getStatement)) {
+          (acc, s) => acc ++ flattenStmt(s)
+        }
+        stmt.getInitializer.asScala.foldLeft(set) {
           (acc, s) => acc ++ flattenStmt(s)
         }
       case stmt: WhileLoopTree => flattenStmt(stmt.getStatement)
@@ -243,7 +246,10 @@ object Utils {
       case stmt: ExpressionStatementTree => HashSet[StatementTree](stmt)
       case stmt: ReturnTree => HashSet[StatementTree](stmt)
       case stmt: VariableTree => HashSet[StatementTree](stmt)
-      case stmt: TryTree => flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)
+      case stmt: TryTree =>
+        stmt.getCatches.asScala.foldLeft(flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)) {
+          (acc, s) => acc ++ flattenStmt(s.getParameter) ++ flattenStmt(s.getBlock)
+        }
       case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
       case _ => new HashSet[StatementTree]
     }
