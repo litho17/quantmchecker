@@ -419,3 +419,7 @@ case class VarTyp(varElement: VariableElement, anno: String, isInput: Boolean) {
 
   //elements.getTypeElement(getTypMirror(types).toString)
 }
+
+case class FailCause(node: Tree, errorMsg: String, enclosingMethod: MethodTree) {
+  override def toString: String = "[" + errorMsg + "] " + node
+}

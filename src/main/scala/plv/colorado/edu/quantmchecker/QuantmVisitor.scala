@@ -33,13 +33,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   Utils.logging("# of verified methods, # of methods, # of queries, Z3 time")
 
-  private var methodTrees = HashSet[MethodTree]()
-  private var verifiedMethods = HashSet[MethodTree]()
+  private var methodTrees = new HashSet[MethodTree]
+  private var verifiedMethods = new HashSet[MethodTree]
+  private var failCauses = new HashSet[FailCause]
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
     methodTrees += node
     val localTypCxt = atypeFactory.getLocalTypCxt(node, false)
-    val fldTypCxt = atypeFactory.getFieldTypCxt(getEnclosingClass(node))
+    val fldTypCxt = atypeFactory.getFieldTypCxt(TreeUtils.enclosingClass(atypeFactory.getPath(node)))
     val typCxt = localTypCxt ++ fldTypCxt
     typCxt.foreach { // Check if each invariant is a valid SMTLIB2 string
       case (v, t) =>
@@ -58,36 +59,52 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
       case _ => true
     }
-    if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
-      val sizes: Set[String] = localTypCxt.foldLeft(new HashSet[String]) {
-        case (acc, (v, t)) =>
-          val cls = trees.getTree(t.getTypElement(types))
-          val res = Utils.getReachableSize(cls, elements, types, trees, v)
-          // Utils.logging(v + "\n" + res.toString() + "\n")
-          acc ++ res
-      }
-      val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
-      val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
-      val typRefinements = typCxt.values.map(t => t.anno).toArray
-      val totalSize = SmtUtils.mkAdd(sizes.toList: _*)
-      val isBounded = SmtUtils.mkLe(totalSize, SIZE_BOUND.toString)
-      val constraints = {
-        val array: Array[String] = cfRelation ++ typRefinements :+ methodBodyCounter
-        SmtUtils.mkAnd(array: _*)
-      }
-      val query = SmtUtils.mkForallImply(constraints, isBounded)
-      val check = typecheck(query, node, "Method has unbounded size!")
-      // solver.optimize(objective.asInstanceOf[ArithExpr])
-      if (!check) {
-        if (sizes.nonEmpty) {
-          Utils.logging("Method: " + getEnclosingClass(node).getSimpleName + "." + node.getName.toString + "\nVariables: " + sizes.toString() + "\nTypCxt: " + typCxt.toString() + "\nQuery: " + query + "\n\n")
+    val isBounded = {
+      if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
+        val sizes: Set[String] = localTypCxt.foldLeft(new HashSet[String]) {
+          case (acc, (v, t)) =>
+            val cls = trees.getTree(t.getTypElement(types))
+            val res = Utils.getReachableSize(cls, elements, types, trees, v)
+            // Utils.logging(v + "\n" + res.toString() + "\n")
+            acc ++ res
         }
-        // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
-      } else {
-        verifiedMethods += node
-      }
+        val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
+        val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
+        val typRefinements = typCxt.values.map(t => t.anno).toArray
+        val totalSize = SmtUtils.mkAdd(sizes.toList: _*)
+        val isBounded = SmtUtils.mkLe(totalSize, SIZE_BOUND.toString)
+        val constraints = {
+          val array: Array[String] = cfRelation ++ typRefinements :+ methodBodyCounter
+          SmtUtils.mkAnd(array: _*)
+        }
+        val query = SmtUtils.mkForallImply(constraints, isBounded)
+        val check = typecheck(query, node, "Method has unbounded size!")
+        // solver.optimize(objective.asInstanceOf[ArithExpr])
+        if (!check) {
+          if (sizes.nonEmpty) {
+            val methodStr = "Method: " + TreeUtils.enclosingClass(atypeFactory.getPath(node)).getSimpleName + "." + node.getName.toString
+            val sizesStr = "Sizes: " + sizes.toString()
+            val typCxtStr = "TypCxt: " + typCxt.toString()
+            val queryStr = "Query: " + query
+            Utils.logging(methodStr + "\n" + sizesStr + "\n" + typCxtStr + "\n" + queryStr)
+          }
+          // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
+        } else {
+          verifiedMethods += node
+        }
+        check
+      } else true
     }
     super.visitMethod(node, p)
+    if (!isBounded) {
+      val failCausesStr = {
+        val currentCauses = failCauses.filter(f => f.enclosingMethod == node)
+        if (currentCauses.nonEmpty) currentCauses.foldLeft("Fail causes:\n"){(acc, c) => acc + c + "\n"}
+        else ""
+      }
+      Utils.logging(failCausesStr + "\n")
+    }
+    null
   }
 
   override def processClassTree(tree: ClassTree): Unit = {
@@ -149,7 +166,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     } else { // May be arbitrary update
                       val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
                       if (reachableListFlds.nonEmpty) {
-                        issueWarning(node, "x = m(): May be arbitrary update!")
+                        failCauses = failCauses + FailCause(node, "x = m(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
                       }
                     }
                   }
@@ -171,8 +188,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             } else { // Class types
               // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
               val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
-              if (reachableListFlds.nonEmpty)
-                issueWarning(node, "x = y, x = y.f: May create alias!")
+              if (reachableListFlds.nonEmpty) {
+                failCauses = failCauses + FailCause(node, "x = y, x = y.f: May create alias!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
+              }
             }
           case rhs: BinaryTree => // Must not create alias
             typCxt.foreach {
@@ -236,7 +254,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               } else {
                 val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
                 if (reachableListFlds.nonEmpty) {
-                  issueWarning(node, "x = new Class(): May be arbitrary update!")
+                  failCauses = failCauses + FailCause(node, "x = new Class(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
                 }
               }
             }
@@ -303,8 +321,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             case MSumI(_, i) => i
             case MSumV(name, i) =>
               name match {
-                case MAY_CREATE_ALIAS => issueWarning(node, "x.m(): May create alias!"); 0
-                case UNKNOWN_UPDATE => issueWarning(node, "x.m(): May be arbitrary update!"); 0
+                case MAY_CREATE_ALIAS => failCauses = failCauses + FailCause(node, "x.m(): May create alias!", TreeUtils.enclosingMethod(atypeFactory.getPath(node))); 0
+                case UNKNOWN_UPDATE => failCauses = failCauses + FailCause(node, "x.m(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node))); 0
                 case _ => 0
               }
           }
@@ -414,8 +432,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     *         label of the enclosing statement
     */
   private def prepare(node: Tree): (Map[String, VarTyp], Map[String, VarTyp], String) = {
-    val enclosingClass = getEnclosingClass(node)
-    val enclosingMethod = getEnclosingMethod(node)
+    val enclosingClass = TreeUtils.enclosingClass(atypeFactory.getPath(node))
+    val enclosingMethod = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
     val updatedLabel = getLabel(node)
     // if (enclosingClass == null || enclosingMethod == null)
     // Utils.logging("Empty enclosing class or method:\n" + node.toString)
@@ -431,12 +449,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def getMethodTypFromInvocation(node: MethodInvocationTree): AnnotatedTypeMirror.AnnotatedExecutableType = atypeFactory.methodFromUse(node).methodType
-
-  private def getMethodElementFromDecl(node: MethodTree): ExecutableElement = {
-    if (node == null)
-      return null
-    TreeUtils.elementFromDeclaration(node)
-  }
 
   private def getLineNumber(node: Tree): Int = {
     val line_long = Utils.getLineNumber(node, positions, root)
@@ -461,10 +473,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def issueError(node: Object, msg: String): Unit = {
     checker.report(Result.failure(msg), node)
   }
-
-  private def getEnclosingClass(node: Tree): ClassTree = TreeUtils.enclosingClass(atypeFactory.getPath(node))
-
-  private def getEnclosingMethod(node: Tree): MethodTree = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
 
   /**
     *
@@ -527,6 +535,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val receiver: ExpressionTree = TreeUtils.getReceiverTree(node)
     val receiverName: String = if (receiver == null) "" else receiver.toString
     // val vtPairs: List[(VariableElement, AnnotatedTypeMirror)] = callee.getParameters.asScala.zip(atypeFactory.fromElement(callee).getParameterTypes.asScala).toList
+  }
+
+  private def getMethodElementFromDecl(node: MethodTree): ExecutableElement = {
+    if (node == null)
+      return null
+    TreeUtils.elementFromDeclaration(node)
   }
 
   /**
