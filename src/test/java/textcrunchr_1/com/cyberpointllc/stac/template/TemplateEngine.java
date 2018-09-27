@@ -87,7 +87,6 @@ public class TemplateEngine {
      * @param dictionary a Map with template keys and their corresponding values
      * @param sb         The string builder to put the data in
      */
-    @Summary({"Unverified (Method return, Unverified list)"})
     public void replaceTagsBuilder(Map<String, String> dictionary,
                                    @Inc("= (- self i) (- (+ c104 c108 c113) (+ c110 c110))") StringBuilder sb) {
         // keep track of where we are on the text string

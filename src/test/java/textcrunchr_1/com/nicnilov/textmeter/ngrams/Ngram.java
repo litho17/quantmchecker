@@ -1,5 +1,6 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.nicnilov.textmeter.NotInitializedException;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.LineFormatException;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.NgramStorage;
@@ -29,6 +30,7 @@ public class Ngram {
         this.ngramStorage = NgramStorageFactory.get(ngramType, ngramStorageStrategy, sizeHint);
     }
 
+    @Summary({"this.ngramStorage.storage", "unknown"})
     protected Ngram load(InputStream inputStream) throws IOException, LineFormatException {
         if (ngramStorage == null) {
             throw new NotInitializedException();

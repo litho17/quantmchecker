@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.FileInputStream;
@@ -13,6 +14,7 @@ public class TextFileHandler {
 
     List<Processor> processors = new ArrayList<Processor>();
 
+    @Summary({"this.processors", "5"})
     public TextFileHandler() throws IOException {
         // todo - fill processors with list of processors
         processors.add(new CharacterCountProcessor());
@@ -26,7 +28,7 @@ public class TextFileHandler {
         processors.add(new WordFrequencyProcessor());
     }
 
-    @Summary({"Unverified (API)"})
+    @Summary({"outph", "unknown"})
     public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {
         List<String> argsList = new ArrayList<String>(Arrays.asList(args));
         Iterator<Processor> it = processors.iterator();
@@ -34,7 +36,7 @@ public class TextFileHandler {
             Processor processor;
             processor = it.next();
             if (argsList.isEmpty() || argsList.contains(processor.getName())) {
-                TCResult tcr = processor.process(new FileInputStream(filename));
+                @InvUnk("Different values from dynamic dispatch") TCResult tcr = processor.process(new FileInputStream(filename));
                 outph.addResult(filename, tcr);
             }
         }

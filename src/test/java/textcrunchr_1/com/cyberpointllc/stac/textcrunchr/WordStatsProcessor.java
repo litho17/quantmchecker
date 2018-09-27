@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,11 +18,11 @@ public class WordStatsProcessor extends Processor {
         // count number of sentences
         String input = readInput(inps);
         String words[] = tokenize(input);
-        TCResult result = new TCResult("Word stats");
-        result.addResult("Word count", words.length);
-        result.addResult("Average word length", meanLen(words));
-        result.addResult("Variance in word length", varLen(words));
-        result.addResult("Longest word: ", longest(words));
+        @Inv("= result.results (+ c22 c23 c24 c25)") TCResult result = new TCResult("Word stats");
+        c22: result.addResult("Word count", words.length);
+        c23: result.addResult("Average word length", meanLen(words));
+        c24: result.addResult("Variance in word length", varLen(words));
+        c25: result.addResult("Longest word: ", longest(words));
         return result;
     }
 

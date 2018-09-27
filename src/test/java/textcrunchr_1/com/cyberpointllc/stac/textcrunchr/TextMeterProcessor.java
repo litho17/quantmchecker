@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.nicnilov.textmeter.TestUtils;
 import textcrunchr_1.com.nicnilov.textmeter.TextLanguage;
 import textcrunchr_1.com.nicnilov.textmeter.TextMeter;
@@ -34,18 +36,18 @@ public class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new TextMeter();
         textMeter.createTextLanguage("en");
-        TextLanguage en = textMeter.get("en");
+        @Inv("= en.ngrams c42") TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {
-            en.getNgram(NgramType.UNIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_UNIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_UNIGRAMS_EXCNT);
+            c42: en.getNgram(NgramType.UNIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_UNIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_UNIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.BIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_BIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_BIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.TRIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_TRIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_TRIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.QUADGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_QUADGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_QUADGRAMS_EXCNT);
             //        	en.getNgram(NgramType.QUINTGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_QUINTGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_QUINTGRAMS_EXCNT);
             //        
             // score text
-            TextScore textScore = en.score(theString.toUpperCase(Locale.ENGLISH));
+            @InvUnk("Method return list") TextScore textScore = en.score(theString.toUpperCase(Locale.ENGLISH));
             message = "en-based score for english text: " + textScore;
         } catch (LineFormatException lfe) {
             message = "Processing failed.";

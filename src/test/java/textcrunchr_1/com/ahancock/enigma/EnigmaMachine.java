@@ -1,5 +1,8 @@
 package textcrunchr_1.com.ahancock.enigma;
 
+import plv.colorado.edu.quantmchecker.qual.Input;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 public class EnigmaMachine {
 
     private Rotor r1;
@@ -35,9 +38,9 @@ public class EnigmaMachine {
     }
 
     // Encode the input string and return the result
-    public String encodeLine(String s) {
+    public String encodeLine(@Input("(and (<= i s) (<= s 100))") String s) {
         // StringBuilder is used to build the result
-        StringBuilder sb = new StringBuilder();
+        @Inv("= (- sb i) (- c54 c55)") StringBuilder sb = new StringBuilder();
         // Reuse the same StringBuilder.
         sb.setLength(0);
         // int i;
@@ -48,8 +51,8 @@ public class EnigmaMachine {
             if (!Symbol.ignoreSymbol(currentChar))
                 currentChar = encodeChar(currentChar);
             // Append the symbol to the encoded line, even if it was "ignored"
-            sb.append(currentChar);
-            i = i + 1;
+            c54: sb.append(currentChar);
+            c55: i = i + 1;
         }
         return sb.toString();
     }

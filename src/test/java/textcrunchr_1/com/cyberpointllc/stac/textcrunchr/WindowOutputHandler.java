@@ -30,7 +30,6 @@ public class WindowOutputHandler extends OutputHandler {
         createAndShowGUIHelper();
     }
 
-    @Summary({"Unverified (Method return)"})
     private JComponent tCPanel() {
         JComponent panel = new JPanel(new BorderLayout());
         final JList<Object> fileList = new JList<Object>(sortedFiles.toArray());

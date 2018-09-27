@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.cyberpointllc.stac.zipdecompression.ZipDecompressor;
 
 import java.io.FileInputStream;
@@ -34,7 +35,7 @@ public class InputPathHandler {
     }
 
     public List<String> handleInputPath(String path) throws Exception {
-        ZipDecompressor zd = new ZipDecompressor();
+        @InvUnk("Complex loop") ZipDecompressor zd = new ZipDecompressor();
         InputPathHandlerHelper0 conditionObj0 = new InputPathHandlerHelper0(0);
         // assuming path is a file
         try {
@@ -50,7 +51,7 @@ public class InputPathHandler {
                 handleInputPathHelper1();
             }
             // walk through directory and return list of filenames
-            FileVisitor visitor = new FileVisitor();
+            @InvUnk("Unknown API") FileVisitor visitor = new FileVisitor();
             Files.walkFileTree(directory_name, visitor);
             return visitor.getFilepaths();
         } catch (IOException ioe) {

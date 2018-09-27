@@ -4,6 +4,8 @@
 package textcrunchr_1.com.cyberpointllc.stac.host;
 
 import org.apache.commons.cli.*;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.*;
 
@@ -19,13 +21,12 @@ public class Main {
         mainHelper(args);
     }
 
-    @Summary({"Unverified (Method return)"})
     private static void mainHelper(String[] args) {
         Options options = new Options();
         String filename = "";
         String outputOption = "";
         String[] processors = new String[0];
-        OutputHandler outph;
+        @InvUnk({"outph.namesToPaths: Arbitrary update", "outph.sortedFiles: Arbitrary update", "outph.results: Arbitrary update"}) OutputHandler outph;
         try {
             CommandLineParser parser = new DefaultParser();
             options.addOption("o", true, "Output form. Defaults to console." + "\nUse either \"console\", \"xml\" or \"window\"");
@@ -34,7 +35,8 @@ public class Main {
             processOption.setArgs(Option.UNLIMITED_VALUES);
             options.addOption(processOption);
             InputPathHandler ipHandler = new InputPathHandler();
-            TextFileHandler tfHandler = new TextFileHandler();
+            @Inv("= (* tfHandler.processors 5) c39") TextFileHandler tfHandler;
+            c39: tfHandler = new TextFileHandler();
             try {
                 CommandLine cmd = parser.parse(options, args);
                 if (cmd.hasOption("p")) {

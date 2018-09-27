@@ -1,5 +1,8 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
+import plv.colorado.edu.quantmchecker.qual.Input;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.Ngram;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramBuilder;
@@ -37,20 +40,20 @@ public class TextLanguage {
 
     @Summary({"this.ngrams", "1"})
     public Ngram getNgram(NgramType ngramType, InputStream inputStream, NgramStorageStrategy ngramStorageStrategy, int sizeHint) throws IOException, LineFormatException {
-        Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
+        @InvUnk("Arbitrary update") Ngram ngram = NgramBuilder.build(ngramType, inputStream, ngramStorageStrategy, sizeHint);
         ngrams.put(ngramType, ngram);
         return ngram;
     }
 
-    public TextScore score(final String text) {
-        TextScore textScore = new TextScore();
-        Ngram ngram;
+    public TextScore score(@Input("(and (<= it text) (<= text 100))") final String text) {
+        @Inv("= (- textScore.ngramScores it) (- c54 c52)") TextScore textScore = new TextScore();
+        @InvUnk("Read from nested lists") Ngram ngram;
         Iterator<Map.Entry<NgramType, Ngram>> it = ngrams.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<NgramType, Ngram> entry;
-            entry = it.next();
+            c52: entry = it.next();
             if ((ngram = entry.getValue()) != null) {
-                textScore.add(entry.getKey(), ngram.score(text));
+                c54: textScore.add(entry.getKey(), ngram.score(text));
             }
         }
         return textScore;

@@ -1,5 +1,6 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams.storage;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.nicnilov.textmeter.NotImplementedException;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
 
@@ -10,7 +11,7 @@ import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
 public class NgramStorageFactory {
 
     public static NgramStorage get(NgramType ngramType, NgramStorageStrategy ngramStorageStrategy, int sizeHint) {
-        NgramStorage ngramStorage;
+        @InvUnk("Unknown API") NgramStorage ngramStorage;
         switch (ngramStorageStrategy) {
             case HASHMAP: {
                 ngramStorage = new HashMapStorage(ngramType, sizeHint);

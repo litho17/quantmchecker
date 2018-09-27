@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Input;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
 
@@ -16,7 +18,7 @@ public class WordFrequencyProcessor extends Processor {
 
     private static final String NAME = "wordFreqs";
 
-    public TCResult process(InputStream inps) throws IOException {
+    public TCResult process(@Input("(and (<= it inps) (<= inps 100))") InputStream inps) throws IOException {
         InputStreamReader isr = new InputStreamReader(inps);
         // count frequency of each word in input
         String input = readInput(inps);
@@ -26,12 +28,12 @@ public class WordFrequencyProcessor extends Processor {
         // sort results by most frequent
         Sorter<WordCount> sorter = new Sorter<WordCount>(new DefaultComparator<WordCount>());
         List<WordCount> sortedWCs = sorter.sort(wordFreqs);
-        TCResult result = new TCResult("Word frequencies");
+        @Inv("= (- result.results it) (- c35 c34)") TCResult result = new TCResult("Word frequencies");
         Iterator<WordCount> it = sortedWCs.iterator();
         while (it.hasNext()) {
             WordCount wc;
-            wc = it.next();
-            result.addResult(wc.getWord(), wc.getCount());
+            c34: wc = it.next();
+            c35: result.addResult(wc.getWord(), wc.getCount());
         }
         return result;
     }

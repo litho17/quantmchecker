@@ -1,6 +1,9 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.HashMap;
 
 public class TextMeter {
@@ -13,7 +16,7 @@ public class TextMeter {
     public TextLanguage createTextLanguage(final String language) {
         if ((language == null) || (language.length() == 0))
             throw new IllegalArgumentException();
-        TextLanguage tl = new TextLanguage(language);
+        @Inv("= tl.ngrams 0") TextLanguage tl = new TextLanguage(language);
         textLanguages.put(language, tl);
         return tl;
     }

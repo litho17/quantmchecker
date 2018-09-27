@@ -25,7 +25,6 @@ public class XmlOutputHandler extends OutputHandler {
         do_concludeHelper();
     }
 
-    @Summary({"Unverified (Method return)"})
     private void do_concludeHelper() throws OutputHandlerException {
         Document dom;
         // instance of a DocumentBuilderFactory

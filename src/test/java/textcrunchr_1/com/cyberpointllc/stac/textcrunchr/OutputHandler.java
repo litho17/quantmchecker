@@ -38,7 +38,6 @@ public abstract class OutputHandler {
 
     protected abstract void do_conclude() throws OutputHandlerException;
 
-    @Summary({"Unverified method return"})
     private void addResultHelper(TCResult tcr, String filename) {
         if (results.containsKey(filename)) {
             List<TCResult> list = results.get(filename);

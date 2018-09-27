@@ -36,12 +36,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private var methodTrees = new HashSet[MethodTree]
   private var verifiedMethods = new HashSet[MethodTree]
   private var failCauses = new HashSet[FailCause]
+  // private var localCollections = new HashSet[VarTyp]
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
     methodTrees += node
     val localTypCxt = atypeFactory.getLocalTypCxt(node, false)
+    val localTypCxtWithParameters = atypeFactory.getLocalTypCxt(node, true)
     val fldTypCxt = atypeFactory.getFieldTypCxt(TreeUtils.enclosingClass(atypeFactory.getPath(node)))
-    val typCxt = localTypCxt ++ fldTypCxt
+    val typCxt = localTypCxtWithParameters ++ fldTypCxt
     typCxt.foreach { // Check if each invariant is a valid SMTLIB2 string
       case (v, t) =>
         try {
@@ -51,7 +53,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           case e: Exception => assert(false)
         }
     }
-    typCxt.foreach { // T-Decl
+    (localTypCxt ++ fldTypCxt).foreach { // T-Decl
       case (v, t) =>
         if (!t.isInput) {
           val init = initInv(t.anno, typCxt)
@@ -104,6 +106,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       }
       Utils.logging(failCausesStr + "\n")
     }
+    // localCollections ++= localTypCxt.filter { case (name, typ) => Utils.isCollectionTyp(typ.getTypElement(types)) }.values
     null
   }
 
@@ -137,6 +140,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     // val lhsAnno = lhsTyp.getAnnotations
     typCxt.get(lhs.toString) match {
       case Some(lhsTyp) =>
+        if (avoidAssignSubtyCheck(lhsTyp.isInput, node.getExpression)) return null
         val lhsTypMirror = lhsTyp.getErasedTypMirror(types)
         val lhsTypElement = lhsTyp.getTypElement(types)
         rhs match {
@@ -144,10 +148,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val callSite = CallSite(rhs)
             val (method, _, receiverName, methodType) =
               (callSite.method, callSite.receiver, callSite.receiverName, callSite.methodType)
-            if (methodType == null) {
-              if (avoidAssignSubtyCheck(lhsTyp.isInput, node.getExpression))
-                return null
-            } else {
+            if (methodType != null) {
               val isNext = Utils.isColWhat("next", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
               val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
               typCxt.foreach {
@@ -379,21 +380,20 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
     val rhsStr = rhs.toString
     rhs match {
-      case t: NewClassTree => // // x = new C, Must not create alias because we inline class initializers
+      case t: NewClassTree => // x = new C; Must not create alias because we inline class initializers
         val rhsAnno = atypeFactory.getTypeAnnotation(t)
-        if (rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, atypeFactory.INVTOP)) // If rhs's annotation is empty or TOP
+        // If rhs's annotation is empty or TOP
+        if (rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, atypeFactory.INVTOP))
           return true
-      case m: MethodInvocationTree => // x = m(), Must not create alias
+      case m: MethodInvocationTree => // x = m(); Must not create alias
         val callee = getMethodTypFromInvocation(m).getElement
         // val receiver = TreeUtils.getReceiverTree(m)
         val receiverTyp = getTypeFactory.getReceiverType(m)
-        if (receiverTyp == null)
-          return false
+        if (receiverTyp == null) return false
         val isIter = Utils.isColWhat("iterator", types.erasure(receiverTyp.getUnderlyingType), callee, atypeFactory)
         val isClone = rhsStr == "clone"
         val isRhsEmp = rhsStr.startsWith(EMP_COLLECTION_PREFIX) // || rhsStr.startsWith("Collections.unmodifiable")
-        if (isIter || isClone || isRhsEmp)
-          return true
+        if (isIter || isClone || isRhsEmp) return true
       case _ =>
         if (rhsStr == "null") return true
     }

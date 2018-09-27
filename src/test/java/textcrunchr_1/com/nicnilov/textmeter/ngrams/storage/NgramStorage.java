@@ -1,5 +1,6 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams.storage;
 
+import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
 
 import java.io.BufferedReader;
@@ -30,6 +31,7 @@ public abstract class NgramStorage implements Iterable<Map.Entry<String, Float>>
         this.ngramType = ngramType;
     }
 
+    @Summary({"this.storage", "unknown"})
     public long load(InputStream inputStream) throws LineFormatException, IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
         count = 0;

@@ -9,7 +9,6 @@ import java.util.Map;
 
 public class ConsoleOutputHandler extends OutputHandler {
 
-    @Summary({"Unverified (Method return)"})
     public void do_conclude() {
         TemplateEngine tp = new TemplateEngine("    {{name}}\n{{output}}");
         Map<String, String> templateMap = new HashMap<String, String>();
