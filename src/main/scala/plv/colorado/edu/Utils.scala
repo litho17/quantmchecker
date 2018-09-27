@@ -284,47 +284,71 @@ object Utils {
     isAllFldUnsharing && isAllAssignmentUnsharing
   }
 
-  def getReachableCollectionFields(typeElement: TypeElement, elements: Elements, types: Types, accessPaths: HashSet[AccessPath]): HashSet[AccessPath] = {
-    ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[AccessPath]) {
-      (acc, variableElement) =>
+  def getReachableFieldsAndRecTyps(typeElement: TypeElement, elements: Elements,
+                                   types: Types, trees: Trees,
+                                   accessPaths: Set[AccessPath]): (Set[AccessPath], Set[TypeElement]) = {
+    ElementUtils.getAllFieldsIn(typeElement, elements).asScala.foldLeft(new HashSet[AccessPath], new HashSet[TypeElement]) {
+      case ((pathAcc, typAcc), variableElement) =>
         val fldTypMirror = types.erasure(variableElement.asType())
-        val fldTypEle: TypeElement = ElementUtils.enclosingClass(variableElement)
-        // elements.getTypeElement(fldTypMirror.toString)
-        if (fldTypEle != null) {
+        val fldTypEle: TypeElement = elements.getTypeElement(fldTypMirror.toString)
+        if (fldTypEle == null) {
+          (pathAcc, typAcc)
+        } else {
           val newAccessPathElement = AccessPathElement(variableElement.getSimpleName.toString, fldTypEle)
-          val newAccessPaths = accessPaths.foldLeft(new HashSet[AccessPath]) {
-            (acc, l) =>
+          val (newAccessPaths, recTyps) = accessPaths.foldLeft(new HashSet[AccessPath], new HashSet[TypeElement]) {
+            case ((pathAcc2, typAcc2), l) =>
               val noLoop = l.path.forall(e => e.fieldTyp != fldTypEle)
               // Terminate when encountering recursive typed fields
-              if (noLoop) acc + AccessPath(newAccessPathElement :: l.path)
-              else acc
+              if (noLoop) (pathAcc2 + AccessPath(l.head, l.path :+ newAccessPathElement), typAcc2)
+              else {
+                val isEnumClass = Utils.isEnumClass(trees.getTree(fldTypEle))
+                if (!isEnumClass) {
+                  // println("Recursive types: " + variableElement.getSimpleName + ": " + fldTypEle + " (" + l + ")")
+                  (pathAcc2, typAcc2 + fldTypEle)
+                } else (pathAcc2, typAcc2)
+              }
           }
           // println(newAccessPaths)
-          if (Utils.isCollectionTyp(fldTypEle)) {
-            acc ++ newAccessPaths
+          if (Utils.isCollectionTyp(fldTypEle)) { // Terminate when encountering list typed field
+            (pathAcc ++ newAccessPaths, typAcc ++ recTyps)
+          } else if (TypesUtils.isPrimitive(fldTypMirror)) { // Terminate when encountering primitive typed fields
+            (pathAcc ++ newAccessPaths, typAcc ++ recTyps)
           } else if (getTopPackageName(fldTypEle, types) != getTopPackageName(typeElement, types)) { // Terminate when encountering non user defined classes
-            acc
+            (pathAcc, typAcc ++ recTyps)
           } else {
             // println(typeElement, fldTypEle.asType().toString, newAccessPathElement)
-            if (newAccessPaths.nonEmpty)
-              acc ++ getReachableCollectionFields(fldTypEle, elements, types, newAccessPaths)
-            else
-              acc
+            if (newAccessPaths.nonEmpty) {
+              val res = getReachableFieldsAndRecTyps(fldTypEle, elements, types, trees, newAccessPaths)
+              (pathAcc ++ res._1, typAcc ++ res._2)
+            } else
+              (pathAcc, typAcc ++ recTyps)
           }
-        } else acc
+        }
     }
   }
 
   def getReachableCollectionFields(tree: ClassTree, elements: Elements,
-                                   types: Types): HashSet[AccessPath] = {
+                                   types: Types, trees: Trees, headVar: String): Set[AccessPath] = {
     if (tree == null) return new HashSet[AccessPath]
     val clsTypEle = TreeUtils.elementFromDeclaration(tree)
-    val initPath = AccessPath(List(AccessPathElement(tree.getSimpleName.toString, clsTypEle)))
-    getReachableCollectionFields(clsTypEle, elements, types, HashSet[AccessPath](initPath))
+    val initPath = AccessPath(AccessPathElement(headVar, clsTypEle), List())
+    val (reachableFields, recTyps) = getReachableFieldsAndRecTyps(clsTypEle, elements, types, trees, HashSet[AccessPath](initPath))
+    reachableFields.filter(accessPath => Utils.isCollectionTyp(accessPath.path.last.fieldTyp))
   }
 
-  def getReachableSize(tree: ClassTree, elements: Elements, types: Types): Int = {
-    ???
+  def getReachableSize(tree: ClassTree, elements: Elements, types: Types, trees: Trees, headVar: String): Set[String] = {
+    if (tree == null) return HashSet[String]("0")
+    val clsTypEle = TreeUtils.elementFromDeclaration(tree)
+    val initPath = AccessPath(AccessPathElement(headVar, clsTypEle), List())
+    val (reachableFields, recTyps) = getReachableFieldsAndRecTyps(clsTypEle, elements, types, trees, HashSet[AccessPath](initPath))
+    if (recTyps.nonEmpty) HashSet[String](Int.MaxValue.toString)
+    else {
+      reachableFields.foldLeft(new HashSet[String]) {
+        (acc, accessPath) =>
+          if (Utils.isCollectionTyp(accessPath.path.last.fieldTyp)) acc + accessPath.toString
+          else acc + "4"
+      }
+    }
   }
 
   def getTopPackageName(typeElement: TypeElement, types: Types): String = {
@@ -336,6 +360,11 @@ object Utils {
     Utils.COLLECTION_ADD.exists {
       case (klass, method) => if (klass == typeElement.toString) true else false
     }
+  }
+
+  def isEnumClass(classTree: ClassTree): Boolean = {
+    if (classTree == null) false
+    else classTree.getKind == Tree.Kind.ENUM
   }
 }
 
@@ -350,10 +379,10 @@ case class AccessPathElement(fieldName: String, fieldTyp: TypeElement) {
   override def toString: String = fieldName + ": " + fieldTyp.toString
 }
 
-case class AccessPath(path: List[AccessPathElement]) {
+case class AccessPath(head: AccessPathElement, path: List[AccessPathElement]) {
   override def toString: String = {
-    if (path.isEmpty) ""
-    else path.foldLeft(path.head.fieldName) { (acc, e) => acc + "." + e.fieldName }
+    if (path.isEmpty) head.fieldName
+    else path.foldLeft(head.fieldName) { (acc, e) => acc + "." + e.fieldName }
   }
 }
 

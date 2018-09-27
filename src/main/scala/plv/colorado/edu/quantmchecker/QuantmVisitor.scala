@@ -12,7 +12,7 @@ import org.checkerframework.javacutil._
 import plv.colorado.edu.quantmchecker.summarylang.{MSum, MSumI, MSumV, MethodSumUtils}
 import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{CFRelation, SmtUtils, Z3Solver}
-import plv.colorado.edu.{AccessPath, Utils, VarTyp}
+import plv.colorado.edu.{AccessPath, AccessPathElement, Utils, VarTyp}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{HashMap, HashSet}
@@ -59,18 +59,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       case _ => true
     }
     if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
-      val reachableListFlds = localTypCxt.foldLeft(new HashSet[AccessPath]) {
+      val sizes: Set[String] = localTypCxt.foldLeft(new HashSet[String]) {
         case (acc, (v, t)) =>
           val cls = trees.getTree(t.getTypElement(types))
-          acc ++ Utils.getReachableCollectionFields(cls, elements, types)
-      }
-      val sizes: Set[String] = localTypCxt.foldLeft(reachableListFlds.map { p => p.toString }) {
-        case (acc, (v, t)) =>
-          if (t.isInput) acc
-          else {
-            if (TypesUtils.isPrimitive(t.getTypElement(types).asType())) acc + "4"
-            else acc + v
-          }
+          val res = Utils.getReachableSize(cls, elements, types, trees, v)
+          // Utils.logging(v + "\n" + res.toString() + "\n")
+          acc ++ res
       }
       val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
       val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
@@ -86,7 +80,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       // solver.optimize(objective.asInstanceOf[ArithExpr])
       if (!check) {
         if (sizes.nonEmpty) {
-          Utils.logging(node.getName.toString + "\n" + sizes.toString() + "\n" + typCxt.toString() + "\n\n")
+          Utils.logging(node.getName.toString + "\nVariables: " + sizes.toString() + "\nTypCxt: " + typCxt.toString() + "\nQuery: " + query + "\n\n")
         }
         // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
       } else {
@@ -108,7 +102,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val isChecked = Z3Solver.check(Z3Solver.parseSMTLIB2String(query, ctx), ctx)
     if (!isChecked) {
       // if (DEBUT_CHECK) println("\n-------\n" + query + "\n-------\n")
-      Utils.logging("\n" + query + "\n")
+      // Utils.logging("\n" + query + "\n")
       issueError(node, errorMsg)
     }
     isChecked
@@ -176,7 +170,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
               }
             } else { // Class types
               // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
-              val reachableListFlds = Utils.getReachableCollectionFields(lhsTypElement, elements, types, new HashSet[AccessPath])
+              val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathElement(lhs.toString, lhsTypElement), List())))
               if (reachableListFlds.nonEmpty) {
                 if (lhsTyp.anno != SmtUtils.ASSERT_FALSE) // Make the query fail
                   issueError(node, "x = y, x = y.f: Annotation must be false")
@@ -221,6 +215,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     }
                 }
               } else { // Assume: class initializers are inlined; Must not create alias
+                TreeUtils.constructor(rhs) // TODO: Inline class initializers
                 typCxt.foreach {
                   case (v, t) =>
                     if (t.isInput) {
@@ -524,7 +519,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return if it is in class constructor
     */
   private def isInConstructor(node: Tree): Boolean = {
-    // val enclosingClass = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.CLASS).asInstanceOf[ClassTree]
     val enclosingMethod = TreeUtils.enclosingOfKind(atypeFactory.getPath(node), Tree.Kind.METHOD).asInstanceOf[MethodTree]
     if (enclosingMethod == null)
       return false
