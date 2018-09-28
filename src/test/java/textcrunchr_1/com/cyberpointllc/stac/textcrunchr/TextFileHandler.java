@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
@@ -30,7 +31,7 @@ public class TextFileHandler {
 
     @Summary({"outph", "unknown"})
     public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {
-        List<String> argsList = new ArrayList<String>(Arrays.asList(args));
+        @Inv("= argsList args") List<String> argsList = new ArrayList<String>(Arrays.asList(args));
         Iterator<Processor> it = processors.iterator();
         while (it.hasNext()) {
             Processor processor;

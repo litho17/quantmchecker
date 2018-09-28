@@ -1,5 +1,7 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Input;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import textcrunchr_1.com.ahancock.enigma.EnigmaFactory;
 import textcrunchr_1.com.ahancock.enigma.EnigmaMachine;
 
@@ -12,15 +14,16 @@ public class EnigmaProcessor extends Processor {
 
     private static final String NAME = "enigma";
 
-    public TCResult process(InputStream inps) throws IOException {
+    public TCResult process(@Input("(and (<= br inps) (<= inps 100))") InputStream inps) throws IOException {
         // read to string
         InputStreamReader is = new InputStreamReader(inps);
-        StringBuilder sb = new StringBuilder();
+        @Inv("= (- sb br) (- c24 c22 c25)") StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(is);
-        String read = br.readLine();
+        String read;
+        c22: read = br.readLine();
         while (read != null) {
-            sb.append(read);
-            read = br.readLine();
+            c24: sb.append(read);
+            c25: read = br.readLine();
         }
         String theString = sb.toString().toUpperCase();
         // Construct the machine

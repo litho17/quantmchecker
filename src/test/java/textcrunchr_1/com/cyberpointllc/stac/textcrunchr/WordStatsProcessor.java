@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 
 import java.io.BufferedReader;
@@ -86,15 +87,15 @@ public class WordStatsProcessor extends Processor {
         return sumSq / len - sum * sum / (len * len);
     }
 
-    private String readInput(InputStream inps) throws IOException {
+    private String readInput(@Input("(and (<= br inps) (<= inps 100))") InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new BufferedReader(new InputStreamReader(inps));
-        StringBuilder sb = new StringBuilder();
+        @Inv("= (- sb br) (- c97 c95 c98)") StringBuilder sb = new StringBuilder();
         String read;
-        read = br.readLine();
+        c95: read = br.readLine();
         while (read != null) {
-            sb.append(read);
-            read = br.readLine();
+            c97: sb.append(read);
+            c98: read = br.readLine();
         }
         String theString = sb.toString();
         return theString;

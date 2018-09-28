@@ -1,5 +1,7 @@
 package textcrunchr_1.com.nicnilov.textmeter.ngrams;
 
+import plv.colorado.edu.quantmchecker.qual.Input;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.EnumMap;
@@ -25,13 +27,14 @@ public class TextScore {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        @Input("(and (<= it ngramScores) (<= ngramScores 100))") int i;
+        @Inv("= (- sb it) (- c35 c33)") StringBuilder sb = new StringBuilder();
         Iterator<Map.Entry<NgramType, Ngram.ScoreStats>> it = ngramScores.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<NgramType, Ngram.ScoreStats> entry;
-            entry = it.next();
+            c33: entry = it.next();
             if (entry.getValue() != null) {
-                toStringHelper(entry, sb);
+                c35: toStringHelper(entry, sb);
             }
         }
         return sb.toString();

@@ -1,6 +1,7 @@
 package textcrunchr_1.com;
 
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.*;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import plv.colorado.edu.quantmchecker.qual.Input;
  * @author Tianhan Lu
  */
 public class Driver {
-    public static void main(@Input("(and (< i input) (<= input 100))") List<Object> input) throws Exception {
+    public static void main(@Input("(and (<= i input) (<= input 100))") List<Object> input) throws Exception {
         int i = 0;
         @Inv("= (- results i) (- (+ c23 c25 c27 c29 c31) c21)") List<TCResult> results = new ArrayList<>();
         String s;
@@ -21,7 +22,7 @@ public class Driver {
             c21: i = i + 1;
             String filename = "";
             FileInputStream fis = new FileInputStream(filename);
-            TCResult tcr;
+            @InvUnk("Method return list") TCResult tcr;
             if (Math.random() > 0.8) {
                 tcr = new CharacterCountProcessor().process(fis);
                 c23: results.add(tcr);

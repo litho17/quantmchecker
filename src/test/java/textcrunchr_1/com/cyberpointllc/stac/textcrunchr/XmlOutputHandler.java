@@ -2,6 +2,7 @@ package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -40,7 +41,7 @@ public class XmlOutputHandler extends OutputHandler {
                 filenameEle.setAttribute("name", filename);
                 rootEle.appendChild(filenameEle);
                 String path = namesToPaths.get(filename);
-                List<TCResult> sampleResults = results.get(path);
+                @InvUnk("Read from nested lists") List<TCResult> sampleResults = results.get(path);
                 for (TCResult result : sampleResults) {
                     Element name = dom.createElement("result");
                     name.setAttribute("name", result.getName());

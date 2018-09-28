@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
@@ -40,7 +41,7 @@ public abstract class OutputHandler {
 
     private void addResultHelper(TCResult tcr, String filename) {
         if (results.containsKey(filename)) {
-            List<TCResult> list = results.get(filename);
+            @InvUnk("Read from nested lists") List<TCResult> list = results.get(filename);
             list.add(tcr);
         } else {
             List<TCResult> newlist = new ArrayList<TCResult>();

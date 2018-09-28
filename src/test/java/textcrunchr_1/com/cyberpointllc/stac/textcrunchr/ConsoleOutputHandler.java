@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.cyberpointllc.stac.template.TemplateEngine;
 
@@ -11,7 +12,7 @@ public class ConsoleOutputHandler extends OutputHandler {
 
     public void do_conclude() {
         TemplateEngine tp = new TemplateEngine("    {{name}}\n{{output}}");
-        Map<String, String> templateMap = new HashMap<String, String>();
+        @InvUnk("Nested loop") Map<String, String> templateMap = new HashMap<String, String>();
         for (String filename : sortedFiles) {
             String path = namesToPaths.get(filename);
             System.out.println("        File " + filename + ": ");

@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
@@ -46,9 +47,12 @@ public class TCResult {
     public String getValue() {
         if (value == null) {
             String lineSeparator = System.lineSeparator();
-            StringBuilder builder = new StringBuilder();
+            @Inv("= builder (+ c52 c53 c54 c55)") StringBuilder builder = new StringBuilder();
             for (Component c : results) {
-                builder.append(c.key).append(": ").append(c.val).append(lineSeparator);
+                c52: builder.append(c.key);
+                c53: builder.append(": ");
+                c54: builder.append(c.val);
+                c55: builder.append(lineSeparator);
             }
             value = builder.toString();
         }

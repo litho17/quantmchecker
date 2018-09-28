@@ -2,6 +2,7 @@ package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
 
@@ -23,11 +24,31 @@ public class WordFrequencyProcessor extends Processor {
         // count frequency of each word in input
         String input = readInput(inps);
         String words[] = tokenize(input);
+
         // count the word frequencies
-        List<WordCount> wordFreqs = countWords(words);
+        @Inv("= (- wordFreqs i) (- c65 c68)") List<WordCount> wordFreqs = new ArrayList<WordCount>();
+        @Inv("= (- freqsCounter i) (- c64 c68)") HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
+        int i = 0;
+        for (; i < words.length; ) {
+            //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
+            String w = words[i];
+            // increment current count for w
+            WordCount count = null;
+            if (freqsCounter.containsKey(w)) {
+                count = freqsCounter.get(w);
+            } else {
+                count = new WordCount(w, 0);
+                c64: freqsCounter.put(w, count);
+                c65: wordFreqs.add(count);
+            }
+            count.increment();
+            c68: i = i + 1;
+        }
+
+
         // sort results by most frequent
         Sorter<WordCount> sorter = new Sorter<WordCount>(new DefaultComparator<WordCount>());
-        List<WordCount> sortedWCs = sorter.sort(wordFreqs);
+        @InvUnk("Unknown API") List<WordCount> sortedWCs = sorter.sort(wordFreqs);
         @Inv("= (- result.results it) (- c35 c34)") TCResult result = new TCResult("Word frequencies");
         Iterator<WordCount> it = sortedWCs.iterator();
         while (it.hasNext()) {
@@ -40,33 +61,6 @@ public class WordFrequencyProcessor extends Processor {
 
     public String getName() {
         return NAME;
-    }
-
-    /**
-     * @param words
-     * @return List containing number of appearances of each word (words are
-     * lower-cased for counting purposes).
-     */
-    private List<WordCount> countWords(String[] words) {
-        List<WordCount> freqs = new ArrayList<WordCount>();
-        HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
-        int i = 0;
-        for (; i < words.length; ) {
-            //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
-            String w = words[i];
-            // increment current count for w
-            WordCount count = null;
-            if (freqsCounter.containsKey(w)) {
-                count = freqsCounter.get(w);
-            } else {
-                count = new WordCount(w, 0);
-                freqsCounter.put(w, count);
-                freqs.add(count);
-            }
-            count.increment();
-            i = i + 1;
-        }
-        return freqs;
     }
 
     /**
@@ -89,12 +83,12 @@ public class WordFrequencyProcessor extends Processor {
     private String readInput(InputStream inps) throws IOException {
         // read to string
         BufferedReader br = new BufferedReader(new InputStreamReader(inps));
-        StringBuilder sb = new StringBuilder();
+        @Inv("= (- sb br) (- c97 c95 c98)") StringBuilder sb = new StringBuilder();
         String read;
-        read = br.readLine();
+        c95: read = br.readLine();
         while (read != null) {
-            sb.append(read);
-            read = br.readLine();
+            c97: sb.append(read);
+            c98: read = br.readLine();
         }
         return sb.toString();
     }

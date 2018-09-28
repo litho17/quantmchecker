@@ -2,8 +2,7 @@ package textcrunchr_1.com.cyberpointllc.stac.template;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import plv.colorado.edu.quantmchecker.qual.Inc;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -49,24 +48,6 @@ public class TemplateEngine {
     }
 
     /**
-     * finds the start and end location of each tag
-     *
-     * @return A list of Pairs, where a Pair is the start and end location of a
-     * tag
-     */
-    public List<Pair<Integer, Integer>> findTags() {
-        Matcher matcher = pattern.matcher(text);
-        List<Pair<Integer, Integer>> tagsList = new ArrayList();
-        boolean find;
-        find = matcher.find();
-        while (find) {
-            tagsList.add(Pair.of(matcher.start(), matcher.end()));
-            find = matcher.find();
-        }
-        return tagsList;
-    }
-
-    /**
      * Creates a new String where the tags in text have been replaced with the
      * values specified in the dictionary
      *
@@ -75,7 +56,7 @@ public class TemplateEngine {
      * replaced with the keys' corresponding values
      */
     public String replaceTags(Map<String, String> dictionary) {
-        StringBuilder sb = new StringBuilder();
+        @InvUnk("Update not expressible with method summary") StringBuilder sb = new StringBuilder();
         replaceTagsBuilder(dictionary, sb);
         return sb.toString();
     }
@@ -93,7 +74,15 @@ public class TemplateEngine {
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
         int endTagLength = StringEscapeUtils.unescapeJava(endTag).length();
-        List<Pair<Integer, Integer>> tagsList = findTags();
+        @Input("(and (<= matcher text) (<= text 100))") int j;
+        Matcher matcher = pattern.matcher(text);
+        @Inv("= (- tagsList matcher) (- c64 c62 c65)") List<Pair<Integer, Integer>> tagsList = new ArrayList();
+        boolean find;
+        c62: find = matcher.find();
+        while (find) {
+            c64: tagsList.add(Pair.of(matcher.start(), matcher.end()));
+            c65: find = matcher.find();
+        }
         for (int i = 0; i < tagsList.size(); ) {
             int startTagLocation = tagsList.get(i).getLeft();
             int endTagLocation = tagsList.get(i).getRight();
@@ -121,13 +110,14 @@ public class TemplateEngine {
      * @param separator  the separator to put after each item
      * @return a string representing all of the templated items
      */
-    public String replaceTags(List<? extends Templated> templateds, String separator) {
-        StringBuilder sb = new StringBuilder();
+    public String replaceTags(@Input("(and (<= it templateds) (<= templateds 100))") List<? extends Templated> templateds, String separator) {
+        @Inv("= (- sb it) (- c130 c128)") StringBuilder sb = new StringBuilder();
         Iterator<? extends Templated> it = templateds.iterator();
         while (it.hasNext()) {
-            Templated templated = it.next();
+            Templated templated;
+            c128: templated = it.next();
             replaceTagsBuilder(templated.getTemplateMap(), sb);
-            sb.append(separator);
+            c130: sb.append(separator);
         }
         return sb.toString();
     }
