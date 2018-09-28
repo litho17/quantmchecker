@@ -165,16 +165,19 @@ object SmtUtils {
 
   def mkAdd(list: String*): String = {
     if (list.isEmpty) "0"
+    else if (list.size == 1) list.head
     else list.foldLeft("(+")((acc, a) => acc + " " + addParen(a)) + ")"
   }
 
   def mkSub(list: String*): String = {
     if (list.isEmpty) "0"
+    else if (list.size == 1) list.head
     else list.foldLeft("(-")((acc, a) => acc + " " + addParen(a)) + ")"
   }
 
   def mkAnd(list: String*): String = {
     if (list.isEmpty) TRUE
+    else if (list.size == 1) list.head
     else list.foldLeft("(and")((acc, a) => acc + " " + addParen(a)) + ")"
   }
 

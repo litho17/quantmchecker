@@ -66,9 +66,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         val sizes: Set[String] = localTypCxt.foldLeft(new HashSet[String]) {
           case (acc, (v, t)) =>
             val cls = trees.getTree(t.getTypElement(types))
-            val res = Utils.getReachableSize(cls, elements, types, trees, v)
-            // Utils.logging(v + "\n" + res.toString() + "\n")
-            acc ++ res
+            if (TypesUtils.isPrimitive(t.getTypMirror)) acc + "4"
+            else { // Class type
+              if (Utils.isCollectionTyp(t.getTypElement(types))) acc + v
+              else {
+                val res = Utils.getReachableSize(cls, elements, types, trees, v)
+                // Utils.logging(v + "\n" + res.toString() + "\n")
+                acc ++ res
+              }
+            }
         }
         val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
         val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
