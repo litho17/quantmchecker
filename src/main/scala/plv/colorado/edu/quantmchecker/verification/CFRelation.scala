@@ -13,7 +13,12 @@ import scala.collection.immutable.HashSet
 class CFRelation(tree: StatementTree, solver: Z3Solver) {
   val DEFAULT_LOOP_BOUND = 1000
 
-  val constraints: Set[AST] = treeToCons(tree)
+  val constraints: Set[AST] = {
+    val set = treeToCons(tree)
+    solver.names.values.foldLeft(set) {
+      (acc, ast) => acc + solver.mkGe(ast, solver.mkIntVal(0))
+    }
+  }
 
   private def genEqCons(stmts: List[_ <: Tree]): Set[AST] = {
     if (stmts.nonEmpty) {

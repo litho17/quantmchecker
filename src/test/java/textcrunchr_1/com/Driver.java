@@ -4,10 +4,8 @@ import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.*;
 import java.io.FileInputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+
 import plv.colorado.edu.quantmchecker.qual.Input;
 
 /**
