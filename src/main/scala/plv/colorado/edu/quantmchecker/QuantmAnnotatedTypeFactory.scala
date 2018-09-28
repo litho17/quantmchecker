@@ -11,10 +11,10 @@ import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQ
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.quantmchecker.qual._
 import plv.colorado.edu.quantmchecker.verification.SmtUtils
-import plv.colorado.edu.{Utils, VarTyp}
+import plv.colorado.edu.{TypCxt, Utils, VarTyp}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.{HashMap, HashSet}
+import scala.collection.immutable.HashSet
 
 /**
   * @author Tianhan Lu
@@ -123,25 +123,24 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     }
   }
 
-  def getFieldTypCxt(classTree: ClassTree): Map[String, VarTyp] = {
-    val empRet = new HashMap[String, VarTyp]
-    if (classTree == null) return empRet
-    classTree.getMembers.asScala.foldLeft(empRet) {
+  def getFieldTypCxt(classTree: ClassTree): TypCxt = {
+    if (classTree == null) return TypCxt(new HashSet[VarTyp])
+    val typs = classTree.getMembers.asScala.foldLeft(new HashSet[VarTyp]) {
       (acc, member) =>
         member match {
           case member: VariableTree =>
             // Get annotations on class fields
             // We consider class fields as inputs (e.g. this.f is an input variable to a member method)
             val varTyp = this.getVarAnnoMap(member)
-            acc + (member.getName.toString -> VarTyp(varTyp.varElement, varTyp.anno, true))
+            acc + VarTyp(varTyp.varElement, varTyp.anno, true)
           case _ => acc
         }
     }
+    TypCxt(typs)
   }
 
-  def getLocalTypCxt(methodTree: MethodTree, includeParameters: Boolean): Map[String, VarTyp] = {
-    val empRet = new HashMap[String, VarTyp]
-    if (methodTree == null || methodTree.getBody == null) return empRet
+  def getLocalTypCxt(methodTree: MethodTree, includeParameters: Boolean): TypCxt = {
+    if (methodTree == null || methodTree.getBody == null) return TypCxt(new HashSet[VarTyp])
     val stmts = {
       val ret = methodTree.getBody.getStatements.asScala.foldLeft(new HashSet[StatementTree]) {
         (acc, stmt) => acc ++ Utils.flattenStmt(stmt)
@@ -150,16 +149,16 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       else ret
     }
 
-    stmts.foldLeft(empRet) {
+    val typs = stmts.foldLeft(new HashSet[VarTyp]) {
       (acc, stmt) =>
         stmt match {
-          case stmt: VariableTree =>
-            acc + (stmt.getName.toString -> this.getVarAnnoMap(stmt))
+          case stmt: VariableTree => acc + this.getVarAnnoMap(stmt)
           case x@_ =>
             if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
             acc
         }
     }
+    TypCxt(typs)
   }
 
   final private class QuantmQualifierHierarchy(val factory: MultiGraphQualifierHierarchy.MultiGraphFactory) extends GraphQualifierHierarchy(factory, INVBOT) {

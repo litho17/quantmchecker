@@ -14,7 +14,7 @@ import plv.colorado.edu.quantmchecker.utils.PrintStuff
 import plv.colorado.edu.quantmchecker.verification.{CFRelation, SmtUtils, Z3Solver}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.{HashMap, HashSet}
+import scala.collection.immutable.HashSet
 
 /**
   * @author Tianhan Lu
@@ -44,41 +44,37 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val localTypCxtWithParameters = atypeFactory.getLocalTypCxt(node, true)
     val fldTypCxt = atypeFactory.getFieldTypCxt(TreeUtils.enclosingClass(atypeFactory.getPath(node)))
     val typCxt = localTypCxtWithParameters ++ fldTypCxt
-    typCxt.foreach { // Check if each invariant is a valid SMTLIB2 string
-      case (v, t) =>
-        try {
-          SmtUtils.parseSmtlibToToken(t.anno)
-        }
-        catch {
-          case e: Exception => assert(false)
-        }
+    typCxt.cxt.foreach { // Check if each invariant is a valid SMTLIB2 string
+      t => SmtUtils.parseSmtlibToToken(t.anno)
     }
-    (localTypCxt ++ fldTypCxt).foreach { // T-Decl
-      case (v, t) =>
+    localTypCxt.cxt.foreach { // T-Decl
+      t =>
         if (!t.isInput) {
-          val init = initInv(t.anno, typCxt)
+          val init = initInv(t.anno, typCxt, node)
           typecheck(SmtUtils.mkAssertionForall(init), node, "T-Decl: " + t.anno)
         }
-      case _ => true
     }
     val isBounded = {
       if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
-        val sizes: Set[String] = localTypCxt.foldLeft(new HashSet[String]) {
-          case (acc, (v, t)) =>
-            val cls = trees.getTree(t.getTypElement(types))
-            if (TypesUtils.isPrimitive(t.getTypMirror)) acc + "4"
-            else { // Class type
-              if (Utils.isCollectionTyp(t.getTypElement(types))) acc + v
-              else {
-                val res = Utils.getReachableSize(cls, elements, types, trees, v)
-                // Utils.logging(v + "\n" + res.toString() + "\n")
-                acc ++ res
+        val sizes: Set[String] = localTypCxt.cxt.foldLeft(new HashSet[String]) {
+          case (acc, t) =>
+            if (!t.isInput) {
+              val cls = trees.getTree(t.getTypElement(types))
+              if (TypesUtils.isPrimitive(t.getTypMirror)) acc + "4"
+              else { // Class type
+                val varName = t.varElement.getSimpleName.toString
+                if (Utils.isCollectionTyp(t.getTypElement(types))) acc + varName
+                else {
+                  val res = Utils.getReachableSize(cls, elements, types, trees, varName)
+                  // Utils.logging(v + "\n" + res.toString() + "\n")
+                  acc ++ res
+                }
               }
-            }
+            } else acc
         }
         val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
         val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
-        val typRefinements = typCxt.values.map(t => t.anno).toArray
+        val typRefinements = typCxt.cxt.map(t => t.anno).toArray
         val totalSize = SmtUtils.mkAdd(sizes.toList: _*)
         val isBounded = SmtUtils.mkLe(totalSize, SIZE_BOUND.toString)
         val constraints = {
@@ -97,8 +93,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             Utils.logging(methodStr + "\n" + sizesStr + "\n" + typCxtStr + "\n" + queryStr)
           }
           // Utils.logging(SmtUtils.mkQueries(List("Assertions:\n", solver.getAssertions, SmtUtils.CHECK_SAT, SmtUtils.GET_OBJECTIVES, SmtUtils.GET_MODEL)))
-        } else {
-          verifiedMethods += node
         }
         check
       } else true
@@ -107,10 +101,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     if (!isBounded) {
       val failCausesStr = {
         val currentCauses = failCauses.filter(f => f.enclosingMethod == node)
-        if (currentCauses.nonEmpty) currentCauses.foldLeft("Fail causes:\n"){(acc, c) => acc + c + "\n"}
+        if (currentCauses.nonEmpty) currentCauses.foldLeft("Fail causes:\n") { (acc, c) => acc + c + "\n" }
         else ""
       }
       Utils.logging(failCausesStr + "\n")
+    } else {
+      verifiedMethods += node
     }
     // localCollections ++= localTypCxt.filter { case (name, typ) => Utils.isCollectionTyp(typ.getTypElement(types)) }.values
     null
@@ -144,130 +140,132 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val rhs = node.getExpression
     // val lhsTyp = atypeFactory.getAnnotatedType(node.getVariable)
     // val lhsAnno = lhsTyp.getAnnotations
-    typCxt.get(lhs.toString) match {
-      case Some(lhsTyp) =>
-        if (avoidAssignSubtyCheck(lhsTyp.isInput, node.getExpression)) return null
-        val lhsTypMirror = lhsTyp.getErasedTypMirror(types)
-        val lhsTypElement = lhsTyp.getTypElement(types)
-        rhs match {
-          case rhs: MethodInvocationTree =>
-            val callSite = CallSite(rhs)
-            val (method, _, receiverName, methodType) =
-              (callSite.method, callSite.receiver, callSite.receiverName, callSite.methodType)
-            if (methodType != null) {
-              val isNext = Utils.isColWhat("next", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
-              val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
-              typCxt.foreach {
-                case (v, t) =>
-                  if (!t.isInput) {
-                    if (isNext) { // x = z.next
-                      val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
-                        List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
-                      val implication = SmtUtils.mkForallImply(t.anno, newAnno)
-                      typecheck(implication, node, "x = z.next")
-                    } else if (isIter) { // z = x.iter
-                      val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
-                        List(SmtUtils.mkAdd(label, "1"), "0"))
-                      val implication = SmtUtils.mkForallImply(t.anno, newAnno)
-                      typecheck(implication, node, "z = x.iter")
-                    } else { // May be arbitrary update
-                      val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
-                      if (reachableListFlds.nonEmpty) {
-                        failCauses = failCauses + FailCause(node, "x = m(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
-                      }
-                    }
-                  }
-              }
-            }
-          case rhs@(_: MemberSelectTree | _: IdentifierTree) =>
-            if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
-              typCxt.foreach { // Must not create alias
-                case (v, t) =>
-                  if (!t.isInput) {
-                    val q = SmtUtils.substitute(t.anno,
-                      List(label, lhs.toString),
-                      List(SmtUtils.mkAdd(label, "1"), rhs.toString)
-                    )
-                    val implication = SmtUtils.mkForallImply(t.anno, q)
-                    typecheck(implication, node, "x = y, x = y.f")
-                  }
-              }
-            } else { // Class types
-              // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
-              val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
-              if (reachableListFlds.nonEmpty) {
-                failCauses = failCauses + FailCause(node, "x = y, x = y.f: May create alias!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
-              }
-            }
-          case rhs: BinaryTree => // Must not create alias
-            typCxt.foreach {
-              case (v, t) =>
+    val sameNameVars = typCxt.getVar(lhs.toString)
+    if (sameNameVars.size == 1) {
+      val lhsTyp = sameNameVars.head
+      if (avoidAssignSubtyCheck(lhsTyp.isInput, node.getExpression)) return null
+      val lhsTypMirror = lhsTyp.getErasedTypMirror(types)
+      val lhsTypElement = lhsTyp.getTypElement(types)
+      rhs match {
+        case rhs: MethodInvocationTree =>
+          val callSite = CallSite(rhs)
+          val (method, _, receiverName, methodType) =
+            (callSite.method, callSite.receiver, callSite.receiverName, callSite.methodType)
+          if (methodType != null) {
+            val isNext = Utils.isColWhat("next", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
+            val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
+            typCxt.cxt.foreach {
+              t =>
                 if (!t.isInput) {
-                  val left = rhs.getLeftOperand.toString
-                  val right = rhs.getRightOperand.toString
-                  val prefix = {
-                    rhs.getKind match {
-                      case Tree.Kind.PLUS => SmtUtils.mkAdd(left, right)
-                      case Tree.Kind.MINUS => SmtUtils.mkSub(left, right)
-                      case _ => rhs.toString // Let it fail
+                  if (isNext) { // x = z.next
+                    val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
+                      List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
+                    val implication = SmtUtils.mkForallImply(t.anno, newAnno)
+                    typecheck(implication, node, "x = z.next")
+                  } else if (isIter) { // z = x.iter
+                    val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
+                      List(SmtUtils.mkAdd(label, "1"), "0"))
+                    val implication = SmtUtils.mkForallImply(t.anno, newAnno)
+                    typecheck(implication, node, "z = x.iter")
+                  } else { // May be arbitrary update
+                    val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
+                    if (reachableListFlds.nonEmpty) {
+                      failCauses = failCauses + FailCause(node, "x = m(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
                     }
                   }
-                  val q = SmtUtils.substitute(t.anno,
-                    List(label, lhs.toString),
-                    List(SmtUtils.mkAdd(label, "1"), prefix)
-                  )
-                  val implication = SmtUtils.mkForallImply(t.anno, q)
-                  typecheck(implication, node, "x = e_1 + e_2")
                 }
             }
-          case rhs: LiteralTree => // Must not create alias
-            typCxt.foreach {
-              case (v, t) =>
+          }
+        case rhs@(_: MemberSelectTree | _: IdentifierTree) =>
+          if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
+            typCxt.cxt.foreach { // Must not create alias
+              t =>
                 if (!t.isInput) {
                   val q = SmtUtils.substitute(t.anno,
                     List(label, lhs.toString),
                     List(SmtUtils.mkAdd(label, "1"), rhs.toString)
                   )
                   val implication = SmtUtils.mkForallImply(t.anno, q)
-                  typecheck(implication, node, "x = n")
+                  typecheck(implication, node, "x = y, x = y.f")
                 }
             }
-          case rhs: NewClassTree =>
-            if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
-              typCxt.foreach { // Must not create alias
-                case (v, t) =>
+          } else { // Class types
+            // May create alias for variables (1) whose types are application class (2) who have at least one access path to a list field
+            val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
+            if (reachableListFlds.nonEmpty) {
+              failCauses = failCauses + FailCause(node, "x = y, x = y.f: May create alias!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
+            }
+          }
+        case rhs: BinaryTree => // Must not create alias
+          typCxt.cxt.foreach {
+            t =>
+              if (!t.isInput) {
+                val left = rhs.getLeftOperand.toString
+                val right = rhs.getRightOperand.toString
+                val prefix = {
+                  rhs.getKind match {
+                    case Tree.Kind.PLUS => SmtUtils.mkAdd(left, right)
+                    case Tree.Kind.MINUS => SmtUtils.mkSub(left, right)
+                    case _ => rhs.toString // Let it fail
+                  }
+                }
+                val q = SmtUtils.substitute(t.anno,
+                  List(label, lhs.toString),
+                  List(SmtUtils.mkAdd(label, "1"), prefix)
+                )
+                val implication = SmtUtils.mkForallImply(t.anno, q)
+                typecheck(implication, node, "x = e_1 + e_2")
+              }
+          }
+        case rhs: LiteralTree => // Must not create alias
+          typCxt.cxt.foreach {
+            t =>
+              if (!t.isInput) {
+                val q = SmtUtils.substitute(t.anno,
+                  List(label, lhs.toString),
+                  List(SmtUtils.mkAdd(label, "1"), rhs.toString)
+                )
+                val implication = SmtUtils.mkForallImply(t.anno, q)
+                typecheck(implication, node, "x = n")
+              }
+          }
+        case rhs: NewClassTree =>
+          if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
+            typCxt.cxt.foreach { // Must not create alias
+              t =>
+                if (!t.isInput) {
+                  val q = SmtUtils.substitute(t.anno,
+                    List(label),
+                    List(SmtUtils.mkAdd(label, "1"))
+                  )
+                  val implication = SmtUtils.mkForallImply(t.anno, q)
+                  typecheck(implication, node, "x = new Integer(?)")
+                }
+            }
+          } else { // Class types
+            if (Utils.isCollectionTyp(lhsTypElement)) { // Must not create alias
+              typCxt.cxt.foreach {
+                t =>
                   if (!t.isInput) {
                     val q = SmtUtils.substitute(t.anno,
-                      List(label),
-                      List(SmtUtils.mkAdd(label, "1"))
+                      List(label, lhs.toString),
+                      List(SmtUtils.mkAdd(label, "1"), "0")
                     )
                     val implication = SmtUtils.mkForallImply(t.anno, q)
-                    typecheck(implication, node, "x = new Integer(?)")
+                    typecheck(implication, node, "x = new List")
                   }
               }
-            } else { // Class types
-              if (Utils.isCollectionTyp(lhsTypElement)) { // Must not create alias
-                typCxt.foreach {
-                  case (v, t) =>
-                    if (!t.isInput) {
-                      val q = SmtUtils.substitute(t.anno,
-                        List(label, lhs.toString),
-                        List(SmtUtils.mkAdd(label, "1"), "0")
-                      )
-                      val implication = SmtUtils.mkForallImply(t.anno, q)
-                      typecheck(implication, node, "x = new List")
-                    }
-                }
-              } else {
-                val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
-                if (reachableListFlds.nonEmpty) {
-                  failCauses = failCauses + FailCause(node, "x = new Class(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
-                }
+            } else {
+              val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
+              if (reachableListFlds.nonEmpty) {
+                failCauses = failCauses + FailCause(node, "x = new Class(): May be arbitrary update!", TreeUtils.enclosingMethod(atypeFactory.getPath(node)))
               }
             }
-          case _ => // Do nothing
-        }
-      case None => // Do nothing
+          }
+        case _ => // Do nothing
+      }
+    } else if (sameNameVars.size > 1) {
+      issueWarning(node, Utils.nameCollisionMsg(lhs.toString))
     }
     super.visitAssignment(node, p)
   }
@@ -292,8 +290,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val isAdd = Utils.isColWhat("add", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
       val isRmv = Utils.isColWhat("remove", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
       if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
-      typCxt.foreach { // Do not check iterator's and self's type annotation
-        case (v, t) =>
+      typCxt.cxt.foreach { // Do not check iterator's and self's type annotation
+        t =>
           if (!t.isInput) {
             val (_old: List[String], _new: List[String]) = {
               if (isAdd) { // y.add(x)
@@ -406,12 +404,15 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     false
   }
 
-  private def initInv(inv: String, typCxt: Map[String, VarTyp]): String = {
+  private def initInv(inv: String, typCxt: TypCxt, node: Tree): String = {
     val vars = SmtUtils.extractSyms(inv).filter {
       v =>
-        typCxt.get(v) match {
-          case Some(varTyp) => !varTyp.isInput
-          case None => true
+        val sameNameVars = typCxt.getVar(v)
+        if (sameNameVars.isEmpty) true
+        else if (sameNameVars.size == 1) !sameNameVars.head.isInput
+        else {
+          issueWarning(node, Utils.nameCollisionMsg(v))
+          sameNameVars.forall(t => !t.isInput)
         }
     }.toList
     val _old = vars
@@ -437,18 +438,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     *         local invariants in the enclosing method
     *         label of the enclosing statement
     */
-  private def prepare(node: Tree): (Map[String, VarTyp], Map[String, VarTyp], String) = {
+  private def prepare(node: Tree): (TypCxt, TypCxt, String) = {
     val enclosingClass = TreeUtils.enclosingClass(atypeFactory.getPath(node))
     val enclosingMethod = TreeUtils.enclosingMethod(atypeFactory.getPath(node))
     val updatedLabel = getLabel(node)
     // if (enclosingClass == null || enclosingMethod == null)
     // Utils.logging("Empty enclosing class or method:\n" + node.toString)
     val fldInv = {
-      if (enclosingClass == null) new HashMap[String, VarTyp]
+      if (enclosingClass == null) TypCxt(new HashSet[VarTyp])
       else atypeFactory.getFieldTypCxt(enclosingClass)
     }
     val localInv = {
-      if (enclosingMethod == null) new HashMap[String, VarTyp]
+      if (enclosingMethod == null) TypCxt(new HashSet[VarTyp])
       else atypeFactory.getLocalTypCxt(enclosingMethod, true)
     }
     (fldInv, localInv, updatedLabel)

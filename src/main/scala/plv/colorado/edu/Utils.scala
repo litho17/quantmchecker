@@ -392,6 +392,8 @@ object Utils {
     if (classTree == null) false
     else classTree.getKind == Tree.Kind.ENUM
   }
+
+  def nameCollisionMsg(varName: String): String = "Variable " + varName + "'s name collides with other variables: Verification results may be incorrect"
 }
 
 case class AccessPathHead(name: String, typeElement: TypeElement)
@@ -424,6 +426,11 @@ case class VarTyp(varElement: VariableElement, anno: String, isInput: Boolean) {
   def getTypElement(types: Types): TypeElement = TypesUtils.getTypeElement(getErasedTypMirror(types))
 
   //elements.getTypeElement(getTypMirror(types).toString)
+}
+
+case class TypCxt(cxt: Set[VarTyp]) {
+  def getVar(name: String): Set[VarTyp] = cxt.filter(t => t.varElement.getSimpleName.toString == name)
+  def ++(other: TypCxt): TypCxt = TypCxt(cxt ++ other.cxt)
 }
 
 case class FailCause(node: Tree, errorMsg: String, enclosingMethod: MethodTree) {
