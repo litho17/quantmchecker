@@ -520,10 +520,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           (acc, summary: List[String]) =>
             assert(summary.size == 2)
             // val variableName = summary.head
-            if (summary(1).forall(c => c.isDigit)) {
-              acc + MSumI(summary.head, Integer.parseInt(summary(1)))
-            } else {
-              acc + MSumV(summary.head, summary(1))
+            try {
+              val res = Integer.parseInt(summary(1))
+              acc + MSumI(summary.head, res)
+            } catch {
+              case e: Throwable => acc + MSumV(summary.head, summary(1))
             }
         }
       }

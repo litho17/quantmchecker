@@ -59,6 +59,11 @@ public class TCResult {
         return value;
     }
 
+    @Summary({"this.results", "-1"})
+    public void removeResult() {
+        results.remove(results.size() - 1);
+    }
+
     @Summary({"this.results", "1"})
     public void addResult(String key, int val) {
         addResultHelper(val, key);
