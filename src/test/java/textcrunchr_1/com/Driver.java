@@ -21,6 +21,7 @@ public class Driver {
             String filename = "";
             FileInputStream fis = new FileInputStream(filename);
             @InvUnk("Method return list") TCResult tcr;
+            @Input("ufasdkfksfd") String[] s2;
             if (Math.random() > 0.8) {
                 tcr = new CharacterCountProcessor().process(fis);
                 c23: results.add(tcr);

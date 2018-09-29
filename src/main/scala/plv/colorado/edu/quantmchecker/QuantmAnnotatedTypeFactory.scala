@@ -116,7 +116,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, targetAnnot))
     val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     */
-    val res = getVarAnnoMap(getTypeAnnotation(node))
+    val annotations = getTypeAnnotation(node) // TODO: Null if variable is array type
+    val res = getVarAnnoMap(annotations)
     node match {
       case v: VariableTree => VarTyp(TreeUtils.elementFromDeclaration(v), res._1, res._2)
       case _ => ???
