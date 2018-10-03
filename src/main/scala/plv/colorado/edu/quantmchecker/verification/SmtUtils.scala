@@ -73,17 +73,11 @@ object SmtUtils {
     val __new = filter.map { case (o, n) => n }
     val tokens = parseSmtlibToToken(str)
 
-    def _substitute(tokenIdx: Int, oldToken: Token, newToken: Token): Token = {
-      if (tokenIdx >= 1) { // TODO: Don't replace any arg of init (hard coded)
-        if (tokens(tokenIdx - 1).toString() == INIT) oldToken else newToken
-      } else newToken
-    }
-
-    val newTokens = tokens.zipWithIndex.map {
+    val newTokens: List[Token] = tokens.zipWithIndex.map {
       case (t: SymbolLit, tokenIdx) =>
         val oldTokenIdx = __old.indexOf(t.content)
-        if (oldTokenIdx != -1) _substitute(tokenIdx, t, SymbolLit(__new(oldTokenIdx)))
-        else if (prefix) {
+        if (oldTokenIdx != -1) SymbolLit(__new(oldTokenIdx)) // Exact match
+        else if (prefix) { // If prefix match
           val oldTokenIdx = {
             val idxSet = _old.zipWithIndex.filter {
               case (oldToken, _) => t.content.startsWith(oldToken)
@@ -93,22 +87,25 @@ object SmtUtils {
           if (oldTokenIdx != -1) {
             assert(oldTokenIdx >= 0)
             val newToken = __new(oldTokenIdx) + t.content.substring(__old(oldTokenIdx).length)
-            _substitute(tokenIdx, t, SymbolLit(newToken))
+            SymbolLit(newToken)
           } else t
         } else t
       case x@_ => x._1
     }
     // tokens.foreach(t => println(t, t.getClass))
     // newTokens.foreach(t => println(t, t.getClass))
-    val ret = newTokens.foldLeft("") {
-      (acc, t) =>
-        if (t.kind == OParen)
-          acc + "( "
-        else if (t.kind == CParen)
-          acc + ") "
-        else
-          acc + t.toString() + " "
-    }.trim
+    val ret =
+    {
+      newTokens.foldLeft("") {
+        (acc, t) =>
+          if (t.kind == OParen)
+            acc + "("
+          else if (t.kind == CParen)
+            acc + ") "
+          else
+            acc + t.toString() + " "
+      }.trim
+    }
     rmParen(ret)
   }
 
@@ -189,6 +186,8 @@ object SmtUtils {
 
   def mkMaximize(p: String): String = "(" + MAXIMIZE + " " + p + ")"
 
+  def mkImply(p: String, q: String): String = "(implies " + p + " " + q + ")"
+
   /**
     *
     * @param str an SMTLIB2 string
@@ -252,12 +251,24 @@ object SmtUtils {
     }
   }
 
+  private def properlyChain(elements: Iterable[String]): String = {
+    if (elements.isEmpty) ""
+    else {
+      val head = elements.head
+      if (elements.size == 1) elements.head
+      else elements.foldLeft(head) {
+        (acc, element) => acc + " " + element
+      }
+    }
+  }
+
   /**
     *
     * @param p an SMTLIB2 string
-    * @return assert that for all free variables in the query, the query holds
+    * @return assert that for all free variables in the query,
+    *         if they are all non-negative, then the query holds
     */
-  def mkAssertionForall(p: String): String = {
+  def mkForall(p: String): String = {
     val prefix = "(assert\n\t(forall\n"
     val suffix = "\n\t)\n)"
 
@@ -265,19 +276,19 @@ object SmtUtils {
       val syms = extractSyms(p)
       if (syms.isEmpty) syms + "DUMMY" else syms
     }
-    val intTypSyms = syms.foldLeft("") {
-      (acc, sym) => acc + " (" + sym + " Int)"
-    }
+    val intTypSyms = properlyChain(syms.map(sym => "(" + sym + " Int)"))
     val defSyms = "\t\t(" + intTypSyms + ")\n"
+    val nonNegative = mkAnd(syms.map(sym => mkGe(sym, Utils.ZERO_STR)).toArray: _*)
 
-    prefix + defSyms + "\t\t" + addParen(p) + suffix
+    prefix + defSyms + "\t\t" + addParen(mkImply(nonNegative, addParen(p))) + suffix
   }
 
   /**
     *
     * @param p
     * @param q
-    * @return an SMTLIB2 string: for all free variables in p and q, p => q
+    * @return an SMTLIB2 string: for all free variables in p and q,
+    *         if they are all non-negative, then p => q
     */
   def mkForallImply(p: String, q: String): String = {
     if (p == q) return TRUE
@@ -289,12 +300,11 @@ object SmtUtils {
       val syms = extractSyms(p) ++ extractSyms(q)
       if (syms.isEmpty) syms + "DUMMY" else syms
     }
-    val intTypSyms = syms.foldLeft("") {
-      (acc, sym) => acc + " (" + sym + " Int)"
-    }
+    val intTypSyms = properlyChain(syms.map(sym => "(" + sym + " Int)"))
     val defSyms = "\t\t(" + intTypSyms + ")\n"
+    val nonNegative = mkAnd(syms.map(sym => mkGe(sym, Utils.ZERO_STR)).toArray: _*)
 
-    prefix + defSyms + implies + "\t\t\t" + addParen(p) + "\n" + "\t\t\t" + addParen(q) + suffix
+    prefix + defSyms + implies + "\t\t\t" + addParen(mkAnd(p, nonNegative)) + "\n" + "\t\t\t" + addParen(q) + suffix
   }
 
   /**

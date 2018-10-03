@@ -27,9 +27,9 @@ public class TextScore {
 
     @Override
     public String toString() {
-        @Input("(and (<= it ngramScores) (<= ngramScores 100))") int i;
+        @Input("") EnumMap<NgramType, Ngram.ScoreStats> ngramScores_ = this.ngramScores;
         @Inv("= (- sb it) (- c35 c33)") StringBuilder sb = new StringBuilder();
-        Iterator<Map.Entry<NgramType, Ngram.ScoreStats>> it = ngramScores.entrySet().iterator();
+        @Inv("<= it ngramScores_") Iterator<Map.Entry<NgramType, Ngram.ScoreStats>> it = ngramScores_.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<NgramType, Ngram.ScoreStats> entry;
             c33: entry = it.next();

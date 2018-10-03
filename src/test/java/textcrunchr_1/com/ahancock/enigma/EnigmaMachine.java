@@ -38,13 +38,13 @@ public class EnigmaMachine {
     }
 
     // Encode the input string and return the result
-    public String encodeLine(@Input("(and (<= i s) (<= s 100))") String s) {
+    public String encodeLine(@Input("") String s) {
         // StringBuilder is used to build the result
         @Inv("= (- sb i) (- c54 c55)") StringBuilder sb = new StringBuilder();
         // Reuse the same StringBuilder.
         sb.setLength(0);
         // int i;
-        int i = 0;
+        @Inv("<= i s") int i = 0;
         for (; i < s.length(); ) {
             char currentChar = s.charAt(i);
             // Only encode symbols which are not ignored

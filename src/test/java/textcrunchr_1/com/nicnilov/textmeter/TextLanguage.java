@@ -45,10 +45,10 @@ public class TextLanguage {
         return ngram;
     }
 
-    public TextScore score(@Input("(and (<= it text) (<= text 100))") final String text) {
+    public TextScore score(@Input("") final String text) {
         @Inv("= (- textScore.ngramScores it) (- c54 c52)") TextScore textScore = new TextScore();
         @InvUnk("Read from nested lists") Ngram ngram;
-        Iterator<Map.Entry<NgramType, Ngram>> it = ngrams.entrySet().iterator();
+        @Inv("<= it text") Iterator<Map.Entry<NgramType, Ngram>> it = ngrams.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<NgramType, Ngram> entry;
             c52: entry = it.next();

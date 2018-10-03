@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 
@@ -14,7 +15,7 @@ public class WordStatsProcessor extends Processor {
 
     private final String MODEL = "en-sent.bin";
 
-    public TCResult process(InputStream inps) throws IOException {
+    public TCResult process(@Bound("4") InputStream inps) throws IOException {
         InputStreamReader isr = new InputStreamReader(inps);
         // count number of sentences
         String input = readInput(inps);
@@ -87,9 +88,9 @@ public class WordStatsProcessor extends Processor {
         return sumSq / len - sum * sum / (len * len);
     }
 
-    private String readInput(@Input("(and (<= br inps) (<= inps 100))") InputStream inps) throws IOException {
+    private String readInput(@Input("") InputStream inps) throws IOException {
         // read to string
-        BufferedReader br = new BufferedReader(new InputStreamReader(inps));
+        @Inv("<= br inps") BufferedReader br = new BufferedReader(new InputStreamReader(inps));
         @Inv("= (- sb br) (- c97 c95 c98)") StringBuilder sb = new StringBuilder();
         String read;
         c95: read = br.readLine();

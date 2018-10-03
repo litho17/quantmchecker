@@ -25,6 +25,7 @@ object Utils {
   val LOG_FILE: String = "log.txt"
   new FileOutputStream(new File(Paths.get(DESKTOP_PATH, LOG_FILE).toAbsolutePath.toString)) // Clean up
   val INIT_SUFFIX: String = "_" + SmtUtils.INIT
+  val ZERO_STR = "0"
 
   val COLLECTION_ADD: HashSet[(String, String)] = HashSet(
     ("java.lang.StringBuilder", "append"),
@@ -352,11 +353,11 @@ object Utils {
 
   def getReachableSize(tree: ClassTree, elements: Elements, types: Types, trees: Trees, headVar: String): Set[String] = {
     val INFINITY = Int.MaxValue.toString
-    if (tree == null) return HashSet[String]("0")
+    if (tree == null) return new HashSet[String]
     val clsTypEle = TreeUtils.elementFromDeclaration(tree)
     val initPath = AccessPath(AccessPathHead(headVar, clsTypEle), List())
     val (reachableFields, recTyps) = getReachableFieldsAndRecTyps(clsTypEle, elements, types, trees, HashSet[AccessPath](initPath))
-    if (recTyps.nonEmpty) HashSet[String](INFINITY)
+    if (recTyps.nonEmpty) new HashSet[String] // If recursive type
     else {
       reachableFields.foldLeft(new HashSet[String]) {
         (acc, accessPath) =>
@@ -370,9 +371,9 @@ object Utils {
                   else p.path.last.typeMirror == accessPath.path.last.typeMirror
               } > 1
             }
-            if (existAlias) acc + INFINITY // If may alias, then let size be infinity
+            if (existAlias) acc + INFINITY // If may alias
             else acc + accessPath.toString
-          } else acc + "4"
+          } else acc // Do not count size of non list-typed variable
       }
     }
   }
@@ -418,12 +419,19 @@ case class AccessPath(head: AccessPathHead, path: List[AccessPathElement]) {
   }
 }
 
-case class VarTyp(varElement: VariableElement, anno: String, isInput: Boolean) {
+case class VarTyp(varElement: VariableElement,
+                  anno: String,
+                  isField: Boolean,
+                  isParameter: Boolean,
+                  isInput: Boolean,
+                  isBound: Boolean) {
   def getTypMirror: TypeMirror = varElement.asType()
 
   def getErasedTypMirror(types: Types): TypeMirror = types.erasure(varElement.asType())
 
   def getTypElement(types: Types): TypeElement = TypesUtils.getTypeElement(getErasedTypMirror(types))
+
+  def fromOutside: Boolean = isField || isParameter || isInput
 
   //elements.getTypeElement(getTypMirror(types).toString)
 }

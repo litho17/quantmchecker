@@ -24,7 +24,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private val DEBUG_PATHS = false
   private val DEBUG_WHICH_UNHANDLED_CASE = false
   private val EMP_COLLECTION_PREFIX = "Collections.empty"
-  private val SIZE_BOUND = 1000
 
   if (DEBUG_PATHS) {
     PrintStuff.printRedString("java.class.path: " + System.getProperty("java.class.path"))
@@ -39,6 +38,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   // private var localCollections = new HashSet[VarTyp]
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
+    def getSizes(t: VarTyp): Set[String] = {
+      val cls = trees.getTree(t.getTypElement(types))
+      if (TypesUtils.isPrimitive(t.getTypMirror)) new HashSet[String]
+      else { // Class type
+        val varName = t.varElement.getSimpleName.toString
+        if (Utils.isCollectionTyp(t.getTypElement(types))) HashSet[String](varName)
+        else {
+          Utils.getReachableSize(cls, elements, types, trees, varName)
+          // Utils.logging(v + "\n" + res.toString() + "\n")
+        }
+      }
+    }
+
     methodTrees += node
     val localTypCxt = atypeFactory.getLocalTypCxt(node, false)
     val localTypCxtWithParameters = atypeFactory.getLocalTypCxt(node, true)
@@ -49,36 +61,36 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     localTypCxt.cxt.foreach { // T-Decl
       t =>
-        if (!t.isInput) {
+        if (!t.fromOutside && !t.isBound) {
           val init = initInv(t.anno, typCxt, node)
-          typecheck(SmtUtils.mkAssertionForall(init), node, "T-Decl: " + t.anno)
+          typecheck(SmtUtils.mkForall(init), node, "T-Decl: " + t.anno)
         }
     }
     val isBounded = {
       if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
         val sizes: Set[String] = localTypCxt.cxt.foldLeft(new HashSet[String]) {
-          case (acc, t) =>
-            if (!t.isInput) {
-              val cls = trees.getTree(t.getTypElement(types))
-              if (TypesUtils.isPrimitive(t.getTypMirror)) acc + "4"
-              else { // Class type
-                val varName = t.varElement.getSimpleName.toString
-                if (Utils.isCollectionTyp(t.getTypElement(types))) acc + varName
-                else {
-                  val res = Utils.getReachableSize(cls, elements, types, trees, varName)
-                  // Utils.logging(v + "\n" + res.toString() + "\n")
-                  acc ++ res
-                }
-              }
-            } else acc
+          case (acc, t) => if (!t.fromOutside) acc ++ getSizes(t) else acc
         }
-        val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
-        val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
-        val typRefinements = typCxt.cxt.map(t => t.anno).toArray
+        val inputs: Set[String] = typCxt.cxt.foldLeft(new HashSet[String]) {
+            (acc, t) => if (t.isInput) acc + t.varElement.getSimpleName.toString else acc
+        }
+        val bounds: Set[String] = typCxt.cxt.foldLeft(new HashSet[String]) {
+          (acc, t) => if (t.isBound) acc + t.anno else acc
+        }
         val totalSize = SmtUtils.mkAdd(sizes.toList: _*)
-        val isBounded = SmtUtils.mkLe(totalSize, SIZE_BOUND.toString)
+        val goal = {
+          if (bounds.nonEmpty) SmtUtils.mkAdd(bounds.toList: _*) // If bound exists, then goal is bound
+          else if (inputs.nonEmpty) SmtUtils.mkAdd(inputs.toList: _*) // Otherwise, goal is sum(input_i)
+          else Utils.ZERO_STR // Let bound be 0 if there is nothing interesting
+        }
+        val isBounded = SmtUtils.mkLe(totalSize, goal)
         val constraints = {
-          val array: Array[String] = cfRelation ++ typRefinements :+ methodBodyCounter
+          val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
+          val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
+          val typRefinements = typCxt.cxt.foldLeft(List[String]()) {
+            (acc, t) => if (!t.isBound) t.anno :: acc else acc
+          }
+          val array: Array[String] =  cfRelation ++ typRefinements :+ methodBodyCounter
           SmtUtils.mkAnd(array: _*)
         }
         val query = SmtUtils.mkForallImply(constraints, isBounded)
@@ -156,7 +168,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
             typCxt.cxt.foreach {
               t =>
-                if (!t.isInput) {
+                if (!t.fromOutside) {
                   if (isNext) { // x = z.next
                     val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                       List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
@@ -164,7 +176,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                     typecheck(implication, node, "x = z.next")
                   } else if (isIter) { // z = x.iter
                     val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
-                      List(SmtUtils.mkAdd(label, "1"), "0"))
+                      List(SmtUtils.mkAdd(label, "1"), Utils.ZERO_STR)) // New iterator: Size/Value is reset to 0
                     val implication = SmtUtils.mkForallImply(t.anno, newAnno)
                     typecheck(implication, node, "z = x.iter")
                   } else { // May be arbitrary update
@@ -180,7 +192,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
             typCxt.cxt.foreach { // Must not create alias
               t =>
-                if (!t.isInput) {
+                if (!t.fromOutside) {
                   val q = SmtUtils.substitute(t.anno,
                     List(label, lhs.toString),
                     List(SmtUtils.mkAdd(label, "1"), rhs.toString)
@@ -199,7 +211,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         case rhs: BinaryTree => // Must not create alias
           typCxt.cxt.foreach {
             t =>
-              if (!t.isInput) {
+              if (!t.fromOutside) {
                 val left = rhs.getLeftOperand.toString
                 val right = rhs.getRightOperand.toString
                 val prefix = {
@@ -220,7 +232,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         case rhs: LiteralTree => // Must not create alias
           typCxt.cxt.foreach {
             t =>
-              if (!t.isInput) {
+              if (!t.fromOutside) {
                 val q = SmtUtils.substitute(t.anno,
                   List(label, lhs.toString),
                   List(SmtUtils.mkAdd(label, "1"), rhs.toString)
@@ -233,7 +245,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
             typCxt.cxt.foreach { // Must not create alias
               t =>
-                if (!t.isInput) {
+                if (!t.fromOutside) {
                   val q = SmtUtils.substitute(t.anno,
                     List(label),
                     List(SmtUtils.mkAdd(label, "1"))
@@ -246,10 +258,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             if (Utils.isCollectionTyp(lhsTypElement)) { // Must not create alias
               typCxt.cxt.foreach {
                 t =>
-                  if (!t.isInput) {
+                  if (!t.fromOutside) {
                     val q = SmtUtils.substitute(t.anno,
                       List(label, lhs.toString),
-                      List(SmtUtils.mkAdd(label, "1"), "0")
+                      List(SmtUtils.mkAdd(label, "1"), Utils.ZERO_STR) // New class => Size/Value is reset to 0
                     )
                     val implication = SmtUtils.mkForallImply(t.anno, q)
                     typecheck(implication, node, "x = new List")
@@ -292,7 +304,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
       typCxt.cxt.foreach { // Do not check iterator's and self's type annotation
         t =>
-          if (!t.isInput) {
+          if (!t.fromOutside) {
             val (_old: List[String], _new: List[String]) = {
               if (isAdd) { // y.add(x)
                 (List(label, receiverName), List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
@@ -360,7 +372,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitVariable(node: VariableTree, p: Void): Void = {
-    if (avoidAssignSubtyCheck(atypeFactory.getVarAnnoMap(node).isInput, node.getInitializer))
+    if (avoidAssignSubtyCheck(atypeFactory.getVarAnnoMap(node)._3, node.getInitializer))
       return null
     super.visitVariable(node, p)
   }
@@ -405,18 +417,18 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def initInv(inv: String, typCxt: TypCxt, node: Tree): String = {
-    val vars = SmtUtils.extractSyms(inv).filter {
+    val vars = SmtUtils.extractSyms(inv).filter { // Get all non input variables
       v =>
         val sameNameVars = typCxt.getVar(v)
         if (sameNameVars.isEmpty) true
         else if (sameNameVars.size == 1) !sameNameVars.head.isInput
         else {
           issueWarning(node, Utils.nameCollisionMsg(v))
-          sameNameVars.forall(t => !t.isInput)
+          sameNameVars.forall(t => !t.fromOutside)
         }
     }.toList
     val _old = vars
-    val _new = vars.map(_ => "0")
+    val _new = vars.map(_ => Utils.ZERO_STR) // Initial size/value of any non input variable is 0
     SmtUtils.substitute(inv, _old, _new)
   }
 

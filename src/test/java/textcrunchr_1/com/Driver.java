@@ -1,5 +1,6 @@
 package textcrunchr_1.com;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
@@ -13,7 +14,7 @@ import java.util.List;
  * @author Tianhan Lu
  */
 public class Driver {
-    public static void main() throws Exception {
+    public static void main(@Bound("4") List<String> input) throws Exception {
         @Inv("= results (- (+ c28 c30 c32 c37) c38 c39 c40 c41)") List<TCResult> results = new ArrayList<>();
         String s;
         @Inv("= tcr1.results 0") TCResult tcr1;
@@ -43,6 +44,12 @@ public class Driver {
             c43: tcr4.removeResult();
             c44: tcr4.removeResult();
             c45: tcr4.removeResult();
+        }
+    }
+
+    static class A {
+        void m() {
+            Driver d;
         }
     }
 }

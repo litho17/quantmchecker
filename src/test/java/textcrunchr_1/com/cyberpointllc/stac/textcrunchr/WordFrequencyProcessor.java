@@ -1,5 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
@@ -19,11 +20,11 @@ public class WordFrequencyProcessor extends Processor {
 
     private static final String NAME = "wordFreqs";
 
-    public TCResult process(@Input("(and (<= it inps) (<= inps 100))") InputStream inps) throws IOException {
+    public TCResult process(@Bound("* 2 inps") InputStream inps) throws IOException {
         InputStreamReader isr = new InputStreamReader(inps);
         // count frequency of each word in input
         String input = readInput(inps);
-        String words[] = tokenize(input);
+        @Inv("<= i inps") String words[] = tokenize(input);
 
         // count the word frequencies
         @Inv("= (- wordFreqs i) (- c65 c68)") List<WordCount> wordFreqs = new ArrayList<WordCount>();
@@ -80,9 +81,9 @@ public class WordFrequencyProcessor extends Processor {
     /*
      * read the input into a String
      */
-    private String readInput(InputStream inps) throws IOException {
+    private String readInput(@Input("") InputStream inps) throws IOException {
         // read to string
-        BufferedReader br = new BufferedReader(new InputStreamReader(inps));
+        @Inv("<= br inps") BufferedReader br = new BufferedReader(new InputStreamReader(inps));
         @Inv("= (- sb br) (- c97 c95 c98)") StringBuilder sb = new StringBuilder();
         String read;
         c95: read = br.readLine();

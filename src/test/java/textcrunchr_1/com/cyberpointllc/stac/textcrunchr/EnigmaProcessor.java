@@ -14,9 +14,9 @@ public class EnigmaProcessor extends Processor {
 
     private static final String NAME = "enigma";
 
-    public TCResult process(@Input("(and (<= br inps) (<= inps 100))") InputStream inps) throws IOException {
+    public TCResult process(@Input("") InputStream inps) throws IOException {
         // read to string
-        InputStreamReader is = new InputStreamReader(inps);
+        @Inv("<= br inps") InputStreamReader is = new InputStreamReader(inps);
         @Inv("= (- sb br) (- c24 c22 c25)") StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(is);
         String read;

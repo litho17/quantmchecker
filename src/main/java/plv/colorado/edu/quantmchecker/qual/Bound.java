@@ -11,6 +11,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @Documented
-public @interface InvKwn { // This annotation is intended to record reasons of failure
+public @interface Bound { // This annotation is intended to record reasons of failure
     public String[] value();
 }

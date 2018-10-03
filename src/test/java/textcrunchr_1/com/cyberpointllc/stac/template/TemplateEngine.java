@@ -74,7 +74,7 @@ public class TemplateEngine {
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
         int endTagLength = StringEscapeUtils.unescapeJava(endTag).length();
-        @Input("(and (<= matcher text) (<= text 100))") int j;
+        @Input("<= matcher text") String text = this.text;
         Matcher matcher = pattern.matcher(text);
         @Inv("= (- tagsList matcher) (- c64 c62 c65)") List<Pair<Integer, Integer>> tagsList = new ArrayList();
         boolean find;
@@ -110,9 +110,9 @@ public class TemplateEngine {
      * @param separator  the separator to put after each item
      * @return a string representing all of the templated items
      */
-    public String replaceTags(@Input("(and (<= it templateds) (<= templateds 100))") List<? extends Templated> templateds, String separator) {
+    public String replaceTags(@Input("") List<? extends Templated> templateds, String separator) {
         @Inv("= (- sb it) (- c130 c128)") StringBuilder sb = new StringBuilder();
-        Iterator<? extends Templated> it = templateds.iterator();
+        @Inv("<= it templateds") Iterator<? extends Templated> it = templateds.iterator();
         while (it.hasNext()) {
             Templated templated;
             c128: templated = it.next();
