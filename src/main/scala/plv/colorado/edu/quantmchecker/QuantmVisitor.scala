@@ -38,6 +38,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   // private var localCollections = new HashSet[VarTyp]
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
+    val methodStr = "Method: " + TreeUtils.enclosingClass(atypeFactory.getPath(node)).getSimpleName + "." + node.getName.toString
     def getSizes(t: VarTyp): Set[String] = {
       val cls = trees.getTree(t.getTypElement(types))
       if (TypesUtils.isPrimitive(t.getTypMirror)) new HashSet[String]
@@ -98,7 +99,6 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         // solver.optimize(objective.asInstanceOf[ArithExpr])
         if (!check) {
           if (sizes.nonEmpty) {
-            val methodStr = "Method: " + TreeUtils.enclosingClass(atypeFactory.getPath(node)).getSimpleName + "." + node.getName.toString
             val sizesStr = "Sizes: " + sizes.toString()
             val typCxtStr = "TypCxt: " + typCxt.toString()
             val queryStr = "Query: " + query
@@ -117,6 +117,8 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         else ""
       }
       Utils.logging(failCausesStr + "\n")
+      if (typCxt.cxt.exists(t => t.isBound))
+        Utils.logging("Cannot prove @Bound in: " + methodStr)
     } else {
       verifiedMethods += node
     }
