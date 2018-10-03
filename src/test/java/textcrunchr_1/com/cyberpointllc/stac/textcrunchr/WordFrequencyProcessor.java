@@ -1,9 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
-import plv.colorado.edu.quantmchecker.qual.Bound;
-import plv.colorado.edu.quantmchecker.qual.Input;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.*;
 import textcrunchr_1.com.cyberpointllc.stac.sort.DefaultComparator;
 import textcrunchr_1.com.cyberpointllc.stac.sort.Sorter;
 
@@ -24,7 +21,7 @@ public class WordFrequencyProcessor extends Processor {
         InputStreamReader isr = new InputStreamReader(inps);
         // count frequency of each word in input
         String input = readInput(inps);
-        @Inv("<= i inps") String words[] = tokenize(input);
+        @Iter("<= i inps") String words[] = tokenize(input);
 
         // count the word frequencies
         @Inv("= (- wordFreqs i) (- c65 c68)") List<WordCount> wordFreqs = new ArrayList<WordCount>();
@@ -83,7 +80,7 @@ public class WordFrequencyProcessor extends Processor {
      */
     private String readInput(@Input("") InputStream inps) throws IOException {
         // read to string
-        @Inv("<= br inps") BufferedReader br = new BufferedReader(new InputStreamReader(inps));
+        @Iter("<= br inps") BufferedReader br = new BufferedReader(new InputStreamReader(inps));
         @Inv("= (- sb br) (- c97 c95 c98)") StringBuilder sb = new StringBuilder();
         String read;
         c95: read = br.readLine();

@@ -424,14 +424,17 @@ case class VarTyp(varElement: VariableElement,
                   isField: Boolean,
                   isParameter: Boolean,
                   isInput: Boolean,
-                  isBound: Boolean) {
+                  isBound: Boolean,
+                  isIter: Boolean) {
   def getTypMirror: TypeMirror = varElement.asType()
 
   def getErasedTypMirror(types: Types): TypeMirror = types.erasure(varElement.asType())
 
   def getTypElement(types: Types): TypeElement = TypesUtils.getTypeElement(getErasedTypMirror(types))
 
-  def fromOutside: Boolean = isField || isParameter || isInput
+  def fromOutside: Boolean = isField || isParameter || isInput || isBound
+
+  def typCheck: Boolean = !fromOutside && !isIter
 
   //elements.getTypeElement(getTypMirror(types).toString)
 }

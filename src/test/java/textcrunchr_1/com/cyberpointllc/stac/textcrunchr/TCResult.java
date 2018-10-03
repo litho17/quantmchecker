@@ -1,9 +1,6 @@
 package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
-import plv.colorado.edu.quantmchecker.qual.Bound;
-import plv.colorado.edu.quantmchecker.qual.Input;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -51,8 +48,8 @@ public class TCResult {
         if (value == null) {
             @Bound("* 4 results_") ArrayList<Component> results_ = this.results;
             String lineSeparator = System.lineSeparator();
-            @Inv("= (- builder it) (- (+ c56 c57 c58 c59) c55 c55 c55 c55)") StringBuilder builder = new StringBuilder();
-            @Inv("<= it results_") Iterator<Component> it = results_.iterator();
+            @Inv("= (- builder it it it it) (- (+ c56 c57 c58 c59) c55 c55 c55 c55)") StringBuilder builder = new StringBuilder();
+            @Iter("<= it results_") Iterator<Component> it = results_.iterator();
             Component c;
             while (it.hasNext()) {
                 c55: c = it.next();

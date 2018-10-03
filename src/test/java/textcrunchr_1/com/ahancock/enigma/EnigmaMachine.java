@@ -2,6 +2,7 @@ package textcrunchr_1.com.ahancock.enigma;
 
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 public class EnigmaMachine {
 
@@ -44,7 +45,7 @@ public class EnigmaMachine {
         // Reuse the same StringBuilder.
         sb.setLength(0);
         // int i;
-        @Inv("<= i s") int i = 0;
+        @Iter("<= i s") int i = 0;
         for (; i < s.length(); ) {
             char currentChar = s.charAt(i);
             // Only encode symbols which are not ignored

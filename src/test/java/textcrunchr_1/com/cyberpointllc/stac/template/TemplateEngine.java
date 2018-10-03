@@ -69,7 +69,7 @@ public class TemplateEngine {
      * @param sb         The string builder to put the data in
      */
     public void replaceTagsBuilder(Map<String, String> dictionary,
-                                   @Inc("= (- self i) (- (+ c104 c108 c113) (+ c110 c110))") StringBuilder sb) {
+                                   @Iter("= (- self i) (- (+ c104 c108 c113) (+ c110 c110))") StringBuilder sb) {
         // keep track of where we are on the text string
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
@@ -112,7 +112,7 @@ public class TemplateEngine {
      */
     public String replaceTags(@Input("") List<? extends Templated> templateds, String separator) {
         @Inv("= (- sb it) (- c130 c128)") StringBuilder sb = new StringBuilder();
-        @Inv("<= it templateds") Iterator<? extends Templated> it = templateds.iterator();
+        @Iter("<= it templateds") Iterator<? extends Templated> it = templateds.iterator();
         while (it.hasNext()) {
             Templated templated;
             c128: templated = it.next();

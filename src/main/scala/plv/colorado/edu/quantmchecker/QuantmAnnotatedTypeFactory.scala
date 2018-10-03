@@ -22,7 +22,7 @@ import scala.collection.immutable.HashSet
 class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotatedTypeFactory(checker) {
   private val DEBUG: Boolean = false
   val INV: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inv])
-  val INC: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Inc])
+  val ITER: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Iter])
   val INVUNK: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvUnk])
   val BOUND: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[Bound])
   val INVBOT: AnnotationMirror = AnnotationBuilder.fromClass(elements, classOf[InvBot])
@@ -65,7 +65,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       case _ => getAnnotatedType(rcvr).getAnnotations
     }
     val filter: util.Collection[AnnotationMirror] = annotations.asScala
-      .filter(p => AnnotationUtils.areSameIgnoringValues(p, INV) || AnnotationUtils.areSameIgnoringValues(p, INPUT) || AnnotationUtils.areSameIgnoringValues(p, BOUND))
+      .filter(p => AnnotationUtils.areSameIgnoringValues(p, INV) || AnnotationUtils.areSameIgnoringValues(p, INPUT) || AnnotationUtils.areSameIgnoringValues(p, BOUND) || AnnotationUtils.areSameIgnoringValues(p, ITER))
       .map(anno => anno.asInstanceOf[AnnotationMirror]).asJavaCollection
     getTypeAnnotation(filter)
   }
@@ -91,8 +91,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     }
   }
 
-  private def getVarAnnoMap(annoMirror: AnnotationMirror): (String, Boolean, Boolean) = {
-    if (annoMirror == null) return (SmtUtils.TRUE, false, false)
+  private def getVarAnnoMap(annoMirror: AnnotationMirror): (String, Boolean, Boolean, Boolean) = {
+    if (annoMirror == null) return (SmtUtils.TRUE, false, false, false)
     val isInput = {
       if (AnnotationUtils.areSameIgnoringValues(annoMirror, INPUT)) true
       else false
@@ -101,14 +101,18 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       if (AnnotationUtils.areSameIgnoringValues(annoMirror, BOUND)) true
       else false
     }
+    val isIter = {
+      if (AnnotationUtils.areSameIgnoringValues(annoMirror, ITER)) true
+      else false
+    }
     // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     val annotations =
       Utils.extractArrayValues(annoMirror, "value").map(s => SmtUtils.rmParen(s.trim)).toSet
     // Only use the first element in the annotation string array as the type refinement
-    (annotations.head, isInput, isBound)
+    (annotations.head, isInput, isBound, isIter)
   }
 
-  def getVarAnnoMap(node: Tree): (VariableElement, String, Boolean, Boolean) = {
+  def getVarAnnoMap(node: Tree): (VariableElement, String, Boolean, Boolean, Boolean) = {
     /*
     val annotations = {
       node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
@@ -122,10 +126,10 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     val annotations = getTypeAnnotation(node) // TODO: Null if variable is array type
     val res = getVarAnnoMap(annotations)
     node match {
-      case v: VariableTree => (TreeUtils.elementFromDeclaration(v), res._1, res._2, res._3)
+      case v: VariableTree => (TreeUtils.elementFromDeclaration(v), res._1, res._2, res._3, res._4)
       case _ => ???
     }
-    // variable element, annotation, isInput, isBound
+    // variable element, annotation, isInput, isBound, isIter
   }
 
   def getFieldTypCxt(classTree: ClassTree): TypCxt = {
@@ -137,7 +141,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             // Get annotations on class fields
             // We consider class fields as inputs, but NOT bounds
             val res = getVarAnnoMap(member)
-            acc + VarTyp(res._1, res._2, true, false, res._3, res._4)
+            acc + VarTyp(res._1, res._2, true, false, res._3, res._4, res._5)
           case _ => acc
         }
     }
@@ -160,10 +164,10 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             val res = getVarAnnoMap(stmt)
             val isParameter = parameterDecl.contains(stmt)
             if (includeParameters)
-              acc + VarTyp(res._1, res._2, false, isParameter, res._3, res._4)
+              acc + VarTyp(res._1, res._2, false, isParameter, res._3, res._4, res._5)
             else {
               if (isParameter) acc
-              else acc + VarTyp(res._1, res._2, false, isParameter, res._3, res._4)
+              else acc + VarTyp(res._1, res._2, false, isParameter, res._3, res._4, res._5)
             }
           case x@_ =>
             if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
@@ -179,8 +183,8 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       val isSuperInvUnk = AnnotationUtils.areSameIgnoringValues(superAnno, INVUNK)
       val isSubInv = AnnotationUtils.areSameIgnoringValues(subAnno, INV)
       val isSuperInv = AnnotationUtils.areSameIgnoringValues(superAnno, INV)
-      val isSubInc = AnnotationUtils.areSameIgnoringValues(subAnno, INC)
-      val isSuperInc = AnnotationUtils.areSameIgnoringValues(superAnno, INC)
+      val isSubIter = AnnotationUtils.areSameIgnoringValues(subAnno, ITER)
+      val isSuperIter = AnnotationUtils.areSameIgnoringValues(superAnno, ITER)
       val isSubBound = AnnotationUtils.areSameIgnoringValues(subAnno, BOUND)
       val isSuperBound = AnnotationUtils.areSameIgnoringValues(superAnno, BOUND)
       val isSubInput = AnnotationUtils.areSameIgnoringValues(subAnno, INPUT)
@@ -189,7 +193,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       val newSubAnno = {
         if (isSubInv) INV
         else if (isSubInvUnk) INVTOP // @InvUnk
-        else if (isSubInc) INVTOP // @Inc
+        else if (isSubIter) INVTOP // @Iter
         else if (isSubBound) INVTOP // @Bound
         else if (isSubInput) INVTOP // @Input
         else subAnno
@@ -197,7 +201,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       val newSuperAnno = {
         if (isSuperInv) INV
         else if (isSuperInvUnk) INVTOP // @InvUnk
-        else if (isSuperInc) INVTOP // @Inc
+        else if (isSuperIter) INVTOP // @Iter
         else if (isSuperBound) INVTOP // @Bound
         else if (isSuperInput) INVTOP // @Input
         else superAnno

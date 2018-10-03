@@ -61,7 +61,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     }
     localTypCxt.cxt.foreach { // T-Decl
       t =>
-        if (!t.fromOutside && !t.isBound) {
+        if (t.typCheck) {
           val init = initInv(t.anno, typCxt, node)
           typecheck(SmtUtils.mkForall(init), node, "T-Decl: " + t.anno)
         }
@@ -69,7 +69,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val isBounded = {
       if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
         val sizes: Set[String] = localTypCxt.cxt.foldLeft(new HashSet[String]) {
-          case (acc, t) => if (!t.fromOutside) acc ++ getSizes(t) else acc
+          case (acc, t) => if (t.typCheck) acc ++ getSizes(t) else acc
         }
         val inputs: Set[String] = typCxt.cxt.foldLeft(new HashSet[String]) {
             (acc, t) => if (t.isInput) acc + t.varElement.getSimpleName.toString else acc
@@ -155,7 +155,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val sameNameVars = typCxt.getVar(lhs.toString)
     if (sameNameVars.size == 1) {
       val lhsTyp = sameNameVars.head
-      if (avoidAssignSubtyCheck(lhsTyp.isInput, node.getExpression)) return null
+      if (avoidAssignSubtyCheck(node.getExpression)) return null
       val lhsTypMirror = lhsTyp.getErasedTypMirror(types)
       val lhsTypElement = lhsTyp.getTypElement(types)
       rhs match {
@@ -168,7 +168,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             val isIter = Utils.isColWhat("iterator", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
             typCxt.cxt.foreach {
               t =>
-                if (!t.fromOutside) {
+                if (t.typCheck) {
                   if (isNext) { // x = z.next
                     val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                       List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
@@ -192,7 +192,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
             typCxt.cxt.foreach { // Must not create alias
               t =>
-                if (!t.fromOutside) {
+                if (t.typCheck) {
                   val q = SmtUtils.substitute(t.anno,
                     List(label, lhs.toString),
                     List(SmtUtils.mkAdd(label, "1"), rhs.toString)
@@ -211,7 +211,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         case rhs: BinaryTree => // Must not create alias
           typCxt.cxt.foreach {
             t =>
-              if (!t.fromOutside) {
+              if (t.typCheck) {
                 val left = rhs.getLeftOperand.toString
                 val right = rhs.getRightOperand.toString
                 val prefix = {
@@ -232,7 +232,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         case rhs: LiteralTree => // Must not create alias
           typCxt.cxt.foreach {
             t =>
-              if (!t.fromOutside) {
+              if (t.typCheck) {
                 val q = SmtUtils.substitute(t.anno,
                   List(label, lhs.toString),
                   List(SmtUtils.mkAdd(label, "1"), rhs.toString)
@@ -245,7 +245,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           if (TypesUtils.isPrimitive(lhsTypMirror)) { // Primitive types
             typCxt.cxt.foreach { // Must not create alias
               t =>
-                if (!t.fromOutside) {
+                if (t.typCheck) {
                   val q = SmtUtils.substitute(t.anno,
                     List(label),
                     List(SmtUtils.mkAdd(label, "1"))
@@ -258,7 +258,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
             if (Utils.isCollectionTyp(lhsTypElement)) { // Must not create alias
               typCxt.cxt.foreach {
                 t =>
-                  if (!t.fromOutside) {
+                  if (t.typCheck) {
                     val q = SmtUtils.substitute(t.anno,
                       List(label, lhs.toString),
                       List(SmtUtils.mkAdd(label, "1"), Utils.ZERO_STR) // New class => Size/Value is reset to 0
@@ -304,7 +304,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
       typCxt.cxt.foreach { // Do not check iterator's and self's type annotation
         t =>
-          if (!t.fromOutside) {
+          if (t.typCheck) {
             val (_old: List[String], _new: List[String]) = {
               if (isAdd) { // y.add(x)
                 (List(label, receiverName), List(SmtUtils.mkAdd(label, "1"), SmtUtils.mkAdd(receiverName, "1")))
@@ -372,8 +372,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   override def visitVariable(node: VariableTree, p: Void): Void = {
-    if (avoidAssignSubtyCheck(atypeFactory.getVarAnnoMap(node)._3, node.getInitializer))
-      return null
+    val anno = atypeFactory.getVarAnnoMap(node)
+    if (anno._5) return null // If @Iter
+    if (anno._3) return null // If @Input
+    if (avoidAssignSubtyCheck(node.getInitializer)) return null
     super.visitVariable(node, p)
   }
 
@@ -390,8 +392,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     * @return Whether should we do subtype checking for assignments: lhs = rhs
     *         This is flow sensitive checking
     */
-  private def avoidAssignSubtyCheck(isInput: Boolean, rhs: ExpressionTree): Boolean = {
-    if (isInput) return true // Don't do assignment check for Inputs
+  private def avoidAssignSubtyCheck(rhs: ExpressionTree): Boolean = {
     if (rhs == null) return false
 
     val rhsStr = rhs.toString
@@ -417,14 +418,14 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   }
 
   private def initInv(inv: String, typCxt: TypCxt, node: Tree): String = {
-    val vars = SmtUtils.extractSyms(inv).filter { // Get all non input variables
+    val vars = SmtUtils.extractSyms(inv).filter { // Get all variables that we want to type check
       v =>
         val sameNameVars = typCxt.getVar(v)
         if (sameNameVars.isEmpty) true
         else if (sameNameVars.size == 1) !sameNameVars.head.isInput
         else {
           issueWarning(node, Utils.nameCollisionMsg(v))
-          sameNameVars.forall(t => !t.fromOutside)
+          sameNameVars.forall(t => t.typCheck)
         }
     }.toList
     val _old = vars

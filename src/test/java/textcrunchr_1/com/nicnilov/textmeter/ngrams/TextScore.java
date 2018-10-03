@@ -2,6 +2,7 @@ package textcrunchr_1.com.nicnilov.textmeter.ngrams;
 
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.EnumMap;
@@ -29,7 +30,7 @@ public class TextScore {
     public String toString() {
         @Input("") EnumMap<NgramType, Ngram.ScoreStats> ngramScores_ = this.ngramScores;
         @Inv("= (- sb it) (- c35 c33)") StringBuilder sb = new StringBuilder();
-        @Inv("<= it ngramScores_") Iterator<Map.Entry<NgramType, Ngram.ScoreStats>> it = ngramScores_.entrySet().iterator();
+        @Iter("<= it ngramScores_") Iterator<Map.Entry<NgramType, Ngram.ScoreStats>> it = ngramScores_.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<NgramType, Ngram.ScoreStats> entry;
             c33: entry = it.next();

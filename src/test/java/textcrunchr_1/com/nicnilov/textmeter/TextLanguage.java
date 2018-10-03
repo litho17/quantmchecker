@@ -1,9 +1,6 @@
 package textcrunchr_1.com.nicnilov.textmeter;
 
-import plv.colorado.edu.quantmchecker.qual.Input;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.Ngram;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramBuilder;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
@@ -48,7 +45,7 @@ public class TextLanguage {
     public TextScore score(@Input("") final String text) {
         @Inv("= (- textScore.ngramScores it) (- c54 c52)") TextScore textScore = new TextScore();
         @InvUnk("Read from nested lists") Ngram ngram;
-        @Inv("<= it text") Iterator<Map.Entry<NgramType, Ngram>> it = ngrams.entrySet().iterator();
+        @Iter("<= it text") Iterator<Map.Entry<NgramType, Ngram>> it = ngrams.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<NgramType, Ngram> entry;
             c52: entry = it.next();

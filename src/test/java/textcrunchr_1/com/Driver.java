@@ -18,18 +18,18 @@ public class Driver {
         @Inv("= results (- (+ c28 c30 c32 c37) c38 c39 c40 c41)") List<TCResult> results = new ArrayList<>();
         String s;
         @Inv("= tcr1.results 0") TCResult tcr1;
-        @Inv("= tcr2.results 0")TCResult tcr2;
-        @Inv("= tcr3.results 0")TCResult tcr3;
+        @Inv("= tcr2.results 0") TCResult tcr2;
+        @Inv("= tcr3.results 0") TCResult tcr3;
         @Inv("= tcr4.results (- (+ c33 c34 c35 c36) c42 c43 c44 c45)")TCResult tcr4 = new TCResult("Word stats");
         while (true) {
             String filename = "";
             FileInputStream fis = new FileInputStream(filename);
             @Input("ufasdkfksfd") String[] s2;
-            tcr1 = new CharacterCountProcessor().process(fis);
+            tcr1 = new TCResult("Character Count", "");
             c28: results.add(tcr1);
-            tcr2 = new TextMeterProcessor().process(fis);
+            tcr2 = new TCResult("TextLanguage analysis:", "");
             c30: results.add(tcr2);
-            tcr3 = new EnigmaProcessor().process(fis);
+            tcr3 = new TCResult("Enigma transformation (5, 9, 14)", "");
             c32: results.add(tcr3);
             c33: tcr4.addResult("Word count", "");
             c34: tcr4.addResult("Average word length", 0);

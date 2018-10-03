@@ -37,7 +37,7 @@ public class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new TextMeter();
         textMeter.createTextLanguage("en");
-        @Inv("= en.ngrams c42") TextLanguage en = textMeter.get("en");
+        @InvUnk("Method return list") TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {

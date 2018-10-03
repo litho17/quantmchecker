@@ -2,6 +2,7 @@ package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 import textcrunchr_1.com.ahancock.enigma.EnigmaFactory;
 import textcrunchr_1.com.ahancock.enigma.EnigmaMachine;
 
@@ -16,7 +17,7 @@ public class EnigmaProcessor extends Processor {
 
     public TCResult process(@Input("") InputStream inps) throws IOException {
         // read to string
-        @Inv("<= br inps") InputStreamReader is = new InputStreamReader(inps);
+        @Iter("<= br inps") InputStreamReader is = new InputStreamReader(inps);
         @Inv("= (- sb br) (- c24 c22 c25)") StringBuilder sb = new StringBuilder();
         BufferedReader br = new BufferedReader(is);
         String read;

@@ -3,6 +3,7 @@ package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -90,7 +91,7 @@ public class WordStatsProcessor extends Processor {
 
     private String readInput(@Input("") InputStream inps) throws IOException {
         // read to string
-        @Inv("<= br inps") BufferedReader br = new BufferedReader(new InputStreamReader(inps));
+        @Iter("<= br inps") BufferedReader br = new BufferedReader(new InputStreamReader(inps));
         @Inv("= (- sb br) (- c97 c95 c98)") StringBuilder sb = new StringBuilder();
         String read;
         c95: read = br.readLine();
