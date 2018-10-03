@@ -5,8 +5,10 @@
 package braidit_1.com.cyberpointllc.stac.jack.direct;
 
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -86,13 +88,14 @@ public class OBJNOTEObject extends HashMap implements Map, OBJNOTEAware, OBJNOTE
 	 * @param myMap
 	 * @return JSON text, or "null" if map is null.
 	 */
-	public static String toOBJNOTEString(@Input("100") Map myMap){
+	public static String toOBJNOTEString(Map myMap){
+		@Bound("+ 2 (* 6 myMap)") int i;
 		if(myMap == null)
 			return "null";
 		
-        @Inv("= (+ self iter) (- (+ c97 c102 c105 c107 c110 c111 c112 c114 myMap) c104)") StringBuffer sb = new StringBuffer();
+        @Inv("= (- sb iter iter iter iter iter iter) (- (+ c97 c102 c105 c107 c110 c111 c112 c114) c104 c104 c104 c104 c104 c104)") StringBuffer sb = new StringBuffer();
         boolean first = true;
-		@Inv("myMap") Iterator<Map.Entry> iter=myMap.entrySet().iterator();
+		@Iter("<= iter myMap") Iterator<Map.Entry> iter = myMap.entrySet().iterator();
 		
         c97: sb.append('{');
 		while(iter.hasNext()){
@@ -126,7 +129,8 @@ public class OBJNOTEObject extends HashMap implements Map, OBJNOTEAware, OBJNOTE
 	}
 
 	public static String toString(String key,Object core){
-        @Inv("= self (+ c130 c132 c135 c136 c138)") StringBuffer sb = new StringBuffer();
+		@Bound("5") int i;
+        @Inv("= sb (+ c130 c132 c135 c136 c138)") StringBuffer sb = new StringBuffer();
 		c130: sb.append('\"');
 		if(key == null)
 			c132: sb.append("null");

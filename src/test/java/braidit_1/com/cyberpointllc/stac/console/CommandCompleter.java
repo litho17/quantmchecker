@@ -1,8 +1,10 @@
 package braidit_1.com.cyberpointllc.stac.console;
 
 import jline.console.completer.Completer;
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 import java.util.List;
 import java.util.TreeSet;
@@ -19,11 +21,11 @@ public class CommandCompleter implements Completer {
     public int complete(String buffer, int cursor, List<CharSequence> candidates) {
         // get all the command names
         // we get them fresh each time because they could get stale
-        @Inv("= (- self j) (- c25 c26 j_init)") TreeSet<String> names = new TreeSet<String>();
-        List<Command> obtainCommands = display.obtainCommands();
-        @Input("100") int j = 0;
-        for (; j < obtainCommands.size();) {
-            Command c = obtainCommands.get(j);
+        @Bound("display") int i;
+        @Inv("= (- names j) (- c25 c26)") TreeSet<String> names = new TreeSet<String>();
+        @Iter("<= j display") int j = 0;
+        for (; j < display.obtainCommands().size();) {
+            Command c = display.obtainCommands().get(j);
             c25: names.add(c.takeName());
             c26: j = j + 1;
         }

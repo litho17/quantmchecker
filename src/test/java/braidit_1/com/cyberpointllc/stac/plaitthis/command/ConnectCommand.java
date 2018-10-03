@@ -35,13 +35,12 @@ public class ConnectCommand extends Command {
 
     private void executeUtility(PrintStream out, CommandLine cmdLine) {
         try {
-            List<String> argList = cmdLine.getArgList();
-            if (argList.size() != 2) {
+            if (cmdLine.getArgList().size() != 2) {
                 out.println(USAGE);
             } else {
-                logger.info("Connecting to {}:{}", argList.get(0), argList.get(1));
+                logger.info("Connecting to {}:{}", cmdLine.getArgList().get(0), cmdLine.getArgList().get(1));
                 if (!plaitIt.hasConnection()) {
-                    plaitIt.connect(argList.get(0), Integer.parseInt(argList.get(1)));
+                    plaitIt.connect(cmdLine.getArgList().get(0), Integer.parseInt(cmdLine.getArgList().get(1)));
                 } else {
                     plaitIt.printUsrMsg("Cannot connect to another user while connected");
                 }

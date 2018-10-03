@@ -4,6 +4,7 @@ import braidit_1.com.cyberpointllc.stac.mathematic.CryptoSystemPrivateKey;
 import braidit_1.com.cyberpointllc.stac.mathematic.CryptoSystemPublicKey;
 import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.OBJNOTEParser;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.File;
 import java.io.FileReader;
@@ -26,7 +27,7 @@ public class CommunicationsEmpty {
     }
 
     public static CommunicationsEmpty loadFromFile(File emptyFile) throws CommunicationsException {
-        OBJNOTEParser parser = new OBJNOTEParser();
+        @InvUnk("Extend library class") OBJNOTEParser parser = new OBJNOTEParser();
         try {
             OBJNOTEObject objnote = (OBJNOTEObject) parser.parse(new FileReader(emptyFile));
             OBJNOTEObject privateKeyObjnote = (OBJNOTEObject) objnote.get("privateKey");
@@ -42,7 +43,7 @@ public class CommunicationsEmpty {
     }
 
     public String toObjnote() {
-        OBJNOTEObject objnote = new OBJNOTEObject();
+        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
         objnote.put("id", id);
         objnote.put("callbackHost", callbackAddress.takeStart());
         objnote.put("callbackPort", callbackAddress.pullPort());

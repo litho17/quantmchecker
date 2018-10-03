@@ -295,7 +295,7 @@ public abstract class Dispatcher implements CommunicationsManager {
         public void run() {
             try {
                 handleClosedConnection(connection);
-            } catch (CommunicationsException e) {
+            } catch (@InvUnk("Extend library class") CommunicationsException e) {
                 System.err.println("Error disconnecting: " + e.getMessage());
             }
         }

@@ -2,11 +2,14 @@ package braidit_1.com.cyberpointllc.stac;
 
 import braidit_1.com.cyberpointllc.stac.plaitthis.command.*;
 import org.apache.commons.cli.CommandLine;
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
 
 /**
@@ -15,38 +18,27 @@ import java.util.Queue;
 public class Driver {
     PrintStream out;
     CommandLine cmdLine;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c32") AcceptGameCommand c1;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c34") AssignLengthCommand c2;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c36") DeclineGameCommand c3;
-    @Inv({"= self.plaitIt.currentGame.previousRounds (+ c38 c38)", "= self.plaitIt.currentGame.currentRound.phases c38"}) MakeGuessCommand c4;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c40") OfferGameCommand c5;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c42") SelectPlaitCommand c6;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c44") TransmitLengthsCommand c7;
-    @Inv("= self.plaitIt.currentGame.currentRound.phases c46") TransmitModifiedPlaitCommand c8;
-    public void main() {
-        @Input("100") int input = 0;
-        String c;
-        while (true) {
-            input = input - 1;
-            if (Math.random() > 0.8) {
-                c32: c1.execute(out, cmdLine);
-            } else if (Math.random() > 0.7) {
-                c34: c2.execute(out, cmdLine);
-            } else if (Math.random() > 0.6) {
-                c36: c3.execute(out, cmdLine);
-            } else if (Math.random() > 0.5) {
-                c38: c4.execute(out, cmdLine);
-            } else if (Math.random() > 0.4) {
-                c40: c5.execute(out, cmdLine);
-            } else if (Math.random() > 0.3) {
-                c42: c6.execute(out, cmdLine);
-            } else if (Math.random() > 0.2) {
-                c44: c7.execute(out, cmdLine);
-            } else if (Math.random() > 0.1) {
-                c46: c8.execute(out, cmdLine);
-            } else {
-                ;
-            }
+    public void main(List<CommandLine> input) {
+        @Inv("= (- acceptGameCommand.plaitIt.currentGame.currentRound.phases it) (- c32 c30)") AcceptGameCommand acceptGameCommand = null;
+        @Inv("= (- assignLengthCommand.plaitIt.currentGame.currentRound.phases it) (- c34 c30)") AssignLengthCommand assignLengthCommand = null;
+        @Inv("= (- declineGameCommand.plaitIt.currentGame.currentRound.phases it) (- c36 c30)") DeclineGameCommand declineGameCommand = null;
+        @Inv({"= (- makeGuessCommand.plaitIt.currentGame.previousRounds it it) (- (+ c38 c38) c30 c30)", "= (- makeGuessCommand.plaitIt.currentGame.currentRound.phases it) (- c38 c30)"}) MakeGuessCommand makeGuessCommand = null;
+        @Inv("= (- offerGameCommand.plaitIt.currentGame.currentRound.phases it) (- c40 c30)") OfferGameCommand offerGameCommand = null;
+        @Inv("= (- selectPlaitCommand.plaitIt.currentGame.currentRound.phases it) (- c42 c30)") SelectPlaitCommand selectPlaitCommand = null;
+        @Inv("= (- transmitLengthsCommand.plaitIt.currentGame.currentRound.phases it) (- c44 c30)") TransmitLengthsCommand transmitLengthsCommand = null;
+        @Inv("= (- transmitModifiedPlaitCommand.plaitIt.currentGame.currentRound.phases it) (- c46 c30)") TransmitModifiedPlaitCommand transmitModifiedPlaitCommand = null;
+        @Bound("* 10 input") int i;
+        @Iter("<= it input") Iterator<CommandLine> it = input.iterator();
+        while(true) {
+            c30: cmdLine = it.next();
+            c32: acceptGameCommand.execute(out, cmdLine);
+            c34: assignLengthCommand.execute(out, cmdLine);
+            c36: declineGameCommand.execute(out, cmdLine);
+            c38: makeGuessCommand.execute(out, cmdLine);
+            c40: offerGameCommand.execute(out, cmdLine);
+            c42: selectPlaitCommand.execute(out, cmdLine);
+            c44: transmitLengthsCommand.execute(out, cmdLine);
+            c46: transmitModifiedPlaitCommand.execute(out, cmdLine);
         }
     }
 }

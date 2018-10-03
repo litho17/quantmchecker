@@ -5,6 +5,8 @@ import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.OBJNOTEParser;
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.ParseException;
 import braidit_1.com.cyberpointllc.stac.proto.Comms;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 public final class CommunicationsPublicEmpty implements Comparable<CommunicationsPublicEmpty>{
 
@@ -27,7 +29,7 @@ public final class CommunicationsPublicEmpty implements Comparable<Communication
         OBJNOTEParser parser = new OBJNOTEParser();
         try {
             return fromObjnote((OBJNOTEObject)parser.parse(objnoteString));
-        } catch (ParseException e) {
+        } catch (@InvUnk("Extend library class") ParseException e) {
             throw new CommunicationsException(e);
         }
     }
@@ -81,7 +83,7 @@ public final class CommunicationsPublicEmpty implements Comparable<Communication
     }
 
     public OBJNOTEObject toOBJNOTEObject() {
-        OBJNOTEObject objnote = new OBJNOTEObject();
+        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
         objnote.put("id", id);
         objnote.put("callbackHost", callbackAddress.takeStart());
         objnote.put("callbackPort", callbackAddress.pullPort());

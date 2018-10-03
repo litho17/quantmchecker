@@ -30,11 +30,10 @@ public class GrowToThreeCommand extends PlaitItCommand {
         } else if (phase instanceof PlaitSelectedPhase) {
             PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    executeHelp(selectedPhase, argList);
+                    executeHelp(selectedPhase, cmdLine.getArgList());
                 }
             } catch (Exception e) {
                 plaitIt.printUsrMsg("Problem processing command: " + e.getMessage());

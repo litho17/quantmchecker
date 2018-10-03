@@ -4,6 +4,7 @@
  */
 package braidit_1.com.cyberpointllc.stac.jack.direct.grabber;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 
 /**
@@ -28,7 +29,8 @@ public class Yytoken {
 	}
 	
 	public String toString(){
-		@Inv("= self (+ c34 c35 c36 c39 c42 c45 c51 c54 c57)") StringBuffer sb = new StringBuffer();
+		@Bound("3") int i;
+		@Inv("= sb (+ c34 c35 c36 c39 c42 c45 c48 c51 c54 c57)") StringBuffer sb = new StringBuffer();
 		switch(type){
 		case TYPE_CORE:
 			c34: sb.append("VALUE(");

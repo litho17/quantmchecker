@@ -6,6 +6,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.util.Objects;
 
@@ -40,7 +41,7 @@ public class CommunicationsClient {
             Channel channel = bootstrap.connect(start, port).sync().channel();
             initializer.awaitForAuth(10000);
             return channel.attr(CommunicationsConnection.CONNECTION_ATTR).get();
-        } catch (CommunicationsException e) {
+        } catch (@InvUnk("Extend library class") CommunicationsException e) {
             throw e;
         } catch (Exception e) {
             // NOTE: if we don't catch the generic 'Exception' here then

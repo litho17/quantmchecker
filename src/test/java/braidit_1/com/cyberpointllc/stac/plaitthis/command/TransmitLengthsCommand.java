@@ -36,8 +36,7 @@ public class TransmitLengthsCommand extends PlaitItCommand {
         } else if (phase instanceof LengthsPhase) {
             LengthsPhase lengthsPhase = (LengthsPhase) phase;
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 0) {
+                if (cmdLine.getArgList().size() != 0) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
                     logger.info("Sending braids");

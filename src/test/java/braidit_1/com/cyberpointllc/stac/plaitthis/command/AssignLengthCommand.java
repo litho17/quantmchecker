@@ -34,12 +34,11 @@ public class AssignLengthCommand extends PlaitItCommand {
             LengthsPhase lengthsPhase = (LengthsPhase) phase;
 
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 2) {
+                if (cmdLine.getArgList().size() != 2) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    int plaitNum = Integer.parseInt(argList.get(0));
-                    int length = Integer.parseInt(argList.get(1));
+                    int plaitNum = Integer.parseInt(cmdLine.getArgList().get(0));
+                    int length = Integer.parseInt(cmdLine.getArgList().get(1));
 
                     if (plaitNum <= 0 || plaitNum > 5) {
                         plaitIt.printUsrMsg("braid_num must be 1, 2, 3, 4, or 5");

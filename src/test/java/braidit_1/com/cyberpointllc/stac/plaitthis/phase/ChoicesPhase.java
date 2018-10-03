@@ -1,8 +1,10 @@
 package braidit_1.com.cyberpointllc.stac.plaitthis.phase;
 
 import braidit_1.com.cyberpointllc.stac.plait.Plait;
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -104,8 +106,9 @@ public class ChoicesPhase extends GamePhase {
 
     @Override
     public String toString() {
-        @Inv("= (- self q q) (- (+ c108 c109) c110 c110 q_init q_init)") StringBuilder builder = new StringBuilder();
-        @Input("100") int q = 1;
+        @Bound("10") int j;
+        @Inv("= (- builder q q) (- (+ c108 c109) c110 c110)") StringBuilder builder = new StringBuilder();
+        @Iter("<= q 5") int q = 1;
         for (; q <=5;) {
             c108: builder.append(fetchPlait(q));
             c109: builder.append(", ");

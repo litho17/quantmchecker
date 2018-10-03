@@ -15,12 +15,11 @@ public class HistoryCommand extends Command {
     }
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        List<String> history = display.history();
         
         // don't include the last command because that is the
         // most recent history command
-        for (int p = 0; p < history.size() - 1; p++) {
-            out.println(history.get(p));
+        for (int p = 0; p < display.history().size() - 1; p++) {
+            out.println(display.history().get(p));
         }
     }
     

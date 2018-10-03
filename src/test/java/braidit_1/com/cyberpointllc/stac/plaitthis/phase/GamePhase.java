@@ -1,5 +1,6 @@
 package braidit_1.com.cyberpointllc.stac.plaitthis.phase;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
@@ -28,7 +29,7 @@ public class GamePhase {
     }
 
     // map each state to the set of allowed commands in that state
-    private static @InvUnk("Non-constant increment") Map<Phase, List<String>> allowedCommands = new HashMap<>();
+    private static Map<Phase, List<String>> allowedCommands = new HashMap<>();
 
     private static String errorPhase;
 
@@ -78,7 +79,8 @@ public class GamePhase {
     // associate allowed commands with each state (note: this doesn't include commands that are always available, such as
     // help, history, and exit.
     private static List<String> fetchCommands(Phase phase) {
-        @Inv("= self (+ c82 c85 c91 c92 c95 c96 c99 c100 c101 c107 c108 c111 c112 c113 c114 c115 c116 c117 c118 c124 c125 c133)") List<String> commands = new ArrayList<>();
+        @Bound("9") int i;
+        @Inv("= commands (+ c82 c85 c91 c92 c95 c96 c99 c100 c101 c107 c108 c111 c112 c113 c114 c115 c116 c117 c118 c124 c125 c133)") List<String> commands = new ArrayList<>();
         switch (phase) {
             case IDLE:
                 c82: commands.add("connect");

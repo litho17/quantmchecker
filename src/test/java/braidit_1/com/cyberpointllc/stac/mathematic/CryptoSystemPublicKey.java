@@ -3,6 +3,7 @@ package braidit_1.com.cyberpointllc.stac.mathematic;
 import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.OBJNOTEParser;
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.ParseException;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.math.BigInteger;
 
@@ -81,14 +82,14 @@ public class CryptoSystemPublicKey {
     }
 
     public OBJNOTEObject toOBJNOTEObject() {
-        OBJNOTEObject objnote = new OBJNOTEObject();
+        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
         objnote.put("modulus", divisor.toString());
         objnote.put("exponent", e.toString());
         return objnote;
     }
 
     public static CryptoSystemPublicKey fromObjnote(String objnoteString) throws ParseException {
-        OBJNOTEParser parser = new OBJNOTEParser();
+        @InvUnk("Complex loop") OBJNOTEParser parser = new OBJNOTEParser();
         return fromObjnote((OBJNOTEObject)parser.parse(objnoteString));
     }
 

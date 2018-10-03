@@ -17,6 +17,7 @@ import braidit_1.com.cyberpointllc.stac.proto.Braidit.LengthsMessage;
 import braidit_1.com.cyberpointllc.stac.proto.Braidit.ModifiedBraidMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Objects;
@@ -206,7 +207,7 @@ public class PlaitItDispatcher extends Dispatcher {
         try {
             logger.debug("Connection closed from {}" + conn);
             plaitIt.removeConnection(conn);
-        } catch (CommunicationsException e) {
+        } catch (@InvUnk("Extend library class") CommunicationsException e) {
             plaitIt.printUsrMsg("Error handling closed connection " + e.getMessage());
         }
     }

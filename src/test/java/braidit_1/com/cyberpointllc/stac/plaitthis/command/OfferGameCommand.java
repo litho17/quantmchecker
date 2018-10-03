@@ -33,11 +33,10 @@ public class OfferGameCommand extends PlaitItCommand {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
         } else {
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    int numFibers = Integer.parseInt(argList.get(0));
+                    int numFibers = Integer.parseInt(cmdLine.getArgList().get(0));
                     if (numFibers <= 0) {
                         throw new Exception("Number of strands must be positive: " + numFibers);
                     }

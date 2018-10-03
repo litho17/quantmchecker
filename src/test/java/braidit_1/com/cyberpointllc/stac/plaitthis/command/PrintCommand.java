@@ -31,8 +31,7 @@ public class PrintCommand extends PlaitItCommand {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
         } else {
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 0) {
+                if (cmdLine.getArgList().size() != 0) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
                     ChoicesPhase choicesPhase = plaitIt.obtainCurrentGame().getChoicesPhase();

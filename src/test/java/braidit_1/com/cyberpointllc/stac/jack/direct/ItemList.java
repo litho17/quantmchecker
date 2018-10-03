@@ -4,9 +4,7 @@
  */
 package braidit_1.com.cyberpointllc.stac.jack.direct;
 
-import plv.colorado.edu.quantmchecker.qual.Input;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -126,8 +124,9 @@ public class ItemList {
 	}
 	
 	public String toString(String sp){
-		@Inv("= (- self k) (- (+ c133 c135 c136) c138 k_init)") StringBuffer sb=new StringBuffer();
-		@Input("100") int k = 0;
+		@Bound("* 2 items") int i;
+		@Inv("= (- sb k k) (- (+ c133 c135 c136) c138 c138)") StringBuffer sb = new StringBuffer();
+		@Iter("<= k items") int k = 0;
 		for(; k <items.size();){
 			if(k ==0)
 				c133: sb.append(items.get(k));

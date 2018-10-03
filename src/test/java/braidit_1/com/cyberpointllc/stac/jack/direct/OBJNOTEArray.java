@@ -4,10 +4,7 @@
  */
 package braidit_1.com.cyberpointllc.stac.jack.direct;
 
-import plv.colorado.edu.quantmchecker.qual.Input;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -73,13 +70,14 @@ public class OBJNOTEArray extends ArrayList implements List, OBJNOTEAware, OBJNO
 	 * @param list
 	 * @return JSON text, or "null" if list is null.
 	 */
-	public static String toOBJNOTEString(@Input("100") List list){
+	public static String toOBJNOTEString(List list){
+		@Bound("+ 2 (* 3 list)") int i;
 		if(list == null)
 			return "null";
 		
         boolean first = true;
-        @Inv("= (+ self iter) (- (+ c84 c89 c92 c95 c97 list) c90)") StringBuffer sb = new StringBuffer();
-		@Inv("list") Iterator iter = list.iterator();
+        @Inv("= (- sb iter iter iter) (- (+ c84 c89 c92 c95 c97) c90 c90 c90)") StringBuffer sb = new StringBuffer();
+		@Iter("<= iter list") Iterator iter = list.iterator();
 		Object core;
         c84: sb.append('[');
 		while(iter.hasNext()){

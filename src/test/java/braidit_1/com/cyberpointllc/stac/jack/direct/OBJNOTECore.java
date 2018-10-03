@@ -6,8 +6,7 @@ package braidit_1.com.cyberpointllc.stac.jack.direct;
 
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.OBJNOTEParser;
 import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.ParseException;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.*;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -40,7 +39,7 @@ public class OBJNOTECore {
 	 */
 	public static Object parse(Reader in){
 		try{
-			OBJNOTEParser parser=new OBJNOTEParser();
+			@InvUnk("Complex loop") OBJNOTEParser parser=new OBJNOTEParser();
 			return parser.parse(in);
 		}
 		catch(Exception e){
@@ -71,12 +70,12 @@ public class OBJNOTECore {
 	 * @throws ParseException
 	 */
 	public static Object parseWithException(Reader in) throws IOException, ParseException{
-		OBJNOTEParser parser=new OBJNOTEParser();
+		@InvUnk("Complex loop") OBJNOTEParser parser=new OBJNOTEParser();
 		return parser.parse(in);
 	}
 	
 	public static Object parseWithException(String s) throws ParseException{
-		OBJNOTEParser parser=new OBJNOTEParser();
+		@InvUnk("Complex loop") OBJNOTEParser parser=new OBJNOTEParser();
 		return parser.parse(s);
 	}
 	
@@ -92,7 +91,6 @@ public class OBJNOTECore {
      * @see OBJNOTEArray#writeOBJNOTEString(List, Writer)
      * 
      * @param core
-     * @param writer
      */
 	public static void writeOBJNOTEString(Object core, Writer out) throws IOException {
 		if(core == null){
@@ -217,47 +215,48 @@ public class OBJNOTECore {
 	public static String escape(String s){
 		if(s==null)
 			return null;
-        @InvUnk("Nested loop") StringBuffer sb = new StringBuffer();
-		int i=0;
+		@Bound("s") int j;
+        StringBuffer sb = new StringBuffer();
+		@Iter("<= i s") int i = 0;
 		for(;i<s.length();){
 			char ch=s.charAt(i);
 			switch(ch){
 				case '"':
-					sb.append("\\\"");
+					c226: sb.append("\\\"");
 					break;
 				case '\\':
-					sb.append("\\\\");
+					c229: sb.append("\\\\");
 					break;
 				case '\b':
-					sb.append("\\b");
+					c232: sb.append("\\b");
 					break;
 				case '\f':
-					sb.append("\\f");
+					c235: sb.append("\\f");
 					break;
 				case '\n':
-					sb.append("\\n");
+					c238: sb.append("\\n");
 					break;
 				case '\r':
-					sb.append("\\r");
+					c241: sb.append("\\r");
 					break;
 				case '\t':
-					sb.append("\\t");
+					c244: sb.append("\\t");
 					break;
 				case '/':
-					sb.append("\\/");
+					c247: sb.append("\\/");
 					break;
 				default:
 					//Reference: http://www.unicode.org/versions/Unicode5.1.0/
 					if((ch>='\u0000' && ch<='\u001F') || (ch>='\u007F' && ch<='\u009F') || (ch>='\u2000' && ch<='\u20FF')){
 						String ss=Integer.toHexString(ch);
-						sb.append("\\u");
+						c253: sb.append("\\u");
 						for(int k=0;k<4-ss.length();k++){
-							sb.append('0');
+							c255: sb.append('0');
 						}
-						sb.append(ss.toUpperCase());
+						c257: sb.append(ss.toUpperCase());
 					}
 					else{
-						sb.append(ch);
+						c260: sb.append(ch);
 					}
 			}
 			c262: i = i + 1;

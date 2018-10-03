@@ -97,7 +97,7 @@ public class PlaitIt {
         this.phase = step;
 
         display.renewCurrentCommands();
-        List<String> allowedCommands = step.obtainAllowedCommands();
+        @InvUnk("Read from nested lists") List<String> allowedCommands = step.obtainAllowedCommands();
         for (int i = 0; i < allowedCommands.size(); ) {
             while ((i < allowedCommands.size()) && (Math.random() < 0.4)) {
                 for (; (i < allowedCommands.size()) && (Math.random() < 0.4); i++) {
@@ -246,7 +246,7 @@ public class PlaitIt {
             printUsrMsg("Ignoring request to set connection to " + conn + " -- already have a connection");
             try {
                 conn.close();
-            } catch (CommunicationsException e){
+            } catch (@InvUnk("Extend library class") CommunicationsException e){
                 printUsrMsg("Unable to close undesired connection.");
             }
         }

@@ -1,6 +1,7 @@
 package braidit_1.com.cyberpointllc.stac.mathematic;
 
 import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -106,7 +107,7 @@ public class CryptoSystemPrivateKey {
     }
 
     public OBJNOTEObject toOBJNOTEObject() {
-        OBJNOTEObject objnote = new OBJNOTEObject();
+        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
         objnote.put("p", this.p.toString());
         objnote.put("q", this.q.toString());
         return objnote;

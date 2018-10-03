@@ -3,8 +3,7 @@ package braidit_1.com.cyberpointllc.stac.plaitthis;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.ChoicesPhase;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.GamePhase;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.LengthsPhase;
-import plv.colorado.edu.quantmchecker.qual.Inc;
-import plv.colorado.edu.quantmchecker.qual.InvKwn;
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.Deque;
@@ -15,7 +14,7 @@ import java.util.LinkedList;
  */
 public class Round {
     private final boolean doIGoFirst;
-    @InvKwn("User defined container") private final Deque<GamePhase> phases = new LinkedList<>();
+    private final Deque<GamePhase> phases = new LinkedList<>();
 
     private boolean won;
 

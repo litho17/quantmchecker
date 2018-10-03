@@ -36,11 +36,10 @@ public class SelectPlaitCommand extends PlaitItCommand {
             ChoicesPhase choicesPhase = (ChoicesPhase) phase;
 
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    int plaitNum = Integer.parseInt(argList.get(0));
+                    int plaitNum = Integer.parseInt(cmdLine.getArgList().get(0));
 
                     if (plaitNum <= 0 || plaitNum > 5) {
                         plaitIt.printUsrMsg("braid_num must be 1, 2, 3, 4, or 5");

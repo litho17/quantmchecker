@@ -31,11 +31,10 @@ public class TripleSwapCommand extends PlaitItCommand {
             PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
 
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    long seed = Long.parseLong(argList.get(0));
+                    long seed = Long.parseLong(cmdLine.getArgList().get(0));
                     logger.info("Triple swap with seed={}", seed);
                     boolean success = selectedPhase.obtainPlait().flipRandomTriple(seed);
                     if (success) {

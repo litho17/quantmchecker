@@ -32,11 +32,10 @@ public class ModifyRandomCommand extends PlaitItCommand {
             PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
 
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    executeEntity(selectedPhase, argList);
+                    executeEntity(selectedPhase, cmdLine.getArgList());
                 }
             } catch (Exception e) {
                 plaitIt.printUsrMsg("Problem processing command: " + e.getMessage());

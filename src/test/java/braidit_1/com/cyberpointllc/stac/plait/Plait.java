@@ -2,18 +2,9 @@ package braidit_1.com.cyberpointllc.stac.plait;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import plv.colorado.edu.quantmchecker.qual.Input;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Class representing an element of Artin's braid group.  Normal form reduction is done via Dehornoy's algorithm:
@@ -43,23 +34,23 @@ public class Plait {
     private int penalty;
     public static Random random = new Random(0);
 
-    public Plait(String meetings, int numFibers) {
-        meetings = meetings.replace(" ", "");
+    public Plait(String meetings_, int numFibers) {
+        meetings_ = meetings_.replace(" ", "");
         if (numFibers > MAX_FIBERS || numFibers < OPTIMUM_FIBERS) {
             throw new IllegalArgumentException("numStrands must be between " + OPTIMUM_FIBERS + " and " + MAX_FIBERS);
         }
-        if (meetings.length() > MAX_LENGTH) {
+        if (meetings_.length() > MAX_LENGTH) {
             throw new IllegalArgumentException("Braid representation length must be no more than " + MAX_LENGTH);
         }
 
-        this.meetings = meetings;
+        this.meetings = meetings_;
         this.numFibers = numFibers;
         this.penalty = computePenalty();
 
         // check that the crossings only include the appropriate letters for the given number of strands.
         // We work backwards, using z and Z for crossings on two strands, y, Y, z, Z for crossings on 3 strands, etc.
         optimumBaseChar = (char)( 'z' - numFibers +2);
-        char[] charArray = meetings.toCharArray();
+        char[] charArray = meetings_.toCharArray();
         for (int q = 0; q < charArray.length; q++) {
             char c = charArray[q];
             if (!Character.isAlphabetic(c) || Character.toLowerCase(c) < optimumBaseChar) {
@@ -355,7 +346,16 @@ public class Plait {
         if (seed != null) {
             random.setSeed(seed);
         }
-        List<Integer> indices = determineTriples();
+        @Bound("meetings") int i;
+        @Inv("= (- indices q) (- c378 c380)") List<Integer> indices = new ArrayList<>();
+        @Iter("<= q meetings") int q = 0;
+        for (; q < meetings.length() - 2;) {
+            if (Math.abs(meetings.charAt(q) - meetings.charAt(q +1)) == 1 && meetings.charAt(q) == meetings.charAt(q +2)) {
+                c378: indices.add(q);
+            }
+            c380: q = q + 1;
+        }
+        // List<Integer> indices = determineTriples();
         if (indices.isEmpty()) {
             return false;
         }
@@ -373,8 +373,9 @@ public class Plait {
      * @return indices of triples of the form i(i+1)i or (i+1)i(i+1)
      */
     public List<Integer> determineTriples() {
-        @Inv("= (- self q) (- c378 c380 q_init)") List<Integer> indices = new ArrayList<>();
-        @Input("100") int q = 0;
+        @Bound("meetings") int i;
+        @Inv("= (- indices q) (- c378 c380)") List<Integer> indices = new ArrayList<>();
+        @Iter("<= q meetings") int q = 0;
         for (; q < meetings.length() - 2;) {
             if (Math.abs(meetings.charAt(q) - meetings.charAt(q +1)) == 1 && meetings.charAt(q) == meetings.charAt(q +2)) {
                 c378: indices.add(q);
@@ -386,7 +387,8 @@ public class Plait {
 
     // replace substring(i, j) of crossings with chunk
     private void insertInMeetings(int q, int j, String portion) {
-        @Inv("= self (+ c387 c388 c389)") StringBuilder builder = new StringBuilder();
+        @Bound("3") int i;
+        @Inv("= builder (+ c387 c388 c389)") StringBuilder builder = new StringBuilder();
         c387: builder.append(meetings.substring(0, q));
         c388: builder.append(portion);
         c389: builder.append(meetings.substring(j));
@@ -511,14 +513,21 @@ public class Plait {
     }
 
     public int computePenalty() {
-        @Inv("= (- self i) (- c514 c513 i_init)") Map<Character, Integer> countsMap = new HashMap<>();
+        @Bound("* 2 meetings") int j;
+        @Inv("= (- countsMap i) (- c514 c513)") Map<Character, Integer> countsMap = new HashMap<>();
         char[] charArray = meetings.toCharArray();
-        @Input("100") int i = 0;
+        @Iter("<= i meetings") int i = 0;
         for (;i < charArray.length;) {
             c514: computePenaltySupervisor(countsMap, charArray[i]);
             c513: i = i + 1;
         }
-        Collection<Integer> counts = countsMap.values();
+        @Inv("= (- counts it) (- c530 c529)") Collection<Integer> counts = new ArrayList<>();
+        @Iter("<= it countsMap") Iterator<Integer> it = countsMap.values().iterator();
+        int k;
+        while (it.hasNext()) {
+            c529: k = it.next();
+            c530: counts.add(k);
+        }
         if (counts.size() < MAX_FIBERS - 1) { // 0 if not all characters appear
             return 0;
         }

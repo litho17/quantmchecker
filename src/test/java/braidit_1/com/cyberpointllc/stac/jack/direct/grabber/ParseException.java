@@ -1,5 +1,6 @@
 package braidit_1.com.cyberpointllc.stac.jack.direct.grabber;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 
 /**
@@ -71,7 +72,8 @@ public class ParseException extends Exception {
 	}
 	
 	public String toString(){
-		@Inv("= self (+ c78 c79 c80 c81 c82 c85 c86 c87 c88 c89 c92 c93 c94 c95 c98 c99 c100)") StringBuffer sb = new StringBuffer();
+		@Bound("5") int i;
+		@Inv("= sb (+ c78 c79 c80 c81 c82 c85 c86 c87 c88 c89 c92 c93 c94 c95 c98 c99 c100)") StringBuffer sb = new StringBuffer();
 		
 		switch(errorType){
 		case ERROR_UNEXPECTED_CHAR:

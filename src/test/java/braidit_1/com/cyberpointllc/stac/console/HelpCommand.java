@@ -33,10 +33,9 @@ public class HelpCommand extends Command {
     
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        List<String> argList = cmdLine.getArgList();
-        if (argList.size() > 0) {
-            for (int i = 0; i < argList.size(); i++) {
-                String cmdName = argList.get(i);
+        if (cmdLine.getArgList().size() > 0) {
+            for (int i = 0; i < cmdLine.getArgList().size(); i++) {
+                String cmdName = cmdLine.getArgList().get(i);
                 printCommand(out, cmdName, cmdLine);
             }
         } else {
@@ -74,12 +73,11 @@ public class HelpCommand extends Command {
     }
     
     private void printAllCommands(PrintStream out, CommandLine cmdLine) {
-        List<Command> commands = display.obtainCommands();
         
         // find the length of the longest command
         int longestLength = 0;
-        for (int b = 0; b < commands.size(); b++) {
-            Command command = commands.get(b);
+        for (int b = 0; b < display.obtainCommands().size(); b++) {
+            Command command = display.obtainCommands().get(b);
             if (longestLength < command.takeName().length()) {
                 longestLength = command.takeName().length();
             }
@@ -88,8 +86,8 @@ public class HelpCommand extends Command {
         out.println("Commands:");
         out.println("---------");
         boolean brief = cmdLine.hasOption('b');
-        for (int p = 0; p < commands.size(); p++) {
-            Command command = commands.get(p);
+        for (int p = 0; p < display.obtainCommands().size(); p++) {
+            Command command = display.obtainCommands().get(p);
             if (!brief) {
                 int sepLength = (longestLength + 3) - command.takeName().length();
                 String separator = StringUtils.repeat(' ', sepLength);

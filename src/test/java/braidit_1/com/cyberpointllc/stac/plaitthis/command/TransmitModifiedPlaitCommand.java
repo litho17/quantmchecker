@@ -37,8 +37,7 @@ public class TransmitModifiedPlaitCommand extends PlaitItCommand {
             PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
 
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 0) {
+                if (cmdLine.getArgList().size() != 0) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
                     logger.info("Sending modified braid");

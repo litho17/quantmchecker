@@ -23,8 +23,7 @@ public class DisconnectCommand extends PlaitItCommand {
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
         try {
-            List<String> argList = cmdLine.getArgList();
-            if (argList.size() != 0) {
+            if (cmdLine.getArgList().size() != 0) {
                 out.println(USAGE);
             } else {
                 logger.info("Disconnecting...");

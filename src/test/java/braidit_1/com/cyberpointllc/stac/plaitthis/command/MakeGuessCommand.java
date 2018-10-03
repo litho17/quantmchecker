@@ -36,11 +36,10 @@ public class MakeGuessCommand extends PlaitItCommand {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
         } else if (phase instanceof PlaitSelectedPhase) {
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    int selection = Integer.parseInt(argList.get(0));
+                    int selection = Integer.parseInt(cmdLine.getArgList().get(0));
                     if (selection <= 0 || selection > 5) {
                         plaitIt.printUsrMsg(COMMAND + " must be used with a selection between 1 and 5");
                         return;

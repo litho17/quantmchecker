@@ -20,19 +20,17 @@ public class RepeatCommand extends Command {
     @Override
     @Summary({"this.display.history", "cmdLine.args"})
     public void execute(PrintStream out, CommandLine cmdLine) {
-        List<String> argList = cmdLine.getArgList();
-        if (argList.size() != 1) {
+        if (cmdLine.getArgList().size() != 1) {
             out.println(this.fetchUsage());
             return;
         }
         try {
-            int numOfCommandsToRepeat = Integer.parseInt(argList.get(0));
+            int numOfCommandsToRepeat = Integer.parseInt(cmdLine.getArgList().get(0));
             if (numOfCommandsToRepeat > MAX_REPEATS) {
                 out.println("Error cannot perform more than " + MAX_REPEATS + " repeats.");
                 return;
             }
-            List<String> history = display.history();
-            int size = history.size();
+            int size = display.history().size();
 
             // we need size - 1 because the most recent repeat command is in the
             // history, but we do not count it
@@ -41,7 +39,7 @@ public class RepeatCommand extends Command {
                         + " have been executed");
             } else if (numOfCommandsToRepeat > 0) {
                 for (int q = size - numOfCommandsToRepeat - 1; q < size - 1; q++) {
-                    executeAdviser(out, history.get(q));
+                    executeAdviser(out, display.history().get(q));
                 }
             }
         } catch (NumberFormatException e) {

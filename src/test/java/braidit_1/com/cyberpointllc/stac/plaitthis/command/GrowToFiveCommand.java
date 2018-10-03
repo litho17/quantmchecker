@@ -30,11 +30,10 @@ public class GrowToFiveCommand extends PlaitItCommand {
         } else if (phase instanceof PlaitSelectedPhase) {
             PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    int index = Integer.parseInt(argList.get(0));
+                    int index = Integer.parseInt(cmdLine.getArgList().get(0));
                     logger.info("Expanding 1-5 index={}", index);
                     boolean success = selectedPhase.obtainPlait().growOneToFive(index);
                     if (success) {

@@ -7,9 +7,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.InvKwn;
-import plv.colorado.edu.quantmchecker.qual.Summary;
+import plv.colorado.edu.quantmchecker.qual.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,16 +15,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class Display {
     private final PrintStream out;
     private final ConsoleReader reader;
-    @InvKwn("User defined container") private List<String> history = new ArrayList<String>();
+    private List<String> history = new ArrayList<String>();
 
     // commands that are available in the current program state
     private final Map<String, Command> currentCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -129,9 +123,19 @@ public class Display {
      * @return a copy of the commands
      */
     public List<Command> obtainCommands() {
-        List<Command> commands = new ArrayList<>();
-        commands.addAll(currentCommands.values());
-        commands.addAll(permanentCommands.values());
+        @Bound("+ currentCommands permanentCommands") int i;
+        @Inv("= (- commands it1 it2) (- (+ c133 c138) c132 c137)") List<Command> commands = new ArrayList<>();
+        @Iter("<= it1 currentCommands") Iterator<Command> it1 = currentCommands.values().iterator();
+        Command c;
+        while (it1.hasNext()) {
+            c132: c = it1.next();
+            c133: commands.add(c);
+        }
+        @Iter("<= it2 permanentCommands") Iterator<Command> it2 = permanentCommands.values().iterator();
+        while (it2.hasNext()) {
+            c137: c = it2.next();
+            c138: commands.add(c);
+        }
         return commands;
     }
 

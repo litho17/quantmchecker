@@ -30,11 +30,10 @@ public class SwapCommand extends PlaitItCommand {
         } else if (phase instanceof PlaitSelectedPhase) {
             PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 1) {
+                if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    int index = Integer.parseInt(argList.get(0));
+                    int index = Integer.parseInt(cmdLine.getArgList().get(0));
                     logger.info("Swapping braid at index={}", index);
                     boolean success = selectedPhase.obtainPlait().swap(index);
                     if (success) {

@@ -39,8 +39,7 @@ public class DeclineGameCommand extends PlaitItCommand {
 
     private void executeHelper(CommandLine cmdLine) {
         try {
-            List<String> argList = cmdLine.getArgList();
-            if (argList.size() != 0) {
+            if (cmdLine.getArgList().size() != 0) {
                 plaitIt.printUsrMsg(USAGE);
             } else {
                 new DeclineGameCommandTarget().invoke();
