@@ -133,6 +133,10 @@ object Utils {
     // ("java.util.Queue", "poll")
   )
 
+  val UNKNOWN_API = "Unknown API"
+  val DYNAMIC_DISPATCH = "Dynamic dispath"
+  val EXTEND_LIB_CLASS = "Extend library class"
+
   /**
     *
     * @param anno annotation
@@ -248,8 +252,11 @@ object Utils {
       case stmt: ReturnTree => HashSet[StatementTree](stmt)
       case stmt: VariableTree => HashSet[StatementTree](stmt)
       case stmt: TryTree =>
-        stmt.getCatches.asScala.foldLeft(flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)) {
+        val stmts = stmt.getCatches.asScala.foldLeft(flattenStmt(stmt.getBlock) ++ flattenStmt(stmt.getFinallyBlock)) {
           (acc, s) => acc ++ flattenStmt(s.getParameter) ++ flattenStmt(s.getBlock)
+        }
+        stmt.getResources.asScala.foldLeft(stmts) {
+          (acc, s) => acc ++ flattenStmt(s.asInstanceOf[StatementTree])
         }
       case stmt: SynchronizedTree => flattenStmt(stmt.getBlock)
       case _ => new HashSet[StatementTree]

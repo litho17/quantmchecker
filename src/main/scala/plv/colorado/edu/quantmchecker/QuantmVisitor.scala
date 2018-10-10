@@ -34,13 +34,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   private var methodTrees = new HashSet[MethodTree]
   private var verifiedMethods = new HashSet[MethodTree]
-  private var uninterestingMethods = new HashSet[MethodTree]
-  private var verifiedLists = new HashSet[VarTyp]
+  private var vacuouslyVerifiedMethods = new HashSet[MethodTree]
   private var failCauses = new HashSet[FailCause]
   // private var localCollections = new HashSet[VarTyp]
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
-    val methodStr = "Method: " + TreeUtils.enclosingClass(atypeFactory.getPath(node)).getSimpleName + "." + node.getName.toString
+    val methodStr = "Method: " + TreeUtils.enclosingClass(atypeFactory.getPath(node)).getSimpleName + "." + node.getName.toString + " (line " + getLineNumber(node) + ")\n" + getFileName
     def getSizes(t: VarTyp): Set[String] = {
       val cls = trees.getTree(t.getTypElement(types))
       if (TypesUtils.isPrimitive(t.getTypMirror)) new HashSet[String]
@@ -124,7 +123,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     } else {
       verifiedMethods += node
     }
-    if (sizes.isEmpty) uninterestingMethods += node
+    if (sizes.isEmpty) vacuouslyVerifiedMethods += node
     // localCollections ++= localTypCxt.filter { case (name, typ) => Utils.isCollectionTyp(typ.getTypElement(types)) }.values
     null
   }
@@ -132,7 +131,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   override def processClassTree(tree: ClassTree): Unit = {
     val numbers = List[String](
       verifiedMethods.size.toString,
-      uninterestingMethods.size.toString,
+      vacuouslyVerifiedMethods.size.toString,
       methodTrees.size.toString,
       Z3Solver.TOTAL_QUERY.toString)
     val output = numbers.foldLeft("Statistics: "){(acc, n) => acc + n + ", "}
@@ -312,7 +311,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       val calleeSummary = getMethodSummaries(getMethodTypFromInvocation(node).getElement)
       val isAdd = Utils.isColWhat("add", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
       val isRmv = Utils.isColWhat("remove", types.erasure(methodType.getUnderlyingType), method.getElement, atypeFactory)
-      if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
+      // if (isAdd) Utils.logging("[list.add] line " + getLineNumber(node) + " " + node + "\n(" + getFileName + ")\n")
       typCxt.cxt.foreach { // Do not check iterator's and self's type annotation
         t =>
           if (t.typCheck) {
