@@ -30,10 +30,12 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     PrintStuff.printRedString("java.library.path: " + System.getProperty("java.library.path"))
   }
 
-  Utils.logging("# of verified methods, # of methods, # of queries, Z3 time")
+  Utils.logging("# of verified methods, # of uninteresting methods, # of methods, # of queries")
 
   private var methodTrees = new HashSet[MethodTree]
   private var verifiedMethods = new HashSet[MethodTree]
+  private var uninterestingMethods = new HashSet[MethodTree]
+  private var verifiedLists = new HashSet[VarTyp]
   private var failCauses = new HashSet[FailCause]
   // private var localCollections = new HashSet[VarTyp]
 
@@ -67,11 +69,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           typecheck(SmtUtils.mkForall(init), node, "T-Decl: " + t.anno)
         }
     }
+    val sizes: Set[String] = localTypCxt.cxt.foldLeft(new HashSet[String]) {
+      case (acc, t) => if (t.typCheck) acc ++ getSizes(t) else acc
+    }
     val isBounded = {
       if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
-        val sizes: Set[String] = localTypCxt.cxt.foldLeft(new HashSet[String]) {
-          case (acc, t) => if (t.typCheck) acc ++ getSizes(t) else acc
-        }
         val inputs: Set[String] = typCxt.cxt.foldLeft(new HashSet[String]) {
             (acc, t) => if (t.isInput) acc + t.varElement.getSimpleName.toString else acc
         }
@@ -122,12 +124,19 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     } else {
       verifiedMethods += node
     }
+    if (sizes.isEmpty) uninterestingMethods += node
     // localCollections ++= localTypCxt.filter { case (name, typ) => Utils.isCollectionTyp(typ.getTypElement(types)) }.values
     null
   }
 
   override def processClassTree(tree: ClassTree): Unit = {
-    Utils.logging("Statistics: " + verifiedMethods.size + ", " + methodTrees.size + ", " + Z3Solver.TOTAL_QUERY + ", " + Z3Solver.TOTAL_TIME)
+    val numbers = List[String](
+      verifiedMethods.size.toString,
+      uninterestingMethods.size.toString,
+      methodTrees.size.toString,
+      Z3Solver.TOTAL_QUERY.toString)
+    val output = numbers.foldLeft("Statistics: "){(acc, n) => acc + n + ", "}
+    Utils.logging(output)
     super.processClassTree(tree)
   }
 
