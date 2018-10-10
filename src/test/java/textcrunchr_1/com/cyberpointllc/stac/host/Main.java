@@ -9,7 +9,11 @@ import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 import textcrunchr_1.com.cyberpointllc.stac.textcrunchr.*;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 public class Main {
@@ -26,7 +30,7 @@ public class Main {
         String filename = "";
         String outputOption = "";
         String[] processors = new String[0];
-        @InvUnk({"outph.namesToPaths: Arbitrary update", "outph.sortedFiles: Arbitrary update", "outph.results: Arbitrary update"}) OutputHandler outph;
+        @InvUnk("Reassign") OutputHandler outph;
         try {
             CommandLineParser parser = new DefaultParser();
             options.addOption("o", true, "Output form. Defaults to console." + "\nUse either \"console\", \"xml\" or \"window\"");
@@ -58,7 +62,16 @@ public class Main {
             outph = OutputHandlerFactory.getOutputHandler(outputOption);
             for (String filepath : files) {
                 try {
-                    tfHandler.processFile(filepath, outph, processors);
+                    @Inv("= argsList args") List<String> argsList = new ArrayList<String>(Arrays.asList(processors));
+                    Iterator<Processor> it = tfHandler.processors.iterator();
+                    while (it.hasNext()) {
+                        Processor processor;
+                        processor = it.next();
+                        if (argsList.isEmpty() || argsList.contains(processor.getName())) {
+                            @InvUnk("Dynamic dispatch") TCResult tcr = processor.process(new FileInputStream(filepath));
+                            outph.addResult(filepath, tcr);
+                        }
+                    }
                 } catch (IOException ioe) {
                     System.out.println("file " + filepath + " could not be analyzed.");
                     ioe.printStackTrace();

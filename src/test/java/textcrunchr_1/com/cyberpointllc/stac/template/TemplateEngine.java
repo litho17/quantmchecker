@@ -56,20 +56,8 @@ public class TemplateEngine {
      * replaced with the keys' corresponding values
      */
     public String replaceTags(Map<String, String> dictionary) {
-        @InvUnk("Update not expressible with method summary") StringBuilder sb = new StringBuilder();
-        replaceTagsBuilder(dictionary, sb);
-        return sb.toString();
-    }
-
-    /**
-     * Adds to the string builder, the template where the tags in text have been replaced with the
-     * values specified in the dictionary
-     *
-     * @param dictionary a Map with template keys and their corresponding values
-     * @param sb         The string builder to put the data in
-     */
-    public void replaceTagsBuilder(Map<String, String> dictionary,
-                                   @Iter("= (- self i) (- (+ c104 c108 c113) (+ c110 c110))") StringBuilder sb) {
+        @Bound("+ (* 3 text) 2") int j;
+        @Inv("= (- sb i i) (- (+ c77 c81 c86) c83 c83)") StringBuilder sb = new StringBuilder();
         // keep track of where we are on the text string
         int linePointer = 0;
         int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
@@ -83,20 +71,21 @@ public class TemplateEngine {
             c64: tagsList.add(Pair.of(matcher.start(), matcher.end()));
             c65: find = matcher.find();
         }
-        for (int i = 0; i < tagsList.size(); ) {
+        for (@Iter("<= i tagsList") int i = 0; i < tagsList.size(); ) {
             int startTagLocation = tagsList.get(i).getLeft();
             int endTagLocation = tagsList.get(i).getRight();
             // append the part of the text that doesn't have tags
-            sb.append(text.substring(linePointer, startTagLocation));
+            c77: sb.append(text.substring(linePointer, startTagLocation));
             // get the dictionary key
             String key = text.substring(startTagLocation + startTagLength, endTagLocation - endTagLength).trim();
             // append the value to the text instead of the key
-            sb.append(dictionary.get(key));
+            c81: sb.append(dictionary.get(key));
             linePointer = endTagLocation;
-            i++;
+            c83: i++;
         }
         // append the last part of the text that doesn't have tags
-        sb.append(text.substring(linePointer, text.length()));
+        c86: sb.append(text.substring(linePointer, text.length()));
+        return sb.toString();
     }
 
     public String replaceTags(Templated templated) {
@@ -111,13 +100,43 @@ public class TemplateEngine {
      * @return a string representing all of the templated items
      */
     public String replaceTags(@Input("") List<? extends Templated> templateds, String separator) {
-        @Inv("= (- sb it) (- c130 c128)") StringBuilder sb = new StringBuilder();
+        @Bound("+ text 1 (* 2 templateds) (* 2 templateds tagsList)") int j;
+        @Inv("= (- sb it it i i) (- (+ c134 c135 c125 c129) c128 c128 c131 c131)") StringBuilder sb = new StringBuilder();
         @Iter("<= it templateds") Iterator<? extends Templated> it = templateds.iterator();
+        @Iter("<= i (* templateds tagsList)") int i = 0;
+        int k = 1;
         while (it.hasNext()) {
             Templated templated;
             c128: templated = it.next();
-            replaceTagsBuilder(templated.getTemplateMap(), sb);
-            c130: sb.append(separator);
+            // keep track of where we are on the text string
+            int linePointer = 0;
+            int startTagLength = StringEscapeUtils.unescapeJava(startTag).length();
+            int endTagLength = StringEscapeUtils.unescapeJava(endTag).length();
+            @Input("<= matcher text") String text = this.text;
+            Matcher matcher = pattern.matcher(text);
+            @Inv("= (- tagsList matcher) (- c64 c62 c65)") List<Pair<Integer, Integer>> tagsList = new ArrayList();
+            boolean find;
+            c62: find = matcher.find();
+            while (find) {
+                c64: tagsList.add(Pair.of(matcher.start(), matcher.end()));
+                c65: find = matcher.find();
+            }
+            for (; i < tagsList.size() * k; ) {
+                int startTagLocation = tagsList.get(i).getLeft();
+                int endTagLocation = tagsList.get(i).getRight();
+                // append the part of the text that doesn't have tags
+                c125: sb.append(text.substring(linePointer, startTagLocation));
+                // get the dictionary key
+                String key = text.substring(startTagLocation + startTagLength, endTagLocation - endTagLength).trim();
+                // append the value to the text instead of the key
+                c129: sb.append(templated.getTemplateMap().get(key));
+                linePointer = endTagLocation;
+                c131: i = i + 1;
+            }
+            // append the last part of the text that doesn't have tags
+            c134: sb.append(text.substring(linePointer, text.length()));
+            c135: sb.append(separator);
+            k = k + 1;
         }
         return sb.toString();
     }

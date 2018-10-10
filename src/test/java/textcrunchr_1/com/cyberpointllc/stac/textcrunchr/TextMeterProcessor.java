@@ -3,9 +3,11 @@ package textcrunchr_1.com.cyberpointllc.stac.textcrunchr;
 import plv.colorado.edu.quantmchecker.qual.Input;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 import textcrunchr_1.com.nicnilov.textmeter.TestUtils;
 import textcrunchr_1.com.nicnilov.textmeter.TextLanguage;
 import textcrunchr_1.com.nicnilov.textmeter.TextMeter;
+import textcrunchr_1.com.nicnilov.textmeter.ngrams.Ngram;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.NgramType;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.TextScore;
 import textcrunchr_1.com.nicnilov.textmeter.ngrams.storage.LineFormatException;
@@ -15,7 +17,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
 
 public class TextMeterProcessor extends Processor {
 
@@ -37,7 +41,7 @@ public class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new TextMeter();
         textMeter.createTextLanguage("en");
-        @InvUnk("Method return list") TextLanguage en = textMeter.get("en");
+        @InvUnk("Nested lists") TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {
@@ -48,7 +52,16 @@ public class TextMeterProcessor extends Processor {
             //        	en.getNgram(NgramType.QUINTGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_QUINTGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_QUINTGRAMS_EXCNT);
             //        
             // score text
-            @InvUnk("Method return list") TextScore textScore = en.score(theString.toUpperCase(Locale.ENGLISH));
+            @Inv("= (- textScore.ngramScores it) (- c54 c52)") TextScore textScore = new TextScore();
+            @InvUnk("Nested lists") Ngram ngram;
+            @Iter("<= it en.ngrams") Iterator<Map.Entry<NgramType, Ngram>> it = en.ngrams.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<NgramType, Ngram> entry;
+                c52: entry = it.next();
+                if ((ngram = entry.getValue()) != null) {
+                    c54: textScore.add(entry.getKey(), ngram.score(theString.toUpperCase(Locale.ENGLISH)));
+                }
+            }
             message = "en-based score for english text: " + textScore;
         } catch (LineFormatException lfe) {
             message = "Processing failed.";

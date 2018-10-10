@@ -17,15 +17,15 @@ import java.util.Map;
  */
 public class Ngram {
 
-    private NgramType ngramType;
+    public NgramType ngramType;
 
-    private NgramStorage ngramStorage;
+    public NgramStorage ngramStorage;
 
-    private long volume;
+    public long volume;
 
-    private double floor;
+    public double floor;
 
-    protected Ngram(NgramType ngramType, NgramStorageStrategy ngramStorageStrategy, int sizeHint) {
+    public Ngram(NgramType ngramType, NgramStorageStrategy ngramStorageStrategy, int sizeHint) {
         this.ngramType = ngramType;
         this.ngramStorage = NgramStorageFactory.get(ngramType, ngramStorageStrategy, sizeHint);
     }
@@ -43,7 +43,7 @@ public class Ngram {
         return this;
     }
 
-    protected void calculateLogFrequences() {
+    public void calculateLogFrequences() {
         calculateLogFrequencesHelper();
     }
 
@@ -126,7 +126,7 @@ public class Ngram {
         }
     }
 
-    private void loadHelper() throws IOException, LineFormatException {
+    public void loadHelper() throws IOException, LineFormatException {
         floor = Math.log10(0.01 / volume);
     }
 

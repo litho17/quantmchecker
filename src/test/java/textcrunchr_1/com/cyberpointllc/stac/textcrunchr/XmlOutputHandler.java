@@ -41,7 +41,7 @@ public class XmlOutputHandler extends OutputHandler {
                 filenameEle.setAttribute("name", filename);
                 rootEle.appendChild(filenameEle);
                 String path = namesToPaths.get(filename);
-                @InvUnk("Read from nested lists") List<TCResult> sampleResults = results.get(path);
+                @InvUnk("Nested lists") List<TCResult> sampleResults = results.get(path);
                 for (TCResult result : sampleResults) {
                     Element name = dom.createElement("result");
                     name.setAttribute("name", result.getName());

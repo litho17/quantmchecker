@@ -13,7 +13,7 @@ import java.util.List;
 
 public class TextFileHandler {
 
-    List<Processor> processors = new ArrayList<Processor>();
+    public List<Processor> processors = new ArrayList<Processor>();
 
     @Summary({"this.processors", "5"})
     public TextFileHandler() throws IOException {
@@ -27,19 +27,5 @@ public class TextFileHandler {
         //processors.add(new SentenceStatsProcessor());
         processors.add(new WordStatsProcessor());
         processors.add(new WordFrequencyProcessor());
-    }
-
-    @Summary({"outph", "unknown"})
-    public void processFile(String filename, OutputHandler outph, String[] args) throws IOException {
-        @Inv("= argsList args") List<String> argsList = new ArrayList<String>(Arrays.asList(args));
-        Iterator<Processor> it = processors.iterator();
-        while (it.hasNext()) {
-            Processor processor;
-            processor = it.next();
-            if (argsList.isEmpty() || argsList.contains(processor.getName())) {
-                @InvUnk("Different values from dynamic dispatch") TCResult tcr = processor.process(new FileInputStream(filename));
-                outph.addResult(filename, tcr);
-            }
-        }
     }
 }

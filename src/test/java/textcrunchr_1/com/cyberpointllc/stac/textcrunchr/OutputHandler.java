@@ -26,7 +26,14 @@ public abstract class OutputHandler {
 
     @Summary({"this.results", "1"})
     public void addResult(String filename, TCResult tcr) {
-        addResultHelper(tcr, filename);
+        if (results.containsKey(filename)) {
+            @InvUnk("Nested lists") List<TCResult> list = results.get(filename);
+            list.add(tcr);
+        } else {
+            List<TCResult> newlist = new ArrayList<TCResult>();
+            newlist.add(tcr);
+            results.put(filename, newlist);
+        }
     }
 
     public void conclude() throws OutputHandlerException {
@@ -38,15 +45,4 @@ public abstract class OutputHandler {
     }
 
     protected abstract void do_conclude() throws OutputHandlerException;
-
-    private void addResultHelper(TCResult tcr, String filename) {
-        if (results.containsKey(filename)) {
-            @InvUnk("Read from nested lists") List<TCResult> list = results.get(filename);
-            list.add(tcr);
-        } else {
-            List<TCResult> newlist = new ArrayList<TCResult>();
-            newlist.add(tcr);
-            results.put(filename, newlist);
-        }
-    }
 }
