@@ -1,4 +1,4 @@
-package battleboats_1.com.cyberpointllc.stac.command;
+package withmi_1.edu.networkcusp.terminal;
 
 import jline.console.ConsoleReader;
 import jline.console.CursorBuffer;
@@ -7,9 +7,6 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
-import plv.colorado.edu.quantmchecker.qual.Bound;
-import plv.colorado.edu.quantmchecker.qual.Inv;
-import plv.colorado.edu.quantmchecker.qual.Iter;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.BufferedReader;
@@ -18,45 +15,37 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class Console {
     private final PrintStream out;
     private final ConsoleReader reader;
     public List<String> history = new ArrayList<String>();
 
-    // commands that are available in the current program state
-    public final Map<String, Command> currentCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    // commands that a user can use at any time
-    public final Map<String, Command> permanentCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    // commands that might become available in the future
-    public final Map<String, Command> inactiveCommands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-
-    private final CommandLineParser commandLineGrabber = new DefaultParser();
+    public final Map<String, Command> commands = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    private final CommandLineParser commandLineParser = new DefaultParser();
 
     private boolean shouldExit = false;
-    private LineManager defaultLineManager = null;
+    private LineGuide defaultLineGuide = null;
     private CursorBuffer stashed;
 
     public Console(String name) throws IOException {
-        this(name, System.in, System.out);
-    }
-
-    public Console(String name, InputStream inputStream, PrintStream out) throws IOException {
-        this(name, inputStream, out, false, false);
-    }
-
-    public Console(String name, InputStream inputStream, PrintStream out, boolean includeRepeat, boolean includeScript) throws IOException {
+        InputStream inputStream = System.in;
+        PrintStream out = System.out;
         if (StringUtils.isBlank(name)) {
-            throw new IllegalArgumentException("Console name may not be null");
+            ConsoleHome();
         }
 
         if (inputStream == null) {
-            throw new IllegalArgumentException("InputStream may not be null");
+            ConsoleGuide();
         }
 
         if (out == null) {
-            throw new IllegalArgumentException("PrintStream may not be null");
+            ConsoleEngine();
         }
 
         this.out = out;
@@ -64,73 +53,53 @@ public class Console {
         reader = new ConsoleReader(inputStream, out);
         reader.setPrompt(name + "> ");
         reader.addCompleter(new CommandCompleter(this));
-
-        addPermanentCommand(new ExitCommand(this));
-        addPermanentCommand(new HelpCommand(this));
-
-        addPermanentCommand(new HistoryCommandProducer().assignConsole(this).makeHistoryCommand());
-        if (includeRepeat) {
-            addPermanentCommand(new RepeatCommand(this));
-        }
-        if (includeScript) {
-            addPermanentCommand(new ScriptCommand(this));
-        }
     }
 
-    public void addPermanentCommand(Command command) {
+    private void ConsoleEngine() {
+        throw new IllegalArgumentException("PrintStream may not be null");
+    }
+
+    private void ConsoleGuide() {
+        throw new IllegalArgumentException("InputStream may not be null");
+    }
+
+    private void ConsoleHome() {
+        throw new IllegalArgumentException("Console name may not be null");
+    }
+
+    @Summary({"this.commands", "1"})
+    public void addCommand(Command command) {
         if (command == null) {
             throw new IllegalArgumentException("Command may not be null");
         }
 
-        permanentCommands.put(command.grabName(), command);
+        commands.put(command.fetchName(), command);
 
-        if (command.fetchCompleter() != null) {
-            reader.addCompleter(command.fetchCompleter());
+        if (command.getCompleter() != null) {
+            reader.addCompleter(command.getCompleter());
         }
     }
 
-    public void addInactiveCommand(Command command){
-        if (command == null) {
-            throw new IllegalArgumentException("Command may not be null");
-        }
-        inactiveCommands.put(command.grabName(), command);
-        if (command.fetchCompleter() != null) {
-            reader.addCompleter(command.fetchCompleter());
-        }
+    public void assignDefaultLineGuide(LineGuide guide) {
+        this.defaultLineGuide = guide;
     }
 
-    public void activateCommand(String cmd){
-        Command command = inactiveCommands.get(cmd);
-        if (command == null) {
-            throw new IllegalArgumentException("Command " + cmd + " not found");
-        }
-        currentCommands.put(cmd, command);
-    }
-
-    public void releaseCurrentCommands(){
-        for (Command command : currentCommands.values()){
-            reader.removeCompleter(command.fetchCompleter());
-        }
-        currentCommands.clear();
-    }
-
-    public void fixDefaultLineManager(LineManager manager) {
-        this.defaultLineManager = manager;
+    /**
+     * @return a copy of the commands
+     */
+    public List<Command> pullCommands() {
+        return new ArrayList<>(commands.values());
     }
 
     public boolean hasCommand(String name) {
-        return currentCommands.containsKey(name) || permanentCommands.containsKey(name);
+        return commands.containsKey(name);
     }
 
-    public Command obtainCommand(String name) {
-        if (currentCommands.containsKey(name)) {
-            return currentCommands.get(name);
-        } else {
-            return permanentCommands.get(name);
-        }
+    public Command takeCommand(String name) {
+        return commands.get(name);
     }
 
-    public String grabFollowingCommand() throws IOException {
+    public String takeNextCommand() throws IOException {
         return reader.readLine();
     }
 
@@ -140,7 +109,7 @@ public class Console {
      */
     public void execute() throws IOException {
         while (!shouldExit()) {
-            executeFollowingCommand();
+            executeNextCommand();
         }
     }
 
@@ -149,7 +118,8 @@ public class Console {
      *
      * @throws IOException
      */
-    public void executeFollowingCommand() throws IOException {
+    @Summary({"this.history", "1"})
+    public void executeNextCommand() throws IOException {
         executeCommand(reader.readLine());
     }
 
@@ -160,6 +130,7 @@ public class Console {
      * @param line the command and parameters to execute
      * @throws IOException
      */
+    @Summary({"this.history", "1"})
     public void executeCommand(String line) throws IOException {
         executeCommand(line, true);
     }
@@ -171,11 +142,13 @@ public class Console {
      * @param addToHistory indicates if the line should be added to history
      * @throws IOException
      */
+    @Summary({"this.history", "1"})
     public void executeCommand(String line, boolean addToHistory) throws IOException {
+
         if (line == null) {
             // end of file? must have been a console redirect
             // we need to exit no matter what.
-            defineShouldExit(true);
+            assignShouldExit(true);
             return;
         }
 
@@ -194,11 +167,10 @@ public class Console {
         }
 
         if (hasCommand(name)) {
-            Command command = obtainCommand(name);
+            Command command = takeCommand(name);
             try {
-                boolean stopAtNonOption = command.obtainOptions().getOptions().isEmpty();
-                CommandLine cmdLine = commandLineGrabber.parse(command.obtainOptions(),
-                        Arrays.copyOfRange(items, 1, items.length), stopAtNonOption);
+                CommandLine cmdLine = commandLineParser.parse(command.getOptions(),
+                        Arrays.copyOfRange(items, 1, items.length));
                 // add command to command history
                 if (addToHistory) {
                     history.add(line);
@@ -208,14 +180,15 @@ public class Console {
             } catch (ParseException e) {
                 out.print("Error: " + e.getMessage());
             }
-        } else if (defaultLineManager == null) {
+        } else if (defaultLineGuide == null) {
             out.println("Invalid command: '" + name + "'");
         } else {
-            defaultLineManager.handleLine(line, out);
+            defaultLineGuide.handleLine(line, out);
         }
+
     }
 
-    public void defineShouldExit(boolean shouldExit) {
+    public void assignShouldExit(boolean shouldExit) {
         this.shouldExit = shouldExit;
     }
 
@@ -236,22 +209,22 @@ public class Console {
             read = read.trim();
             // don't execute the line if the line is empty or is a comment
             if (!read.isEmpty() && read.charAt(0) != '#') {
-                runScriptGuide(read);
+                runScriptAid(read);
             }
             read = reader.readLine();
         }
     }
 
-    private void runScriptGuide(String read) throws IOException {
+    private void runScriptAid(String read) throws IOException {
         String[] commandArgs = read.split(" ");
         // don't execute script commands from scripts
         if (!commandArgs[0].equalsIgnoreCase(ScriptCommand.NAME)) {
             // print the command so the user knows what is being executed
-            runScriptGuideFunction(read);
+            runScriptAidAid(read);
         }
     }
 
-    private void runScriptGuideFunction(String read) throws IOException {
+    private void runScriptAidAid(String read) throws IOException {
         System.out.println(read);
         this.executeCommand(read);
     }
@@ -291,7 +264,7 @@ public class Console {
         }
     }
 
-    public PrintStream obtainOutputStream() {
+    public PrintStream takeOutputStream() {
         return out;
     }
 }
