@@ -296,7 +296,7 @@ class Yylex {
     private boolean zzAtEOF;
 
     /* user code: */
-    @InvUnk("Complicated loop") private StringBuffer sb = new StringBuffer();
+    private StringBuffer sb = new StringBuffer();
 
     int fetchPosition() {
         return yychar;

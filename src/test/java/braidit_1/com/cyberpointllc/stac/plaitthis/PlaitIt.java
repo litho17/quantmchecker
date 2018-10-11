@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class PlaitIt {
-    @InvUnk("Non-constant increment") private final Display display;
+    private final Display display;
     private final PlaitItDispatcher dispatcher;
     private final CommunicationsClient client;
     private final CommunicationsServer server;
@@ -97,11 +97,10 @@ public class PlaitIt {
         this.phase = step;
 
         display.renewCurrentCommands();
-        @InvUnk("Read from nested lists") List<String> allowedCommands = step.obtainAllowedCommands();
-        for (int i = 0; i < allowedCommands.size(); ) {
-            while ((i < allowedCommands.size()) && (Math.random() < 0.4)) {
-                for (; (i < allowedCommands.size()) && (Math.random() < 0.4); i++) {
-                    String s = allowedCommands.get(i);
+        for (int i = 0; i < step.obtainAllowedCommands().size(); ) {
+            while ((i < step.obtainAllowedCommands().size()) && (Math.random() < 0.4)) {
+                for (; (i < step.obtainAllowedCommands().size()) && (Math.random() < 0.4); i++) {
+                    String s = step.obtainAllowedCommands().get(i);
                     display.activateCommand(s);
                 }
             }

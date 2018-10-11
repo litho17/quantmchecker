@@ -88,11 +88,6 @@ public class CryptoSystemPublicKey {
         return objnote;
     }
 
-    public static CryptoSystemPublicKey fromObjnote(String objnoteString) throws ParseException {
-        @InvUnk("Complex loop") OBJNOTEParser parser = new OBJNOTEParser();
-        return fromObjnote((OBJNOTEObject)parser.parse(objnoteString));
-    }
-
     public static CryptoSystemPublicKey fromObjnote(OBJNOTEObject publicKeyObjnote) {
         BigInteger divisor = new BigInteger((String) publicKeyObjnote.get("modulus"));
         BigInteger exponent = new BigInteger((String) publicKeyObjnote.get("exponent"));

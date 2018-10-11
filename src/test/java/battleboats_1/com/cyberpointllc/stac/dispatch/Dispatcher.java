@@ -1,11 +1,10 @@
-package braidit_1.com.cyberpointllc.stac.dispatch;
+package battleboats_1.com.cyberpointllc.stac.dispatch;
 
-import braidit_1.com.cyberpointllc.stac.communications.CommunicationsConnection;
-import braidit_1.com.cyberpointllc.stac.communications.CommunicationsException;
-import braidit_1.com.cyberpointllc.stac.communications.CommunicationsManager;
-import braidit_1.com.cyberpointllc.stac.console.Display;
+import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersConnection;
+import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersDeviation;
+import battleboats_1.com.cyberpointllc.stac.dialogs.TalkersManager;
+import battleboats_1.com.cyberpointllc.stac.command.Console;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -33,20 +32,20 @@ import java.util.concurrent.TimeUnit;
  * and the calling thread is left in a loop that periodically polls for
  * any generated errors.
  */
-public abstract class Dispatcher implements CommunicationsManager {
+public abstract class Dispatcher implements TalkersManager {
     private static final long POLL_TIME = 1;
 
-    protected final Display display;
+    protected final Console console;
 
     private final BlockingQueue<Throwable> errorQueue;
-    private final ExecutorService displayExecutorService;
+    private final ExecutorService consoleExecutorService;
     private final ScheduledExecutorService scheduledExecutorService;
 
-    public Dispatcher(Display display) {
-        this.display = Objects.requireNonNull(display, "Console may not be null");
+    public Dispatcher(Console console) {
+        this.console = Objects.requireNonNull(console, "Console may not be null");
 
         errorQueue = new LinkedBlockingQueue<>();
-        displayExecutorService = Executors.newSingleThreadExecutor();
+        consoleExecutorService = Executors.newSingleThreadExecutor();
         scheduledExecutorService = new MyScheduledThreadPoolExecutor(errorQueue);
     }
 
@@ -55,11 +54,11 @@ public abstract class Dispatcher implements CommunicationsManager {
     // received messages, connections, and disconnections,
     // when it is their turn to be processed.
 
-    protected abstract void handleReceivedMessage(byte[] data, CommunicationsConnection conn);
+    protected abstract void handleReceivedMessage(byte[] data, TalkersConnection conn);
 
-    protected abstract void handleNewConnection(CommunicationsConnection conn) throws CommunicationsException;
+    protected abstract void handleNewConnection(TalkersConnection conn) throws TalkersDeviation;
 
-    protected abstract void handleClosedConnection(CommunicationsConnection conn) throws CommunicationsException;
+    protected abstract void handleClosedConnection(TalkersConnection conn) throws TalkersDeviation;
 
     /**
      * Creates and executes a one-shot action that becomes enabled
@@ -162,18 +161,18 @@ public abstract class Dispatcher implements CommunicationsManager {
     }
 
     @Override
-    public void handle(CommunicationsConnection conn, byte[] message) throws CommunicationsException {
+    public void handle(TalkersConnection conn, byte[] message) throws TalkersDeviation {
         try {
             scheduledExecutorService.submit(new MessageManager(conn, message));
         } catch (RejectedExecutionException e) {
             if (!scheduledExecutorService.isShutdown()) {
-                throw new CommunicationsException("Trouble submitting remote message task", e);
+                throw new TalkersDeviation("Trouble submitting remote message task", e);
             }
         }
     }
 
     @Override
-    public void newConnection(CommunicationsConnection connection) throws CommunicationsException {
+    public void newConnection(TalkersConnection connection) throws TalkersDeviation {
         if (connection != null) {
             try {
                 Future<?> future = scheduledExecutorService.submit(new NewConnectionManager(connection));
@@ -181,28 +180,28 @@ public abstract class Dispatcher implements CommunicationsManager {
                 // to get executed before allowing another command
                 future.get();
             } catch (ExecutionException e) {
-                if (e.getCause() instanceof CommunicationsException) {
-                    throw (CommunicationsException) e.getCause();
+                if (e.getCause() instanceof TalkersDeviation) {
+                    throw (TalkersDeviation) e.getCause();
                 } else {
-                    throw new CommunicationsException(e.getCause());
+                    throw new TalkersDeviation(e.getCause());
                 }
             } catch (RejectedExecutionException e) {
                 if (!scheduledExecutorService.isShutdown()) {
-                    throw new CommunicationsException("Trouble submitting new connection task", e);
+                    throw new TalkersDeviation("Trouble submitting new connection task", e);
                 }
             } catch (Exception e) {
-                throw new CommunicationsException(e);
+                throw new TalkersDeviation(e);
             }
         }
     }
 
     @Override
-    public void closedConnection(CommunicationsConnection connection) throws CommunicationsException {
+    public void closedConnection(TalkersConnection connection) throws TalkersDeviation {
         try {
             scheduledExecutorService.submit(new ClosedConnectionManager(connection));
         } catch (RejectedExecutionException e) {
             if (!scheduledExecutorService.isShutdown()) {
-                throw new CommunicationsException("Trouble submitting close connection task", e);
+                throw new TalkersDeviation("Trouble submitting close connection task", e);
             }
         }
     }
@@ -218,12 +217,12 @@ public abstract class Dispatcher implements CommunicationsManager {
      * @throws Throwable if there are processing errors
      */
     public void run() throws Throwable {
-        displayExecutorService.execute(new DisplayRunner());
+        consoleExecutorService.execute(new ConsoleRunner());
 
         // While waiting for the console to conclude,
         // process the results of all background dispatches in the
         // main thread so the user can be notified of any issues.
-        while (!display.shouldExit()) {
+        while (!console.shouldExit()) {
             try {
                 Throwable throwable = errorQueue.poll(POLL_TIME, TimeUnit.SECONDS);
 
@@ -240,28 +239,28 @@ public abstract class Dispatcher implements CommunicationsManager {
      * Handles any remaining console messages, then shuts down
      */
     public void shutdown() {
-        display.setShouldExit(true);
-        displayExecutorService.shutdown();
+        console.defineShouldExit(true);
+        consoleExecutorService.shutdown();
         scheduledExecutorService.shutdown();
     }
 
-    private class DisplayRunner implements Runnable {
+    private class ConsoleRunner implements Runnable {
         @Override
         public void run() {
-            while (!display.shouldExit()) {
+            while (!console.shouldExit()) {
                 try {
-                    String command = display.pullEnsuingCommand();
+                    String command = console.grabFollowingCommand();
                     Future<?> future = scheduledExecutorService.submit(new CommandManager(command));
                     // Need to wait for this command (and any pending messages)
                     // to get executed before allowing another command
                     future.get();
                 } catch (ExecutionException e) {
-                    errorQueue.add(new CommunicationsException(e.getCause()));
+                    errorQueue.add(new TalkersDeviation(e.getCause()));
                 } catch (RejectedExecutionException e) {
                     if (scheduledExecutorService.isShutdown()) {
-                        display.setShouldExit(true);
+                        console.defineShouldExit(true);
                     } else {
-                        errorQueue.add(new CommunicationsException("Trouble submitting console task", e));
+                        errorQueue.add(new TalkersDeviation("Trouble submitting console task", e));
                     }
                 } catch (Exception e) {
                     errorQueue.add(e);
@@ -271,9 +270,9 @@ public abstract class Dispatcher implements CommunicationsManager {
     }
 
     private class NewConnectionManager implements Callable<Void> {
-        private final CommunicationsConnection connection;
+        private final TalkersConnection connection;
 
-        private NewConnectionManager(CommunicationsConnection connection) {
+        private NewConnectionManager(TalkersConnection connection) {
             this.connection = connection;
         }
 
@@ -285,9 +284,9 @@ public abstract class Dispatcher implements CommunicationsManager {
     }
 
     private class ClosedConnectionManager implements Runnable {
-        private final CommunicationsConnection connection;
+        private final TalkersConnection connection;
 
-        private ClosedConnectionManager(CommunicationsConnection connection) {
+        private ClosedConnectionManager(TalkersConnection connection) {
             this.connection = connection;
         }
 
@@ -295,7 +294,7 @@ public abstract class Dispatcher implements CommunicationsManager {
         public void run() {
             try {
                 handleClosedConnection(connection);
-            } catch (@InvUnk("Extend library class") CommunicationsException e) {
+            } catch (@InvUnk("Extend library class") TalkersDeviation e) {
                 System.err.println("Error disconnecting: " + e.getMessage());
             }
         }
@@ -314,7 +313,7 @@ public abstract class Dispatcher implements CommunicationsManager {
         @Override
         public void run() {
             try {
-                display.executeCommand(command);
+                console.executeCommand(command);
             } catch (IOException e) {
                 System.err.println("Error executing command: " + e.getMessage());
             }
@@ -326,10 +325,10 @@ public abstract class Dispatcher implements CommunicationsManager {
      * a remote connection.
      */
     private class MessageManager implements Runnable {
-        private final CommunicationsConnection conn;
+        private final TalkersConnection conn;
         private final byte[] data;
 
-        private MessageManager(CommunicationsConnection conn, byte[] data) {
+        private MessageManager(TalkersConnection conn, byte[] data) {
             this.conn = conn;
             this.data = data;
         }
@@ -354,7 +353,6 @@ public abstract class Dispatcher implements CommunicationsManager {
         }
 
         @Override
-        @Summary({"queue", "1"})
         protected void afterExecute(Runnable runnable, Throwable throwable) {
             super.afterExecute(runnable, throwable);
 

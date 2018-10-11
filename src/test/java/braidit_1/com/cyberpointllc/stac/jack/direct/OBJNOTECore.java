@@ -52,33 +52,6 @@ public class OBJNOTECore {
 		return parse(in);
 	}
 	
-	/**
-	 * Parse JSON text into java object from the input source.
-	 * 
-	 * @see OBJNOTEParser
-	 * 
-	 * @param in
-	 * @return Instance of the following:
-	 * 	org.json.simple.JSONObject,
-	 * 	org.json.simple.JSONArray,
-	 * 	java.lang.String,
-	 * 	java.lang.Number,
-	 * 	java.lang.Boolean,
-	 * 	null
-	 * 
-	 * @throws IOException
-	 * @throws ParseException
-	 */
-	public static Object parseWithException(Reader in) throws IOException, ParseException{
-		@InvUnk("Complex loop") OBJNOTEParser parser=new OBJNOTEParser();
-		return parser.parse(in);
-	}
-	
-	public static Object parseWithException(String s) throws ParseException{
-		@InvUnk("Complex loop") OBJNOTEParser parser=new OBJNOTEParser();
-		return parser.parse(s);
-	}
-	
     /**
      * Encode an object into JSON text and write it to out.
      * <p>
