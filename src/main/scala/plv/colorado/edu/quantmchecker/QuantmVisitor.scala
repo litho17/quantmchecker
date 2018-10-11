@@ -123,20 +123,22 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     } else {
       verifiedMethods += node
     }
-    if (sizes.isEmpty) vacuouslyVerifiedMethods += node
+    if (node.getBody == null || sizes.isEmpty) {
+      verifiedMethods += node
+      vacuouslyVerifiedMethods += node
+    }
     // localCollections ++= localTypCxt.filter { case (name, typ) => Utils.isCollectionTyp(typ.getTypElement(types)) }.values
+    Utils.logging(getStatistics)
     null
   }
 
-  override def processClassTree(tree: ClassTree): Unit = {
+  private def getStatistics: String = {
     val numbers = List[String](
       verifiedMethods.size.toString,
       vacuouslyVerifiedMethods.size.toString,
       methodTrees.size.toString,
       Z3Solver.TOTAL_QUERY.toString)
-    val output = numbers.foldLeft("Statistics: "){(acc, n) => acc + n + ", "}
-    Utils.logging(output)
-    super.processClassTree(tree)
+    numbers.foldLeft("Statistics: "){(acc, n) => acc + n + ", "}
   }
 
   private def typecheck(query: String, node: Tree, errorMsg: String): Boolean = {

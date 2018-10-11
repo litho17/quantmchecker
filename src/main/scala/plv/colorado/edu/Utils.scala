@@ -129,7 +129,8 @@ object Utils {
     ("java.util.Enumeration", "nextElement"),
     ("java.io.BufferedReader", "readLine"),
     ("java.io.InputStreamReader", "read"),
-    ("org.htmlparser.lexer.Lexer", "nextNode")
+    ("org.htmlparser.lexer.Lexer", "nextNode"),
+    ("java.io.Reader", "read")
     // ("java.util.Queue", "poll")
   )
 
