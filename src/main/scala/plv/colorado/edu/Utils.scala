@@ -134,9 +134,8 @@ object Utils {
     // ("java.util.Queue", "poll")
   )
 
-  val UNKNOWN_API = "Unknown API"
-  val DYNAMIC_DISPATCH = "Dynamic dispath"
-  val EXTEND_LIB_CLASS = "Extend library class"
+  val WHY_NOT_COUNT_SIZES: HashSet[String] = HashSet[String](
+    "Unknown API", "Dynamic dispatch", "Extend library class", "Bug")
 
   /**
     *
@@ -437,9 +436,10 @@ case class VarTyp(varElement: VariableElement,
 
   def getTypElement(types: Types): TypeElement = TypesUtils.getTypeElement(getErasedTypMirror(types))
 
-  private def fromOutside: Boolean = isField || isParameter || annoTyp.isInput || annoTyp.isBound
+  def typCheck: Boolean = annoTyp.isInv // Want to type check?
 
-  def typCheck: Boolean = !fromOutside && !annoTyp.isIter && !annoTyp.isUnk
+  // Consider its size?
+  def considerSize: Boolean = !isField && !isParameter && !annoTyp.isIter && !annoTyp.isBound && !annoTyp.isInput && !Utils.WHY_NOT_COUNT_SIZES.contains(anno)
 
   //elements.getTypeElement(getTypMirror(types).toString)
 }

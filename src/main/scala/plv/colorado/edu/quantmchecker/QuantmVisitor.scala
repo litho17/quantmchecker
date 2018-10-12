@@ -70,7 +70,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         }
     }
     val sizes: Set[String] = localTypCxt.cxt.foldLeft(new HashSet[String]) {
-      case (acc, t) => if (t.typCheck) acc ++ getSizes(t) else acc
+      case (acc, t) => if (t.considerSize) acc ++ getSizes(t) else acc
     }
     val isBounded = {
       if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
