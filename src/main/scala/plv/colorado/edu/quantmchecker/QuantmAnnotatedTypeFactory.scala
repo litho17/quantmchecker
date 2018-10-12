@@ -11,7 +11,7 @@ import org.checkerframework.framework.util.{GraphQualifierHierarchy, MultiGraphQ
 import org.checkerframework.javacutil.{AnnotationBuilder, AnnotationUtils, TreeUtils}
 import plv.colorado.edu.quantmchecker.qual._
 import plv.colorado.edu.quantmchecker.verification.SmtUtils
-import plv.colorado.edu.{TypCxt, Utils, VarTyp}
+import plv.colorado.edu.{TypCxt, Utils, VarProp, VarTyp}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.HashSet
@@ -53,9 +53,10 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
   /**
     *
     * @param rcvr tree representation of a variable
+    * @param set a set of type annotations that we care
     * @return annotation of the receiver of a method invocation
     */
-  def getTypeAnnotation(rcvr: Tree): AnnotationMirror = {
+  def getTypeAnnotation(rcvr: Tree, set: Set[AnnotationMirror]): AnnotationMirror = {
     val annotations: util.Collection[_ <: AnnotationMirror] = rcvr match {
       case s: VariableTree =>
         // I don't understand why the following does not work
@@ -65,7 +66,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       case _ => getAnnotatedType(rcvr).getAnnotations
     }
     val filter: util.Collection[AnnotationMirror] = annotations.asScala
-      .filter(p => AnnotationUtils.areSameIgnoringValues(p, INV) || AnnotationUtils.areSameIgnoringValues(p, INPUT) || AnnotationUtils.areSameIgnoringValues(p, BOUND) || AnnotationUtils.areSameIgnoringValues(p, ITER))
+      .filter(p => set.exists(anno => AnnotationUtils.areSameIgnoringValues(p, anno)))
       .map(anno => anno.asInstanceOf[AnnotationMirror]).asJavaCollection
     getTypeAnnotation(filter)
   }
@@ -91,8 +92,12 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     }
   }
 
-  private def getVarAnnoMap(annoMirror: AnnotationMirror): (String, Boolean, Boolean, Boolean) = {
-    if (annoMirror == null) return (SmtUtils.TRUE, false, false, false)
+  private def getVarAnnoMap(annoMirror: AnnotationMirror): (String, VarProp) = {
+    if (annoMirror == null) return (SmtUtils.TRUE, VarProp(false, false, false, false, false))
+    val isInv = {
+      if (AnnotationUtils.areSameIgnoringValues(annoMirror, INV)) true
+      else false
+    }
     val isInput = {
       if (AnnotationUtils.areSameIgnoringValues(annoMirror, INPUT)) true
       else false
@@ -105,14 +110,18 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
       if (AnnotationUtils.areSameIgnoringValues(annoMirror, ITER)) true
       else false
     }
+    val isUnk = {
+      if (AnnotationUtils.areSameIgnoringValues(annoMirror, INVUNK)) true
+      else false
+    }
     // Make sure that key and values in the map are all in valid format (i.e. trimmed and no parenthesis)
     val annotations =
       Utils.extractArrayValues(annoMirror, "value").map(s => SmtUtils.rmParen(s.trim)).toSet
     // Only use the first element in the annotation string array as the type refinement
-    (annotations.head, isInput, isBound, isIter)
+    (annotations.head, VarProp(isInv, isInput, isBound, isIter, isUnk))
   }
 
-  def getVarAnnoMap(node: Tree): (VariableElement, String, Boolean, Boolean, Boolean) = {
+  def getVarAnnoMap(node: Tree): (VariableElement, String, VarProp) = {
     /*
     val annotations = {
       node.getModifiers.getAnnotations.asScala.foldLeft(new HashSet[AnnotationMirror]) {
@@ -123,10 +132,11 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
     val listInvAnnotations = annotations.filter(mirror => AnnotationUtils.areSameIgnoringValues(mirror, targetAnnot))
     val annotations: List[String] = AnnoTypeUtils.extractValues(TreeUtils.annotationFromAnnotationTree(node))
     */
-    val annotations = getTypeAnnotation(node) // TODO: Null if variable is array type
+    val annoTyps = HashSet[AnnotationMirror](ITER, INPUT, BOUND, INV, INVUNK)
+    val annotations = getTypeAnnotation(node, annoTyps) // TODO: Null if variable is array type
     val res = getVarAnnoMap(annotations)
     node match {
-      case v: VariableTree => (TreeUtils.elementFromDeclaration(v), res._1, res._2, res._3, res._4)
+      case v: VariableTree => (TreeUtils.elementFromDeclaration(v), res._1, res._2)
       case _ => ???
     }
     // variable element, annotation, isInput, isBound, isIter
@@ -141,7 +151,7 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             // Get annotations on class fields
             // We consider class fields as inputs, but NOT bounds
             val res = getVarAnnoMap(member)
-            acc + VarTyp(res._1, res._2, true, false, res._3, res._4, res._5)
+            acc + VarTyp(res._1, res._2, res._3, true, false)
           case _ => acc
         }
     }
@@ -164,13 +174,13 @@ class QuantmAnnotatedTypeFactory(checker: BaseTypeChecker) extends BaseAnnotated
             val res = getVarAnnoMap(stmt)
             val isParameter = parameterDecl.contains(stmt)
             if (includeParameters)
-              acc + VarTyp(res._1, res._2, false, isParameter, res._3, res._4, res._5)
+              acc + VarTyp(res._1, res._2, res._3, false, isParameter)
             else {
               if (isParameter) acc
-              else acc + VarTyp(res._1, res._2, false, isParameter, res._3, res._4, res._5)
+              else acc + VarTyp(res._1, res._2, res._3, false, isParameter)
             }
           case x@_ =>
-            if (x.toString.contains("@Inv(")) Utils.logging("Missed an invariant!\n" + x.toString)
+            if (x.toString.contains("@Inv")) Utils.logging("Missed an invariant!\n" + x.toString)
             acc
         }
     }

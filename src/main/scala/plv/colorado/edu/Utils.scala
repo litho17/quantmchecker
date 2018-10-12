@@ -429,23 +429,22 @@ case class AccessPath(head: AccessPathHead, path: List[AccessPathElement]) {
 
 case class VarTyp(varElement: VariableElement,
                   anno: String,
-                  isField: Boolean,
-                  isParameter: Boolean,
-                  isInput: Boolean,
-                  isBound: Boolean,
-                  isIter: Boolean) {
+                  annoTyp: VarProp,
+                  isField: Boolean, isParameter: Boolean) {
   def getTypMirror: TypeMirror = varElement.asType()
 
   def getErasedTypMirror(types: Types): TypeMirror = types.erasure(varElement.asType())
 
   def getTypElement(types: Types): TypeElement = TypesUtils.getTypeElement(getErasedTypMirror(types))
 
-  def fromOutside: Boolean = isField || isParameter || isInput || isBound
+  private def fromOutside: Boolean = isField || isParameter || annoTyp.isInput || annoTyp.isBound
 
-  def typCheck: Boolean = !fromOutside && !isIter
+  def typCheck: Boolean = !fromOutside && !annoTyp.isIter && !annoTyp.isUnk
 
   //elements.getTypeElement(getTypMirror(types).toString)
 }
+
+case class VarProp(isInv: Boolean, isInput: Boolean, isBound: Boolean, isIter: Boolean, isUnk: Boolean)
 
 case class TypCxt(cxt: Set[VarTyp]) {
   def getVar(name: String): Set[VarTyp] = cxt.filter(t => t.varElement.getSimpleName.toString == name)

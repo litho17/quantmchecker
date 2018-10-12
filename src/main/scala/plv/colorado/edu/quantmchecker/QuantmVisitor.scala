@@ -40,6 +40,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   override def visitMethod(node: MethodTree, p: Void): Void = {
     val methodStr = "Method: " + TreeUtils.enclosingClass(atypeFactory.getPath(node)).getSimpleName + "." + node.getName.toString + " (line " + getLineNumber(node) + ")\n" + getFileName
+
     def getSizes(t: VarTyp): Set[String] = {
       val cls = trees.getTree(t.getTypElement(types))
       if (TypesUtils.isPrimitive(t.getTypMirror)) new HashSet[String]
@@ -74,10 +75,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
     val isBounded = {
       if (node.getBody != null) { // Check if method's total variable size is less than SIZE_BOUND
         val inputs: Set[String] = typCxt.cxt.foldLeft(new HashSet[String]) {
-            (acc, t) => if (t.isInput) acc + t.varElement.getSimpleName.toString else acc
+          (acc, t) => if (t.annoTyp.isInput) acc + t.varElement.getSimpleName.toString else acc
         }
         val bounds: Set[String] = typCxt.cxt.foldLeft(new HashSet[String]) {
-          (acc, t) => if (t.isBound) acc + t.anno else acc
+          (acc, t) => if (t.annoTyp.isBound) acc + t.anno else acc
         }
         val totalSize = SmtUtils.mkAdd(sizes.toList: _*)
         val goal = {
@@ -90,9 +91,9 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
           val cfRelation = new CFRelation(node.getBody, new Z3Solver).constraints.map(ast => ast.toString).toArray
           val methodBodyCounter = SmtUtils.mkEq(Utils.hashCode(node.getBody).toString, "1")
           val typRefinements = typCxt.cxt.foldLeft(List[String]()) {
-            (acc, t) => if (!t.isBound) t.anno :: acc else acc
+            (acc, t) => if (t.annoTyp.isInput || t.annoTyp.isIter || t.annoTyp.isInv) t.anno :: acc else acc
           }
-          val array: Array[String] =  cfRelation ++ typRefinements :+ methodBodyCounter
+          val array: Array[String] = cfRelation ++ typRefinements :+ methodBodyCounter
           SmtUtils.mkAnd(array: _*)
         }
         val query = SmtUtils.mkForallImply(constraints, isBounded)
@@ -118,7 +119,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
         else ""
       }
       Utils.logging(failCausesStr + "\n")
-      if (typCxt.cxt.exists(t => t.isBound))
+      if (typCxt.cxt.exists(t => t.annoTyp.isBound))
         Utils.logging("Cannot prove @Bound in: " + methodStr)
     } else {
       verifiedMethods += node
@@ -138,7 +139,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       vacuouslyVerifiedMethods.size.toString,
       methodTrees.size.toString,
       Z3Solver.TOTAL_QUERY.toString)
-    numbers.foldLeft("Statistics: "){(acc, n) => acc + n + ", "}
+    numbers.foldLeft("Statistics: ") { (acc, n) => acc + n + ", " }
   }
 
   private def typecheck(query: String, node: Tree, errorMsg: String): Boolean = {
@@ -189,7 +190,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
                   } else if (isIter) { // z = x.iter
                     val newAnno = SmtUtils.substitute(t.anno, List(label, receiverName),
                       List(SmtUtils.mkAdd(label, "1"), Utils.ZERO_STR)) // New iterator: Size/Value is reset to 0
-                    val implication = SmtUtils.mkForallImply(t.anno, newAnno)
+                  val implication = SmtUtils.mkForallImply(t.anno, newAnno)
                     typecheck(implication, node, "z = x.iter")
                   } else { // May be arbitrary update
                     val (reachableListFlds, recTyps) = Utils.getReachableFieldsAndRecTyps(lhsTypElement, elements, types, trees, HashSet[AccessPath](AccessPath(AccessPathHead(lhs.toString, lhsTypElement), List())))
@@ -385,8 +386,10 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
 
   override def visitVariable(node: VariableTree, p: Void): Void = {
     val anno = atypeFactory.getVarAnnoMap(node)
-    if (anno._5) return null // If @Iter
-    if (anno._3) return null // If @Input
+    if (anno._3.isIter) return null // If @Iter
+    if (anno._3.isInput) return null // If @Input
+    if (anno._3.isBound) return null // If @Bound
+    if (anno._3.isUnk) return null // If @InvUnk
     if (avoidAssignSubtyCheck(node.getInitializer)) return null
     super.visitVariable(node, p)
   }
@@ -407,10 +410,11 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
   private def avoidAssignSubtyCheck(rhs: ExpressionTree): Boolean = {
     if (rhs == null) return false
 
+    val annoTyps = HashSet[AnnotationMirror](atypeFactory.ITER, atypeFactory.INPUT, atypeFactory.BOUND, atypeFactory.INV)
     val rhsStr = rhs.toString
     rhs match {
       case t: NewClassTree => // x = new C; Must not create alias because we inline class initializers
-        val rhsAnno = atypeFactory.getTypeAnnotation(t)
+        val rhsAnno = atypeFactory.getTypeAnnotation(t, annoTyps)
         // If rhs's annotation is empty or TOP
         if (rhsAnno == null || AnnotationUtils.areSameIgnoringValues(rhsAnno, atypeFactory.INVTOP))
           return true
@@ -434,7 +438,7 @@ class QuantmVisitor(checker: BaseTypeChecker) extends BaseTypeVisitor[QuantmAnno
       v =>
         val sameNameVars = typCxt.getVar(v)
         if (sameNameVars.isEmpty) true
-        else if (sameNameVars.size == 1) !sameNameVars.head.isInput
+        else if (sameNameVars.size == 1) !sameNameVars.head.annoTyp.isInput
         else {
           issueWarning(node, Utils.nameCollisionMsg(v))
           sameNameVars.forall(t => t.typCheck)
