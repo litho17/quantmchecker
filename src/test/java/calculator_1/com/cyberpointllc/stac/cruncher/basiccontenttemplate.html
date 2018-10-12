@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        nav {
+            display: inline-block;
+            width: 25%;
+        }
+
+        section {
+            display: inline-block;
+            width: 74%;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <!-- Header Section -->
+    <header>
+        <h1>{{title}}</h1>
+        <hr>
+    </header>
+    <nav>
+        <h4><a href="/home">Home</a></h4>
+        <h4><a href="/calculator">Basic Calculator</a></h4>
+        <h4><a href="/roman">Roman Numeral Calculator</a></h4>
+        <h4><a href="/construction">Construction Calculator</a></h4>
+    </nav>
+    <!-- Main Content Section -->
+    <section>
+        <h4>{{heading}}</h4>
+        <div>
+            {{contents}}
+        </div>
+    </section>
+</main>
+
+<!-- Footer Section -->
+<footer>
+    <hr>
+    <div style="text-align: right;">
+    </div>
+</footer>
+</body>
+</html>
