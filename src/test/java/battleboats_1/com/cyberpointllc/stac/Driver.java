@@ -23,7 +23,7 @@ public class Driver {
     CommandLine cmdLine;
 
     public void main(List<Command> input) {
-        @Inv("= (- console.history it) (- c32 c30)") Console console;
+        @Inv("and (= (- console.history it) (- c32 c30)) (= console.inactiveCommands 0) (= console.currentCommands 0) (= console.permanentCommands 0)") Console console;
         console = null;
         @Bound("input") int i;
         @Iter("<= it input") Iterator<Command> it = input.iterator();

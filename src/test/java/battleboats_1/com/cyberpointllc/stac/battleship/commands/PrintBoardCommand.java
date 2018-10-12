@@ -32,11 +32,10 @@ public class PrintBoardCommand extends Command {
 
     private void executeSupervisor(PrintStream out, CommandLine cmdLine) {
         try {
-            List<String> argList = cmdLine.getArgList();
-            if (argList.size() != 1) {
+            if (cmdLine.getArgList().size() != 1) {
                 out.println(USAGE);
             } else {
-                String name = argList.get(0).trim();
+                String name = cmdLine.getArgList().get(0).trim();
                 StringWriter stringWriter = new StringWriter();
                 if ("ocean".equalsIgnoreCase(name)) {
                     warShips.printOcean(stringWriter);

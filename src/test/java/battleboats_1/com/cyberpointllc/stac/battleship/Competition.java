@@ -84,7 +84,7 @@ public class Competition {
             holdShip = placedShips.remove(name);
         }
 
-        @Inv("= (+ shipSquares size) (+ c91 c107)") List<Square> shipSquares = new ArrayList<>();
+        @Inv("= (+ shipSquares size) (- c91 c107)") List<Square> shipSquares = new ArrayList<>();
 
         for (@Iter("<= size length") int size = length; size > 0; ) {
             if (((x > 0) && (x <= boardSize)) && ((y > 0) && (y <= boardSize))) {

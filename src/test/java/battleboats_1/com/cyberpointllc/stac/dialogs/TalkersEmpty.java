@@ -31,8 +31,7 @@ public class TalkersEmpty {
         PLUGINGrabber grabber = new PLUGINGrabber();
         try {
             @InvUnk("Complex loop") PLUGINObject plugin = (PLUGINObject) grabber.parse(new FileReader(emptyFile), (ContainerFactory)null);
-            PLUGINObject privateKeyPlugin = (PLUGINObject) plugin.get("privateKey");
-            CryptoPrivateKey privateKey = CryptoPrivateKey.makeKeyFromPlugin(privateKeyPlugin);
+            CryptoPrivateKey privateKey = CryptoPrivateKey.makeKeyFromPlugin((PLUGINObject) plugin.get("privateKey"));
             String id = (String) plugin.get("id");
             String callbackHome = (String) plugin.get("callbackHost");
             long callbackPort = (long) plugin.get("callbackPort");

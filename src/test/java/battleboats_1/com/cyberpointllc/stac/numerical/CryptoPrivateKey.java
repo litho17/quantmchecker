@@ -107,7 +107,7 @@ public class CryptoPrivateKey {
     }
 
     public PLUGINObject toPLUGINObject() {
-        @InvUnk("Extend librayy class") PLUGINObject plugin = new PLUGINObject();
+        @InvUnk("Extend library class") PLUGINObject plugin = new PLUGINObject();
         plugin.put("p", this.p.toString());
         plugin.put("q", this.q.toString());
         return plugin;
