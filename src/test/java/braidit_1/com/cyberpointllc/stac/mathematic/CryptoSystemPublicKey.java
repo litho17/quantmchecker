@@ -1,8 +1,6 @@
 package braidit_1.com.cyberpointllc.stac.mathematic;
 
-import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
-import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.OBJNOTEParser;
-import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.ParseException;
+import braidit_1.com.cyberpointllc.stac.direct.PLUGINObject;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.math.BigInteger;
@@ -81,14 +79,14 @@ public class CryptoSystemPublicKey {
         return report;
     }
 
-    public OBJNOTEObject toOBJNOTEObject() {
-        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
+    public PLUGINObject toOBJNOTEObject() {
+        @InvUnk("Extend library class") PLUGINObject objnote = new PLUGINObject();
         objnote.put("modulus", divisor.toString());
         objnote.put("exponent", e.toString());
         return objnote;
     }
 
-    public static CryptoSystemPublicKey fromObjnote(OBJNOTEObject publicKeyObjnote) {
+    public static CryptoSystemPublicKey fromObjnote(PLUGINObject publicKeyObjnote) {
         BigInteger divisor = new BigInteger((String) publicKeyObjnote.get("modulus"));
         BigInteger exponent = new BigInteger((String) publicKeyObjnote.get("exponent"));
         return new CryptoSystemPublicKey(divisor, exponent);

@@ -1,6 +1,6 @@
 package braidit_1.com.cyberpointllc.stac.mathematic;
 
-import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
+import braidit_1.com.cyberpointllc.stac.direct.PLUGINObject;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.File;
@@ -100,21 +100,21 @@ public class CryptoSystemPrivateKey {
         return new CryptoSystemPrivateKey(p, q);
     }
 
-    public static CryptoSystemPrivateKey composeKeyFromObjnote(OBJNOTEObject privateKeyObjnote) {
+    public static CryptoSystemPrivateKey composeKeyFromObjnote(PLUGINObject privateKeyObjnote) {
         BigInteger p = stringToBigInt((String) privateKeyObjnote.get("p"));
         BigInteger q = stringToBigInt((String) privateKeyObjnote.get("q"));
         return new CryptoSystemPrivateKey(p, q);
     }
 
-    public OBJNOTEObject toOBJNOTEObject() {
-        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
+    public PLUGINObject toOBJNOTEObject() {
+        @InvUnk("Extend library class") PLUGINObject objnote = new PLUGINObject();
         objnote.put("p", this.p.toString());
         objnote.put("q", this.q.toString());
         return objnote;
     }
 
     public String toOBJNOTEString() {
-        return toOBJNOTEObject().toOBJNOTEString();
+        return toOBJNOTEObject().toPLUGINString();
     }
 
     private static BigInteger stringToBigInt(String str) {

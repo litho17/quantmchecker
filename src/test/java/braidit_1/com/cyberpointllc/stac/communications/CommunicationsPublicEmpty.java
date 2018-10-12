@@ -1,11 +1,11 @@
 package braidit_1.com.cyberpointllc.stac.communications;
 
+import braidit_1.com.cyberpointllc.stac.direct.PLUGINObject;
+import braidit_1.com.cyberpointllc.stac.direct.reader.ContainerFactory;
+import braidit_1.com.cyberpointllc.stac.direct.reader.PLUGINGrabber;
+import braidit_1.com.cyberpointllc.stac.direct.reader.ParseDeviation;
 import braidit_1.com.cyberpointllc.stac.mathematic.CryptoSystemPublicKey;
-import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
-import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.OBJNOTEParser;
-import braidit_1.com.cyberpointllc.stac.jack.direct.grabber.ParseException;
 import braidit_1.com.cyberpointllc.stac.proto.Comms;
-import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 public final class CommunicationsPublicEmpty implements Comparable<CommunicationsPublicEmpty>{
@@ -26,19 +26,19 @@ public final class CommunicationsPublicEmpty implements Comparable<Communication
     }
 
     public static CommunicationsPublicEmpty fromObjnote(String objnoteString) throws CommunicationsException {
-        OBJNOTEParser parser = new OBJNOTEParser();
+        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
         try {
-            return fromObjnote((OBJNOTEObject)parser.parse(objnoteString));
-        } catch (@InvUnk("Extend library class") ParseException e) {
+            return fromObjnote((PLUGINObject)parser.parse(objnoteString, (ContainerFactory) null));
+        } catch (@InvUnk("Extend library class") ParseDeviation e) {
             throw new CommunicationsException(e);
         }
     }
 
-    public static CommunicationsPublicEmpty fromObjnote(OBJNOTEObject objnote) {
+    public static CommunicationsPublicEmpty fromObjnote(PLUGINObject objnote) {
         String id = (String) objnote.get("id");
         String callbackStart = (String) objnote.get("callbackHost");
         long callbackPort = (long) objnote.get("callbackPort");
-        CryptoSystemPublicKey publicKey = CryptoSystemPublicKey.fromObjnote((OBJNOTEObject) objnote.get("publicKey"));
+        CryptoSystemPublicKey publicKey = CryptoSystemPublicKey.fromObjnote((PLUGINObject) objnote.get("publicKey"));
 
         return new CommunicationsPublicEmpty(id, publicKey, new CommunicationsNetworkAddressBuilder().defineStart(callbackStart).assignPort((int) callbackPort).composeCommunicationsNetworkAddress());
     }
@@ -79,11 +79,11 @@ public final class CommunicationsPublicEmpty implements Comparable<Communication
     }
 
     public String toObjnote() {
-        return toOBJNOTEObject().toOBJNOTEString();
+        return toOBJNOTEObject().toPLUGINString();
     }
 
-    public OBJNOTEObject toOBJNOTEObject() {
-        @InvUnk("Extend library class") OBJNOTEObject objnote = new OBJNOTEObject();
+    public PLUGINObject toOBJNOTEObject() {
+        @InvUnk("Extend library class") PLUGINObject objnote = new PLUGINObject();
         objnote.put("id", id);
         objnote.put("callbackHost", callbackAddress.takeStart());
         objnote.put("callbackPort", callbackAddress.pullPort());

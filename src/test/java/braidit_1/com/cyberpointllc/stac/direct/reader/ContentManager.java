@@ -1,4 +1,4 @@
-package braidit_1.com.cyberpointllc.stac.jack.direct.grabber;
+package braidit_1.com.cyberpointllc.stac.direct.reader;
 
 import java.io.IOException;
 
@@ -6,7 +6,7 @@ import java.io.IOException;
  * A simplified and stoppable SAX-like content handler for stream processing of JSON text. 
  * 
  * @see org.xml.sax.ContentHandler
- * @see OBJNOTEParser#parse(java.io.Reader, ContentManager, boolean)
+ * @see PLUGINGrabber#parse(java.io.Reader, ContentManager, boolean)
  * 
  * @author FangYidong<fangyidong@yahoo.com.cn>
  */
@@ -15,37 +15,37 @@ public interface ContentManager {
 	 * Receive notification of the beginning of JSON processing.
 	 * The parser will invoke this method only once.
      * 
-	 * @throws ParseException 
+	 * @throws ParseDeviation
 	 * 			- JSONParser will stop and throw the same exception to the caller when receiving this exception.
 	 */
-	void startOBJNOTE() throws ParseException, IOException;
+	void startPLUGIN() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of JSON processing.
 	 * 
-	 * @throws ParseException
+	 * @throws ParseDeviation
 	 */
-	void endOBJNOTE() throws ParseException, IOException;
+	void endPLUGIN() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the beginning of a JSON object.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
      *          - JSONParser will stop and throw the same exception to the caller when receiving this exception.
-     * @see #endOBJNOTE
+     * @see #endPLUGIN
 	 */
-	boolean startObject() throws ParseException, IOException;
+	boolean startObject() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of a JSON object.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
      * 
      * @see #startObject
 	 */
-	boolean endObject() throws ParseException, IOException;
+	boolean endObject() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the beginning of a JSON object entry.
@@ -53,41 +53,41 @@ public interface ContentManager {
 	 * @param key - Key of a JSON object entry. 
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
      * 
      * @see #endObjectEntry
 	 */
-	boolean startObjectEntry(String key) throws ParseException, IOException;
+	boolean startObjectEntry(String key) throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of the value of previous object entry.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
      * 
      * @see #startObjectEntry
 	 */
-	boolean endObjectEntry() throws ParseException, IOException;
+	boolean endObjectEntry() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the beginning of a JSON array.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
      * 
      * @see #endArray
 	 */
-	boolean startArray() throws ParseException, IOException;
+	boolean startArray() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of a JSON array.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
      * 
      * @see #startArray
 	 */
-	boolean endArray() throws ParseException, IOException;
+	boolean endArray() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the JSON primitive values:
@@ -96,15 +96,15 @@ public interface ContentManager {
 	 * 	java.lang.Boolean
 	 * 	null
 	 * 
-	 * @param core - Instance of the following:
+	 * @param detail - Instance of the following:
 	 * 			java.lang.String,
 	 * 			java.lang.Number,
 	 * 			java.lang.Boolean
 	 * 			null
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseException
+	 * @throws ParseDeviation
 	 */
-	boolean primitive(Object core) throws ParseException, IOException;
+	boolean primitive(Object detail) throws ParseDeviation, IOException;
 		
 }

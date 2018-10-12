@@ -2,9 +2,11 @@
  * $Id: ItemList.java,v 1.1 2006/04/15 14:10:48 platform Exp $
  * Created on 2006-3-24
  */
-package braidit_1.com.cyberpointllc.stac.jack.direct;
+package braidit_1.com.cyberpointllc.stac.direct;
 
-import plv.colorado.edu.quantmchecker.qual.*;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,11 +39,11 @@ public class ItemList {
 		split(s,sp,items,isMultiToken);
 	}
 	
-	public List obtainItems(){
+	public List fetchItems(){
 		return this.items;
 	}
 	
-	public String[] pullArray(){
+	public String[] takeArray(){
 		return (String[])this.items.toArray();
 	}
 	
@@ -58,7 +60,7 @@ public class ItemList {
 			this.split(s,sp,append);
 		}
 	}
-
+	
 	public void split(String s,String sp,List append){
 		if(s==null || sp==null)
 			return;
@@ -75,10 +77,10 @@ public class ItemList {
 		append.add(s.substring(prevPos).trim());
 	}
 	
-	public void setSP(String sp){
+	public void assignSP(String sp){
 		this.sp=sp;
 	}
-
+	
 	public void add(int j, String item){
 		if(item==null)
 			return;
@@ -108,11 +110,11 @@ public class ItemList {
 	}
 	
 	/**
-	 * @param q 0-based
+	 * @param j 0-based
 	 * @return
 	 */
-	public String fetch(int q){
-		return (String)items.get(q);
+	public String take(int j){
+		return (String)items.get(j);
 	}
 	
 	public int size(){
@@ -124,23 +126,23 @@ public class ItemList {
 	}
 	
 	public String toString(String sp){
-		@Bound("* 2 items") int i;
-		@Inv("= (- sb k k) (- (+ c133 c135 c136) c138 c138)") StringBuffer sb = new StringBuffer();
-		@Iter("<= k items") int k = 0;
-		for(; k <items.size();){
-			if(k ==0)
-				c133: sb.append(items.get(k));
+		@Bound("+ 1 (* 2 items)") int i;
+		@Inv("= (- sb p p) (- (+ c133 c135 c136) c138 c138)") StringBuffer sb=new StringBuffer();
+		
+		for(@Iter("<= p items") int p = 0; p <items.size();){
+			if(p ==0)
+				c133: sb.append(items.get(p));
 			else{
 				c135: sb.append(sp);
-				c136: sb.append(items.get(k));
+				c136: sb.append(items.get(p));
 			}
-			c138: k = k + 1;
+			c138: p = p + 1;
 		}
 		return sb.toString();
 
 	}
 
-	public void renew(){
+	public void release(){
 		items.clear();
 	}
 	

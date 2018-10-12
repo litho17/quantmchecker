@@ -1,4 +1,4 @@
-package braidit_1.com.cyberpointllc.stac.jack.direct.grabber;
+package braidit_1.com.cyberpointllc.stac.direct.reader;
 
 import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
@@ -9,49 +9,49 @@ import plv.colorado.edu.quantmchecker.qual.Inv;
  * @author FangYidong<fangyidong@yahoo.com.cn>
  *
  */
-public class ParseException extends Exception {
+public class ParseDeviation extends Exception {
 	private static final long serialVersionUID = -7880698968187728548L;
 	
 	public static final int ERROR_UNEXPECTED_CHAR = 0;
 	public static final int ERROR_UNEXPECTED_TOKEN = 1;
-	public static final int ERROR_UNEXPECTED_EXCEPTION = 2;
+	public static final int ERROR_UNEXPECTED_DEVIATION = 2;
 
 	private int errorType;
 	private Object unexpectedObject;
 	private int position;
 	
-	public ParseException(int errorType){
+	public ParseDeviation(int errorType){
 		this(-1, errorType, null);
 	}
 	
-	public ParseException(int errorType, Object unexpectedObject){
+	public ParseDeviation(int errorType, Object unexpectedObject){
 		this(-1, errorType, unexpectedObject);
 	}
 	
-	public ParseException(int position, int errorType, Object unexpectedObject){
+	public ParseDeviation(int position, int errorType, Object unexpectedObject){
 		this.position = position;
 		this.errorType = errorType;
 		this.unexpectedObject = unexpectedObject;
 	}
 	
-	public int fetchErrorType() {
+	public int takeErrorType() {
 		return errorType;
 	}
 	
-	public void defineErrorType(int errorType) {
+	public void assignErrorType(int errorType) {
 		this.errorType = errorType;
 	}
 	
 	/**
-	 * @see OBJNOTEParser#pullPosition()
+	 * @see PLUGINGrabber#pullPosition()
 	 * 
 	 * @return The character position (starting with 0) of the input where the error occurs.
 	 */
-	public int obtainPosition() {
+	public int grabPosition() {
 		return position;
 	}
 	
-	public void assignPosition(int position) {
+	public void setPosition(int position) {
 		this.position = position;
 	}
 	
@@ -63,43 +63,43 @@ public class ParseException extends Exception {
 	 * 			ERROR_UNEXPECTED_TOKEN		org.json.simple.parser.Yytoken
 	 * 			ERROR_UNEXPECTED_EXCEPTION	java.lang.Exception
 	 */
-	public Object grabUnexpectedObject() {
+	public Object fetchUnexpectedObject() {
 		return unexpectedObject;
 	}
 	
-	public void fixUnexpectedObject(Object unexpectedObject) {
+	public void defineUnexpectedObject(Object unexpectedObject) {
 		this.unexpectedObject = unexpectedObject;
 	}
 	
 	public String toString(){
 		@Bound("5") int i;
-		@Inv("= sb (+ c78 c79 c80 c81 c82 c85 c86 c87 c88 c89 c92 c93 c94 c95 c98 c99 c100)") StringBuffer sb = new StringBuffer();
+		@Inv("= sb (+ c80 c81 c82 c83 c84 c87 c88 c89 c90 c91 c94 c95 c96 c97 c100 c101 c102)") StringBuffer sb = new StringBuffer();
 		
 		switch(errorType){
 		case ERROR_UNEXPECTED_CHAR:
-			c78: sb.append("Unexpected character (");
-			c79: sb.append(unexpectedObject);
-			c80: sb.append(") at position ");
-			c81: sb.append(position);
-			c82: sb.append(".");
+			c80: sb.append("Unexpected character (");
+			c81: sb.append(unexpectedObject);
+			c82: sb.append(") at position ");
+			c83: sb.append(position);
+			c84: sb.append(".");
 			break;
 		case ERROR_UNEXPECTED_TOKEN:
-			c85: sb.append("Unexpected token ");
-			c86: sb.append(unexpectedObject);
-			c87: sb.append(" at position ");
-			c88: sb.append(position);
-			c89: sb.append(".");
+			c87: sb.append("Unexpected token ");
+			c88: sb.append(unexpectedObject);
+			c89: sb.append(" at position ");
+			c90: sb.append(position);
+			c91: sb.append(".");
 			break;
-		case ERROR_UNEXPECTED_EXCEPTION:
-			c92: sb.append("Unexpected exception at position ");
-			c93: sb.append(position);
-			c94: sb.append(": ");
-			c95: sb.append(unexpectedObject);
+		case ERROR_UNEXPECTED_DEVIATION:
+			c94: sb.append("Unexpected exception at position ");
+			c95: sb.append(position);
+			c96: sb.append(": ");
+			c97: sb.append(unexpectedObject);
 			break;
 		default:
-			c98: sb.append("Unkown error at position ");
-			c99: sb.append(position);
-			c100: sb.append(".");
+			c100: sb.append("Unkown error at position ");
+			c101: sb.append(position);
+			c102: sb.append(".");
 			break;
 		}
 		return sb.toString();

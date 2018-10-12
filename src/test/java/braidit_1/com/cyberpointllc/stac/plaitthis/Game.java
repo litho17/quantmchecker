@@ -4,6 +4,7 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.ChoicesPhase;
 import braidit_1.com.cyberpointllc.stac.plaitthis.phase.GamePhase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ public class Game {
         currentRound.assignWinner(iWon);
         logger.debug("Game round completed played={}/{}; won={}; winner={}", roundsPlayed, ROUNDS_PER_GAME, roundsWon, iWon);
 
-        Round ensuingRound = new Round(!currentRound.doIGoFirst()); // players take turns going first in each round
+        @Inv("= ensuingRound.phases 0") Round ensuingRound = new Round(!currentRound.doIGoFirst()); // players take turns going first in each round
         previousRounds.add(currentRound);
         currentRound = ensuingRound;
         return (roundsPlayed == ROUNDS_PER_GAME);
@@ -74,8 +75,7 @@ public class Game {
     }
 
     public ChoicesPhase getChoicesPhase() {
-        ChoicesPhase cs = currentRound.takeChoicesPhase();
-        return cs;
+        return currentRound.takeChoicesPhase();
     }
 
     public String pullStats() {

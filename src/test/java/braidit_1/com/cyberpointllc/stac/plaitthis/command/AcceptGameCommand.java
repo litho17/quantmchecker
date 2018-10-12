@@ -7,6 +7,7 @@ import braidit_1.com.cyberpointllc.stac.proto.Braidit.BraidItMessage.Type;
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
@@ -28,7 +29,8 @@ public class AcceptGameCommand extends PlaitItCommand {
     @Override
     @Summary({"this.plaitIt.currentGame.currentRound.phases", "1"})
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("12") int i;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
         if (!phase.matches(GamePhase.Phase.OFFER_RECEIVED)) {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());

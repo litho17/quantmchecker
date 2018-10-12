@@ -2,10 +2,10 @@
  * $Id: JSONParser.java,v 1.1 2006/04/15 14:10:48 platform Exp $
  * Created on 2006-4-15
  */
-package braidit_1.com.cyberpointllc.stac.jack.direct.grabber;
+package braidit_1.com.cyberpointllc.stac.direct.reader;
 
-import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEArray;
-import braidit_1.com.cyberpointllc.stac.jack.direct.OBJNOTEObject;
+import braidit_1.com.cyberpointllc.stac.direct.PLUGINArray;
+import braidit_1.com.cyberpointllc.stac.direct.PLUGINObject;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.IOException;
@@ -21,13 +21,13 @@ import java.util.Map;
  * 
  * @author FangYidong<fangyidong@yahoo.com.cn>
  */
-public class OBJNOTEParser {
+public class PLUGINGrabber {
 	public static final int S_INIT=0;
-	public static final int S_IN_FINISHED_CORE =1;//string,number,boolean,null,object,array
+	public static final int S_IN_FINISHED_DETAIL =1;//string,number,boolean,null,object,array
 	public static final int S_IN_OBJECT=2;
 	public static final int S_IN_ARRAY=3;
 	public static final int S_PASSED_PAIR_KEY=4;
-	public static final int S_IN_PAIR_CORE =5;
+	public static final int S_IN_PAIR_DETAIL =5;
 	public static final int S_END=6;
 	public static final int S_IN_ERROR=-1;
 	
@@ -35,14 +35,14 @@ public class OBJNOTEParser {
 	private Yylex lexer = new Yylex((Reader)null);
 	private Yytoken token = null;
 	private int status = S_INIT;
-	
+
 	private int peekStatus(LinkedList statusStack){
 		if(statusStack.size()==0)
 			return -1;
 		Integer status=(Integer)statusStack.getFirst();
 		return status.intValue();
 	}
-	
+
     /**
      *  Reset the parser to the initial state without resetting the underlying reader.
      *
@@ -52,31 +52,27 @@ public class OBJNOTEParser {
         status = S_INIT;
         managerStatusStack = null;
     }
-    
+
     /**
      * Reset the parser to the initial state with a new character reader.
-     * 
+     *
      * @param in - The new character reader.
      * @throws IOException
-     * @throws ParseException
+     * @throws ParseDeviation
      */
 	public void reset(Reader in){
 		lexer.yyreset(in);
 		reset();
 	}
-	
+
 	/**
 	 * @return The position of the beginning of the current token.
 	 */
 	public int pullPosition(){
-		return lexer.fetchPosition();
+		return lexer.takePosition();
 	}
-	
-	public Object parse(String s) throws ParseException{
-		return parse(s, (ContainerFactory)null);
-	}
-	
-	public Object parse(String s, ContainerFactory containerFactory) throws ParseException{
+
+	public Object parse(String s, ContainerFactory containerFactory) throws ParseDeviation {
 		StringReader in=new StringReader(s);
 		try{
 			return parse(in, containerFactory);
@@ -85,17 +81,13 @@ public class OBJNOTEParser {
 			/*
 			 * Actually it will never happen.
 			 */
-			throw new ParseException(-1, ParseException.ERROR_UNEXPECTED_EXCEPTION, ie);
+			throw new ParseDeviation(-1, ParseDeviation.ERROR_UNEXPECTED_DEVIATION, ie);
 		}
 	}
-	
-	public Object parse(Reader in) throws IOException, ParseException{
-		return parse(in, (ContainerFactory)null);
-	}
-	
+
 	/**
 	 * Parse JSON text into java object from the input source.
-	 * 	
+	 *
 	 * @param in
      * @param containerFactory - Use this factory to createyour own JSON object and JSON array containers.
 	 * @return Instance of the following:
@@ -105,55 +97,55 @@ public class OBJNOTEParser {
 	 * 	java.lang.Number,
 	 * 	java.lang.Boolean,
 	 * 	null
-	 * 
+	 *
 	 * @throws IOException
-	 * @throws ParseException
+	 * @throws ParseDeviation
 	 */
-	public Object parse(Reader in, ContainerFactory containerFactory) throws IOException, ParseException{
+	public Object parse(Reader in, ContainerFactory containerFactory) throws IOException, ParseDeviation {
 		reset(in);
 		@InvUnk("Complex loop") LinkedList statusStack = new LinkedList();
-		@InvUnk("Complex loop") LinkedList coreStack = new LinkedList();
-		
+		@InvUnk("Complex loop") LinkedList detailStack = new LinkedList();
+
 		try{
 			do{
-				ensuingToken();
+				followingToken();
 				switch(status){
 				case S_INIT:
 					switch(token.type){
-					case Yytoken.TYPE_CORE:
-						status= S_IN_FINISHED_CORE;
+					case Yytoken.TYPE_DETAIL:
+						status= S_IN_FINISHED_DETAIL;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(token.core);
+						detailStack.addFirst(token.detail);
 						break;
-					case Yytoken.TYPE_FIRST_BRACE:
+					case Yytoken.TYPE_ONE_BRACE:
 						status=S_IN_OBJECT;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(composeObjectContainer(containerFactory));
+						detailStack.addFirst(makeObjectContainer(containerFactory));
 						break;
-					case Yytoken.TYPE_FIRST_SQUARE:
+					case Yytoken.TYPE_ONE_SQUARE:
 						status=S_IN_ARRAY;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(composeArrayContainer(containerFactory));
+						detailStack.addFirst(makeArrayContainer(containerFactory));
 						break;
 					default:
 						status=S_IN_ERROR;
 					}//inner switch
 					break;
-					
-				case S_IN_FINISHED_CORE:
+
+				case S_IN_FINISHED_DETAIL:
 					if(token.type==Yytoken.TYPE_EOF)
-						return coreStack.removeFirst();
+						return detailStack.removeFirst();
 					else
-						throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
-					
+						throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
+
 				case S_IN_OBJECT:
 					switch(token.type){
 					case Yytoken.TYPE_COMMA:
 						break;
-					case Yytoken.TYPE_CORE:
-						if(token.core instanceof String){
-							String key=(String)token.core;
-							coreStack.addFirst(key);
+					case Yytoken.TYPE_DETAIL:
+						if(token.detail instanceof String){
+							String key=(String)token.detail;
+							detailStack.addFirst(key);
 							status=S_PASSED_PAIR_KEY;
 							statusStack.addFirst(new Integer(status));
 						}
@@ -161,12 +153,14 @@ public class OBJNOTEParser {
 							status=S_IN_ERROR;
 						}
 						break;
-					case Yytoken.TYPE_TWO_BRACE:
-						if(coreStack.size()>1){
-							parseExecutor(statusStack, coreStack);
+					case Yytoken.TYPE_SECONDARY_BRACE:
+						if(detailStack.size()>1){
+							statusStack.removeFirst();
+							detailStack.removeFirst();
+							status=peekStatus(statusStack);
 						}
 						else{
-							status= S_IN_FINISHED_CORE;
+							status= S_IN_FINISHED_DETAIL;
 						}
 						break;
 					default:
@@ -174,131 +168,131 @@ public class OBJNOTEParser {
 						break;
 					}//inner switch
 					break;
-					
+
 				case S_PASSED_PAIR_KEY:
 					switch(token.type){
 					case Yytoken.TYPE_COLON:
 						break;
-					case Yytoken.TYPE_CORE:
+					case Yytoken.TYPE_DETAIL:
 						statusStack.removeFirst();
-						String key=(String) coreStack.removeFirst();
-						@InvUnk("Nested list") Map parent=(Map) coreStack.getFirst();
-						parent.put(key,token.core);
+						String key=(String) detailStack.removeFirst();
+						@InvUnk("Nested lists") Map parent=(Map) detailStack.getFirst();
+						parent.put(key,token.detail);
 						status=peekStatus(statusStack);
 						break;
-					case Yytoken.TYPE_FIRST_SQUARE:
+					case Yytoken.TYPE_ONE_SQUARE:
 						statusStack.removeFirst();
-						key=(String) coreStack.removeFirst();
-						parent=(Map) coreStack.getFirst();
-						@InvUnk("Dynamic dispatch") List newArray= composeArrayContainer(containerFactory);
+						key=(String) detailStack.removeFirst();
+						parent=(Map) detailStack.getFirst();
+						List newArray= makeArrayContainer(containerFactory);
 						parent.put(key,newArray);
 						status=S_IN_ARRAY;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(newArray);
+						detailStack.addFirst(newArray);
 						break;
-					case Yytoken.TYPE_FIRST_BRACE:
+					case Yytoken.TYPE_ONE_BRACE:
 						statusStack.removeFirst();
-						key=(String) coreStack.removeFirst();
-						parent=(Map) coreStack.getFirst();
-						@InvUnk("Dynamic dispatch") Map newObject= composeObjectContainer(containerFactory);
+						key=(String) detailStack.removeFirst();
+						parent=(Map) detailStack.getFirst();
+						@InvUnk("Nested lists") Map newObject= makeObjectContainer(containerFactory);
 						parent.put(key,newObject);
 						status=S_IN_OBJECT;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(newObject);
+						detailStack.addFirst(newObject);
 						break;
 					default:
 						status=S_IN_ERROR;
 					}
 					break;
-					
+
 				case S_IN_ARRAY:
 					switch(token.type){
 					case Yytoken.TYPE_COMMA:
 						break;
-					case Yytoken.TYPE_CORE:
-						List val=(List) coreStack.getFirst();
-						val.add(token.core);
+					case Yytoken.TYPE_DETAIL:
+						@InvUnk("Nested lists") List val=(List) detailStack.getFirst();
+						val.add(token.detail);
 						break;
-					case Yytoken.TYPE_TWO_SQUARE:
-						if(coreStack.size()>1){
-							new OBJNOTEParserWorker(statusStack, coreStack).invoke();
+					case Yytoken.TYPE_SECONDARY_SQUARE:
+						if(detailStack.size()>1){
+							parseEngine(statusStack, detailStack);
 						}
 						else{
-							status= S_IN_FINISHED_CORE;
+							status= S_IN_FINISHED_DETAIL;
 						}
 						break;
-					case Yytoken.TYPE_FIRST_BRACE:
-						val=(List) coreStack.getFirst();
-						@InvUnk("Dynamic dispatch") Map newObject= composeObjectContainer(containerFactory);
+					case Yytoken.TYPE_ONE_BRACE:
+						val=(List) detailStack.getFirst();
+						Map newObject= makeObjectContainer(containerFactory);
 						val.add(newObject);
 						status=S_IN_OBJECT;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(newObject);
+						detailStack.addFirst(newObject);
 						break;
-					case Yytoken.TYPE_FIRST_SQUARE:
-						val=(List) coreStack.getFirst();
-						List newArray= composeArrayContainer(containerFactory);
+					case Yytoken.TYPE_ONE_SQUARE:
+						val=(List) detailStack.getFirst();
+						@InvUnk("Nested lists") List newArray= makeArrayContainer(containerFactory);
 						val.add(newArray);
 						status=S_IN_ARRAY;
 						statusStack.addFirst(new Integer(status));
-						coreStack.addFirst(newArray);
+						detailStack.addFirst(newArray);
 						break;
 					default:
 						status=S_IN_ERROR;
 					}//inner switch
 					break;
 				case S_IN_ERROR:
-					throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+					throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 				}//switch
 				if(status==S_IN_ERROR){
-					throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+					throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 				}
 			}while(token.type!=Yytoken.TYPE_EOF);
 		}
 		catch(IOException ie){
 			throw ie;
 		}
-		
-		throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+
+		throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 	}
 
-	private void parseExecutor(LinkedList statusStack, LinkedList coreStack) {
+	private void parseEngine(LinkedList statusStack, LinkedList detailStack) {
 		statusStack.removeFirst();
-		coreStack.removeFirst();
+		detailStack.removeFirst();
 		status=peekStatus(statusStack);
 	}
 
-	private void ensuingToken() throws ParseException, IOException{
+	private void followingToken() throws ParseDeviation, IOException{
 		token = lexer.yylex();
 		if(token == null)
 			token = new Yytoken(Yytoken.TYPE_EOF, null);
 	}
-	
-	private Map composeObjectContainer(ContainerFactory containerFactory){
+
+	private Map makeObjectContainer(ContainerFactory containerFactory){
 		if(containerFactory == null)
-			return new OBJNOTEObject();
-		@InvUnk("Dynamic dispatch") Map m = containerFactory.composeObjectContainer();
-		
+			return new PLUGINObject();
+		@InvUnk("Dynamic dispatch") Map m = containerFactory.makeObjectContainer();
+
 		if(m == null)
-			return new OBJNOTEObject();
+			return new PLUGINObject();
 		return m;
 	}
-	
-	private List composeArrayContainer(ContainerFactory containerFactory){
+
+	private List makeArrayContainer(ContainerFactory containerFactory){
 		if(containerFactory == null)
-			return new OBJNOTEArray();
+			return new PLUGINArray();
 		@InvUnk("Dynamic dispatch") List l = containerFactory.creatArrayContainer();
-		
+
 		if(l == null)
-			return new OBJNOTEArray();
+			return new PLUGINArray();
 		return l;
 	}
-	
-	public void parse(String s, ContentManager contentManager) throws ParseException{
+
+	public void parse(String s, ContentManager contentManager) throws ParseDeviation {
 		parse(s, contentManager, false);
 	}
-	
-	public void parse(String s, ContentManager contentManager, boolean isResume) throws ParseException{
+
+	public void parse(String s, ContentManager contentManager, boolean isResume) throws ParseDeviation {
 		StringReader in=new StringReader(s);
 		try{
 			parse(in, contentManager, isResume);
@@ -307,29 +301,29 @@ public class OBJNOTEParser {
 			/*
 			 * Actually it will never happen.
 			 */
-			throw new ParseException(-1, ParseException.ERROR_UNEXPECTED_EXCEPTION, ie);
+			throw new ParseDeviation(-1, ParseDeviation.ERROR_UNEXPECTED_DEVIATION, ie);
 		}
 	}
-	
-	public void parse(Reader in, ContentManager contentManager) throws IOException, ParseException{
+
+	public void parse(Reader in, ContentManager contentManager) throws IOException, ParseDeviation {
 		parse(in, contentManager, false);
 	}
-	
+
 	/**
 	 * Stream processing of JSON text.
-	 * 
+	 *
 	 * @see ContentManager
-	 * 
+	 *
 	 * @param in
 	 * @param contentManager
 	 * @param isResume - Indicates if it continues previous parsing operation.
-     *                   If set to true, resume parsing the old stream, and parameter 'in' will be ignored. 
+     *                   If set to true, resume parsing the old stream, and parameter 'in' will be ignored.
 	 *                   If this method is called for the first time in this instance, isResume will be ignored.
-	 * 
+	 *
 	 * @throws IOException
-	 * @throws ParseException
+	 * @throws ParseDeviation
 	 */
-	public void parse(Reader in, ContentManager contentManager, boolean isResume) throws IOException, ParseException{
+	public void parse(Reader in, ContentManager contentManager, boolean isResume) throws IOException, ParseDeviation {
 		if(!isResume){
 			reset(in);
 			managerStatusStack = new LinkedList();
@@ -341,29 +335,31 @@ public class OBJNOTEParser {
 				managerStatusStack = new LinkedList();
 			}
 		}
-		
+
+		@InvUnk("Complex loop") LinkedList statusStack = managerStatusStack;
+
 		try{
 			do{
 				switch(status){
 				case S_INIT:
-					contentManager.startOBJNOTE();
-					ensuingToken();
+					contentManager.startPLUGIN();
+					followingToken();
 					switch(token.type){
-					case Yytoken.TYPE_CORE:
-						status= S_IN_FINISHED_CORE;
-						managerStatusStack.addFirst(new Integer(status));
-						if(!contentManager.primitive(token.core))
+					case Yytoken.TYPE_DETAIL:
+						status= S_IN_FINISHED_DETAIL;
+						statusStack.addFirst(new Integer(status));
+						if(!contentManager.primitive(token.detail))
 							return;
 						break;
-					case Yytoken.TYPE_FIRST_BRACE:
+					case Yytoken.TYPE_ONE_BRACE:
 						status=S_IN_OBJECT;
-						managerStatusStack.addFirst(new Integer(status));
+						statusStack.addFirst(new Integer(status));
 						if(!contentManager.startObject())
 							return;
 						break;
-					case Yytoken.TYPE_FIRST_SQUARE:
+					case Yytoken.TYPE_ONE_SQUARE:
 						status=S_IN_ARRAY;
-						managerStatusStack.addFirst(new Integer(status));
+						statusStack.addFirst(new Integer(status));
 						if(!contentManager.startArray())
 							return;
 						break;
@@ -371,29 +367,29 @@ public class OBJNOTEParser {
 						status=S_IN_ERROR;
 					}//inner switch
 					break;
-					
-				case S_IN_FINISHED_CORE:
-					ensuingToken();
+
+				case S_IN_FINISHED_DETAIL:
+					followingToken();
 					if(token.type==Yytoken.TYPE_EOF){
-						contentManager.endOBJNOTE();
+						contentManager.endPLUGIN();
 						status = S_END;
 						return;
 					}
 					else{
 						status = S_IN_ERROR;
-						throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+						throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 					}
-			
+
 				case S_IN_OBJECT:
-					ensuingToken();
+					followingToken();
 					switch(token.type){
 					case Yytoken.TYPE_COMMA:
 						break;
-					case Yytoken.TYPE_CORE:
-						if(token.core instanceof String){
-							String key=(String)token.core;
+					case Yytoken.TYPE_DETAIL:
+						if(token.detail instanceof String){
+							String key=(String)token.detail;
 							status=S_PASSED_PAIR_KEY;
-							managerStatusStack.addFirst(new Integer(status));
+							statusStack.addFirst(new Integer(status));
 							if(!contentManager.startObjectEntry(key))
 								return;
 						}
@@ -401,13 +397,12 @@ public class OBJNOTEParser {
 							status=S_IN_ERROR;
 						}
 						break;
-					case Yytoken.TYPE_TWO_BRACE:
-						if(managerStatusStack.size()>1){
-							managerStatusStack.removeFirst();
-							status=peekStatus(managerStatusStack);
+					case Yytoken.TYPE_SECONDARY_BRACE:
+						if(statusStack.size()>1){
+							parseCoordinator(statusStack);
 						}
 						else{
-							status= S_IN_FINISHED_CORE;
+							status= S_IN_FINISHED_DETAIL;
 						}
 						if(!contentManager.endObject())
 							return;
@@ -417,33 +412,33 @@ public class OBJNOTEParser {
 						break;
 					}//inner switch
 					break;
-					
+
 				case S_PASSED_PAIR_KEY:
-					ensuingToken();
+					followingToken();
 					switch(token.type){
 					case Yytoken.TYPE_COLON:
 						break;
-					case Yytoken.TYPE_CORE:
-						managerStatusStack.removeFirst();
-						status=peekStatus(managerStatusStack);
-						if(!contentManager.primitive(token.core))
+					case Yytoken.TYPE_DETAIL:
+						statusStack.removeFirst();
+						status=peekStatus(statusStack);
+						if(!contentManager.primitive(token.detail))
 							return;
 						if(!contentManager.endObjectEntry())
 							return;
 						break;
-					case Yytoken.TYPE_FIRST_SQUARE:
-						managerStatusStack.removeFirst();
-						managerStatusStack.addFirst(new Integer(S_IN_PAIR_CORE));
+					case Yytoken.TYPE_ONE_SQUARE:
+						statusStack.removeFirst();
+						statusStack.addFirst(new Integer(S_IN_PAIR_DETAIL));
 						status=S_IN_ARRAY;
-						managerStatusStack.addFirst(new Integer(status));
+						statusStack.addFirst(new Integer(status));
 						if(!contentManager.startArray())
 							return;
 						break;
-					case Yytoken.TYPE_FIRST_BRACE:
-						managerStatusStack.removeFirst();
-						managerStatusStack.addFirst(new Integer(S_IN_PAIR_CORE));
+					case Yytoken.TYPE_ONE_BRACE:
+						statusStack.removeFirst();
+						statusStack.addFirst(new Integer(S_IN_PAIR_DETAIL));
 						status=S_IN_OBJECT;
-						managerStatusStack.addFirst(new Integer(status));
+						statusStack.addFirst(new Integer(status));
 						if(!contentManager.startObject())
 							return;
 						break;
@@ -451,46 +446,47 @@ public class OBJNOTEParser {
 						status=S_IN_ERROR;
 					}
 					break;
-				
-				case S_IN_PAIR_CORE:
+
+				case S_IN_PAIR_DETAIL:
 					/*
 					 * S_IN_PAIR_VALUE is just a marker to indicate the end of an object entry, it doesn't proccess any token,
 					 * therefore delay consuming token until next round.
 					 */
-					managerStatusStack.removeFirst();
-					status = peekStatus(managerStatusStack);
+					statusStack.removeFirst();
+					status = peekStatus(statusStack);
 					if(!contentManager.endObjectEntry())
 						return;
 					break;
-					
+
 				case S_IN_ARRAY:
-					ensuingToken();
+					followingToken();
 					switch(token.type){
 					case Yytoken.TYPE_COMMA:
 						break;
-					case Yytoken.TYPE_CORE:
-						if(!contentManager.primitive(token.core))
+					case Yytoken.TYPE_DETAIL:
+						if(!contentManager.primitive(token.detail))
 							return;
 						break;
-					case Yytoken.TYPE_TWO_SQUARE:
-						if(managerStatusStack.size()>1){
-							parseEntity(managerStatusStack);
+					case Yytoken.TYPE_SECONDARY_SQUARE:
+						if(statusStack.size()>1){
+							statusStack.removeFirst();
+							status=peekStatus(statusStack);
 						}
 						else{
-							status= S_IN_FINISHED_CORE;
+							status= S_IN_FINISHED_DETAIL;
 						}
 						if(!contentManager.endArray())
 							return;
 						break;
-					case Yytoken.TYPE_FIRST_BRACE:
+					case Yytoken.TYPE_ONE_BRACE:
 						status=S_IN_OBJECT;
-						managerStatusStack.addFirst(new Integer(status));
+						statusStack.addFirst(new Integer(status));
 						if(!contentManager.startObject())
 							return;
 						break;
-					case Yytoken.TYPE_FIRST_SQUARE:
+					case Yytoken.TYPE_ONE_SQUARE:
 						status=S_IN_ARRAY;
-						managerStatusStack.addFirst(new Integer(status));
+						statusStack.addFirst(new Integer(status));
 						if(!contentManager.startArray())
 							return;
 						break;
@@ -498,15 +494,15 @@ public class OBJNOTEParser {
 						status=S_IN_ERROR;
 					}//inner switch
 					break;
-					
+
 				case S_END:
 					return;
-					
+
 				case S_IN_ERROR:
-					throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+					throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 				}//switch
 				if(status==S_IN_ERROR){
-					throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+					throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 				}
 			}while(token.type!=Yytoken.TYPE_EOF);
 		}
@@ -514,7 +510,7 @@ public class OBJNOTEParser {
 			status = S_IN_ERROR;
 			throw ie;
 		}
-		catch(@InvUnk("Extend library class") ParseException pe){
+		catch(@InvUnk("Extend library class") ParseDeviation pe){
 			status = S_IN_ERROR;
 			throw pe;
 		}
@@ -526,29 +522,13 @@ public class OBJNOTEParser {
 			status = S_IN_ERROR;
 			throw e;
 		}
-		
+
 		status = S_IN_ERROR;
-		throw new ParseException(pullPosition(), ParseException.ERROR_UNEXPECTED_TOKEN, token);
+		throw new ParseDeviation(pullPosition(), ParseDeviation.ERROR_UNEXPECTED_TOKEN, token);
 	}
 
-	private void parseEntity(LinkedList statusStack) {
+	private void parseCoordinator(LinkedList statusStack) {
 		statusStack.removeFirst();
 		status=peekStatus(statusStack);
-	}
-
-	private class OBJNOTEParserWorker {
-		private LinkedList statusStack;
-		private LinkedList coreStack;
-
-		public OBJNOTEParserWorker(LinkedList statusStack, LinkedList coreStack) {
-			this.statusStack = statusStack;
-			this.coreStack = coreStack;
-		}
-
-		public void invoke() {
-			statusStack.removeFirst();
-			coreStack.removeFirst();
-			status=peekStatus(statusStack);
-		}
 	}
 }

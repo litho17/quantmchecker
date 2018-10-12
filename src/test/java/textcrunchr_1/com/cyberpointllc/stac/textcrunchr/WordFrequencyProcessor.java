@@ -17,16 +17,17 @@ public class WordFrequencyProcessor extends Processor {
 
     private static final String NAME = "wordFreqs";
 
-    public TCResult process(@Bound("* 2 inps") InputStream inps) throws IOException {
+    public TCResult process(InputStream inps) throws IOException {
+        @Bound("* 2 inps") int l;
         InputStreamReader isr = new InputStreamReader(inps);
         // count frequency of each word in input
         String input = readInput(inps);
-        @Iter("<= i inps") String words[] = tokenize(input);
+        String words[] = tokenize(input);
 
         // count the word frequencies
         @Inv("= (- wordFreqs i) (- c65 c68)") List<WordCount> wordFreqs = new ArrayList<WordCount>();
         @Inv("= (- freqsCounter i) (- c64 c68)") HashMap<String, WordCount> freqsCounter = new HashMap<String, WordCount>();
-        int i = 0;
+        @Iter("<= i inps") int i = 0;
         for (; i < words.length; ) {
             //making this case sensitive so that our carefully crafted hash collisions don't get obliterated
             String w = words[i];
@@ -48,7 +49,7 @@ public class WordFrequencyProcessor extends Processor {
         Sorter<WordCount> sorter = new Sorter<WordCount>(new DefaultComparator<WordCount>());
         @InvUnk("Unknown API") List<WordCount> sortedWCs = sorter.sort(wordFreqs);
         @Inv("= (- result.results it) (- c35 c34)") TCResult result = new TCResult("Word frequencies");
-        Iterator<WordCount> it = sortedWCs.iterator();
+        @Iter("<= it wordFreqs") Iterator<WordCount> it = sortedWCs.iterator();
         while (it.hasNext()) {
             WordCount wc;
             c34: wc = it.next();

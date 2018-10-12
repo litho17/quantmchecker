@@ -11,6 +11,8 @@ import braidit_1.com.cyberpointllc.stac.proto.Braidit.OutcomeMessage;
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
@@ -30,7 +32,8 @@ public class MakeGuessCommand extends PlaitItCommand {
     @Override
     @Summary({"this.plaitIt.currentGame.previousRounds", "2", "this.plaitIt.currentGame.currentRound.phases", "1"})
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("36") int i;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
         if (!phase.matches(GamePhase.Phase.RECEIVED_MODIFIED_PLAIT)) {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
@@ -45,9 +48,9 @@ public class MakeGuessCommand extends PlaitItCommand {
                         return;
                     }
                     // check if correct
-                    PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
+                    @Inv("= selectedPhase.allowedCommands 12") PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
                     Plait received = selectedPhase.obtainPlait();
-                    ChoicesPhase choicesPhase = plaitIt.obtainCurrentGame().getChoicesPhase();
+                    @Inv("= choicesPhase.allowedCommands 12") ChoicesPhase choicesPhase = plaitIt.obtainCurrentGame().getChoicesPhase();
                     Plait original = choicesPhase.fetchPlait(selection);
                     boolean iWon = received.isEquivalent(original);
                     logger.info("Guessed braid number={} correct={}", selection, iWon);

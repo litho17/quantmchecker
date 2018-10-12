@@ -6,6 +6,8 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.LengthsPhase;
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
@@ -25,13 +27,14 @@ public class AssignLengthCommand extends PlaitItCommand {
     @Override
     @Summary({"this.plaitIt.currentGame.currentRound.phases", "1"})
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("24") int i;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
 
         if (!phase.matches(GamePhase.Phase.SELECTING_LENGTHS) && !phase.matches(GamePhase.Phase.LENGTHS_SELECTED) ){
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
         } else if (phase instanceof LengthsPhase){
-            LengthsPhase lengthsPhase = (LengthsPhase) phase;
+            @Inv("= lengthsPhase.allowedCommands 12") LengthsPhase lengthsPhase = (LengthsPhase) phase;
 
             try {
                 if (cmdLine.getArgList().size() != 2) {

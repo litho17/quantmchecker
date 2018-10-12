@@ -9,6 +9,8 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.PlaitSelectedStepBuilder
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
 import java.io.PrintStream;
@@ -28,12 +30,13 @@ public class SelectPlaitCommand extends PlaitItCommand {
     @Override
     @Summary({"this.plaitIt.currentGame.currentRound.phases", "1"})
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("36") int i;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
         if (!phase.matches(GamePhase.Phase.RECEIVED_PLAIT_LENGTHS) && !phase.matches(GamePhase.Phase.PLAIT_SELECTED)) {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
         } else if (phase instanceof ChoicesPhase) {
-            ChoicesPhase choicesPhase = (ChoicesPhase) phase;
+            @Inv("= choicesPhase.allowedCommands 12") ChoicesPhase choicesPhase = (ChoicesPhase) phase;
 
             try {
                 if (cmdLine.getArgList().size() != 1) {
@@ -48,7 +51,7 @@ public class SelectPlaitCommand extends PlaitItCommand {
                     logger.info("Selecting braid number={}", plaitNum);
                     // make copy of so modification doesn't change original
                     Plait plait = new Plait(choicesPhase.fetchPlait(plaitNum).toString(), choicesPhase.fetchPlait(plaitNum).takeNumFibers());
-                    PlaitSelectedPhase newPhase = new PlaitSelectedStepBuilder().fixAdvance(GamePhase.Phase.PLAIT_SELECTED).composePlaitSelectedStep();
+                    @Inv("= newPhase.allowedCommands 12") PlaitSelectedPhase newPhase = new PlaitSelectedStepBuilder().fixAdvance(GamePhase.Phase.PLAIT_SELECTED).composePlaitSelectedStep();
                     if (choicesPhase.grabErrorStep() != null) {
                         newPhase.insertPlait(plait, plaitNum);
                     } else {

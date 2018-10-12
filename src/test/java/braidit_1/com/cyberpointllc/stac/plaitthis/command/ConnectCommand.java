@@ -6,6 +6,8 @@ import braidit_1.com.cyberpointllc.stac.console.Command;
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -24,7 +26,8 @@ public class ConnectCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("12") int i;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
         if (!phase.matches(GamePhase.Phase.IDLE)) {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());

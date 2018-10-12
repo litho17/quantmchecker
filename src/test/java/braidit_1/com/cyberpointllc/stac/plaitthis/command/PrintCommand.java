@@ -8,6 +8,8 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.GamePhase;
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -25,7 +27,8 @@ public class PrintCommand extends PlaitItCommand {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("36") int k;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
         if (!isCorrectPhase(phase)) {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
@@ -34,7 +37,7 @@ public class PrintCommand extends PlaitItCommand {
                 if (cmdLine.getArgList().size() != 0) {
                     plaitIt.printUsrMsg(USAGE);
                 } else {
-                    ChoicesPhase choicesPhase = plaitIt.obtainCurrentGame().getChoicesPhase();
+                    @Inv("= choicesPhase.allowedCommands 12") ChoicesPhase choicesPhase = plaitIt.obtainCurrentGame().getChoicesPhase();
 
                     if (choicesPhase != null) {
                         boolean introPrinted = false;
@@ -54,7 +57,7 @@ public class PrintCommand extends PlaitItCommand {
                     }
 
                     if (phase instanceof PlaitSelectedPhase) {
-                        PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
+                        @Inv("= selectedPhase.allowedCommands 12") PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
                         Plait plait = selectedPhase.obtainPlait();
 
                         if (plait != null) {

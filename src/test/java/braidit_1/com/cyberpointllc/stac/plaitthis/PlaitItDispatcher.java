@@ -17,6 +17,8 @@ import braidit_1.com.cyberpointllc.stac.proto.Braidit.LengthsMessage;
 import braidit_1.com.cyberpointllc.stac.proto.Braidit.ModifiedBraidMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Summary;
 
@@ -94,7 +96,8 @@ public class PlaitItDispatcher extends Dispatcher {
                             validateLength(length4);
                             validateLength(length5);
 
-                            ChoicesPhase choicesPhase = new ChoicesPhase(GamePhase.Phase.RECEIVED_PLAIT_LENGTHS);
+                            @Bound("24") int i;
+                            @Inv("= choicesPhase.allowedCommands 12") ChoicesPhase choicesPhase = new ChoicesPhase(GamePhase.Phase.RECEIVED_PLAIT_LENGTHS);
                             int fibers = plaitIt.obtainCurrentGame().takeNumFibers();
                             Plait braid1 = Plait.pullRandomPlait(fibers, length1);
                             Plait braid2 = Plait.pullRandomPlait(fibers, length2);
@@ -140,7 +143,7 @@ public class PlaitItDispatcher extends Dispatcher {
                             choicesPhase.putPlait(5, new Plait(braid5, numFibers));
                             plaitIt.setStep(choicesPhase);
                             // now go to the actual BraidSelectedState
-                            PlaitSelectedPhase phase = new PlaitSelectedStepBuilder().fixAdvance(GamePhase.Phase.RECEIVED_MODIFIED_PLAIT).composePlaitSelectedStep();
+                            @Inv("= phase.allowedCommands 12") PlaitSelectedPhase phase = new PlaitSelectedStepBuilder().fixAdvance(GamePhase.Phase.RECEIVED_MODIFIED_PLAIT).composePlaitSelectedStep();
                             phase.insertPlait(new Plait(plait, numFibers));
                             plaitIt.printUsrMsg("Received modified braid: " + plait);
                             plaitIt.setStep(phase);

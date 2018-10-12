@@ -6,6 +6,8 @@ import braidit_1.com.cyberpointllc.stac.plaitthis.phase.GamePhase;
 import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -23,12 +25,13 @@ public class GrowToThreeCommand extends PlaitItCommand {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        GamePhase phase = plaitIt.getStep();
+        @Bound("24") int i;
+        @Inv("= phase.allowedCommands 12") GamePhase phase = plaitIt.getStep();
         logger.debug("Command {} in state {}", COMMAND, phase);
         if (!phase.matches(GamePhase.Phase.PLAIT_SELECTED)) {
             plaitIt.printUsrMsg("Command " + COMMAND + " is illegal in state " + plaitIt.getStep());
         } else if (phase instanceof PlaitSelectedPhase) {
-            PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
+            @Inv("= selectedPhase.allowedCommands 12") PlaitSelectedPhase selectedPhase = (PlaitSelectedPhase) phase;
             try {
                 if (cmdLine.getArgList().size() != 1) {
                     plaitIt.printUsrMsg(USAGE);
