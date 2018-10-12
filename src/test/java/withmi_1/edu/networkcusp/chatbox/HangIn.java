@@ -27,7 +27,7 @@ public class HangIn implements CommunicationsGuide {
     private final CommunicationsServer server;
     private final CommunicationsClient client;
     public final Console console;
-    private final File dataDir;
+    public final File dataDir;
 
     public final ConversationManager discussionConductor;
     public final MemberConductor memberConductor;

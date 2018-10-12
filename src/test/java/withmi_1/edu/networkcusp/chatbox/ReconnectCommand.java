@@ -1,5 +1,6 @@
 package withmi_1.edu.networkcusp.chatbox;
 
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import withmi_1.edu.networkcusp.protocols.CommunicationsFailure;
 import withmi_1.edu.networkcusp.protocols.CommunicationsPublicIdentity;
 import withmi_1.edu.networkcusp.terminal.Command;
@@ -34,7 +35,7 @@ public class ReconnectCommand extends Command {
                 CommunicationsPublicIdentity theirIdentity = theirMember.getIdentity();
                 try {
                     withMi.connect(theirIdentity.obtainCallbackAddress(), true);
-                } catch (CommunicationsFailure e) {
+                } catch (@InvUnk("Extend library class") CommunicationsFailure e) {
                     out.println("Error connecting: " + e.getMessage());
                 }
             } else {

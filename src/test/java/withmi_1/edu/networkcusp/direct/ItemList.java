@@ -2,7 +2,7 @@
  * $Id: ItemList.java,v 1.1 2006/04/15 14:10:48 platform Exp $
  * Created on 2006-3-24
  */
-package withmi_1.edu.networkcusp.jackson.simple;
+package withmi_1.edu.networkcusp.direct;
 
 import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
@@ -43,7 +43,7 @@ public class ItemList {
 		return this.items;
 	}
 	
-	public String[] pullArray(){
+	public String[] takeArray(){
 		return (String[])this.items.toArray();
 	}
 	
@@ -53,23 +53,15 @@ public class ItemList {
 		if(isMultiToken){
 			StringTokenizer tokens=new StringTokenizer(s,sp);
 			while(tokens.hasMoreTokens()){
-                splitTarget(append, tokens);
-            }
+				append.add(tokens.nextToken().trim());
+			}
 		}
 		else{
-            splitAssist(s, sp, append);
-        }
+			this.split(s,sp,append);
+		}
 	}
-
-    private void splitAssist(String s, String sp, List append) {
-        this.split(s,sp,append);
-    }
-
-    private void splitTarget(List append, StringTokenizer tokens) {
-        append.add(tokens.nextToken().trim());
-    }
-
-    public void split(String s,String sp,List append){
+	
+	public void split(String s,String sp,List append){
 		if(s==null || sp==null)
 			return;
 		int pos=0;
@@ -85,14 +77,14 @@ public class ItemList {
 		append.add(s.substring(prevPos).trim());
 	}
 	
-	public void setSP(String sp){
+	public void assignSP(String sp){
 		this.sp=sp;
 	}
 	
-	public void add(int q,String item){
+	public void add(int j, String item){
 		if(item==null)
 			return;
-		items.add(q,item.trim());
+		items.add(j,item.trim());
 	}
 
 	public void add(String item){
@@ -118,11 +110,11 @@ public class ItemList {
 	}
 	
 	/**
-	 * @param i 0-based
+	 * @param j 0-based
 	 * @return
 	 */
-	public String get(int i){
-		return (String)items.get(i);
+	public String take(int j){
+		return (String)items.get(j);
 	}
 	
 	public int size(){
@@ -134,22 +126,23 @@ public class ItemList {
 	}
 	
 	public String toString(String sp){
-		@Inv("= (- sb q q) (- (+ c137 c139 c140) c146 c146)") StringBuffer sb=new StringBuffer();
-		@Bound("* 2 items") int i;
-		for(@Iter("<= q items") int q = 0; q <items.size(); ){
-			if(q ==0)
-				c137: sb.append(items.get(q));
+		@Bound("+ 1 (* 2 items)") int i;
+		@Inv("= (- sb p p) (- (+ c133 c135 c136) c138 c138)") StringBuffer sb=new StringBuffer();
+		
+		for(@Iter("<= p items") int p = 0; p <items.size();){
+			if(p ==0)
+				c133: sb.append(items.get(p));
 			else{
-				c139: sb.append(sp);
-				c140: sb.append(items.get(q));
+				c135: sb.append(sp);
+				c136: sb.append(items.get(p));
 			}
-			c146: q = q + 1;
-        }
+			c138: p = p + 1;
+		}
 		return sb.toString();
 
 	}
 
-    public void clear(){
+	public void release(){
 		items.clear();
 	}
 	

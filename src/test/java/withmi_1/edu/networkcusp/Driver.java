@@ -26,7 +26,7 @@ public class Driver {
         @Inv("= (- console.history it) (- c32 c30)") Console console;
         console = null;
         @Bound("input") int i;
-        @Iter("<= it input") Iterator<Command> it = input.iterator();
+        @Iter("and (<= it input) (= console.commands 0)") Iterator<Command> it = input.iterator();
         while (it.hasNext()) {
             Command c;
             c30: c = it.next();

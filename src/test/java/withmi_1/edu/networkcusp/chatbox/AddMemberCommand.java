@@ -48,7 +48,7 @@ public class AddMemberCommand extends Command {
                         return;
                     }
 
-                    // @Bound("withMi.memberConductor.nameToMember") int j;
+                    @Bound("withMi.memberConductor.nameToMember") int j;
                     @Inv("= (- members it) (- c116 c115)") List<WithMiUser> members = new ArrayList<>();
                     @Iter("<= it withMi.memberConductor.nameToMember") Iterator<WithMiUser> it = withMi.memberConductor.nameToMember.values().iterator();
                     while (it.hasNext()) {

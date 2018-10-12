@@ -1,4 +1,4 @@
-package withmi_1.edu.networkcusp.jackson.simple.reader;
+package withmi_1.edu.networkcusp.direct.reader;
 
 import java.io.IOException;
 
@@ -6,46 +6,46 @@ import java.io.IOException;
  * A simplified and stoppable SAX-like content handler for stream processing of JSON text. 
  * 
  * @see org.xml.sax.ContentHandler
- * @see JACKSONParser#parse(java.io.Reader, ContentGuide, boolean)
+ * @see PLUGINGrabber#parse(java.io.Reader, ContentManager, boolean)
  * 
  * @author FangYidong<fangyidong@yahoo.com.cn>
  */
-public interface ContentGuide {
+public interface ContentManager {
 	/**
 	 * Receive notification of the beginning of JSON processing.
 	 * The parser will invoke this method only once.
      * 
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
 	 * 			- JSONParser will stop and throw the same exception to the caller when receiving this exception.
 	 */
-	void startJACKSON() throws ParseFailure, IOException;
+	void startPLUGIN() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of JSON processing.
 	 * 
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
 	 */
-	void endJACKSON() throws ParseFailure, IOException;
+	void endPLUGIN() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the beginning of a JSON object.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
      *          - JSONParser will stop and throw the same exception to the caller when receiving this exception.
-     * @see #endJACKSON
+     * @see #endPLUGIN
 	 */
-	boolean startObject() throws ParseFailure, IOException;
+	boolean startObject() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of a JSON object.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
      * 
      * @see #startObject
 	 */
-	boolean endObject() throws ParseFailure, IOException;
+	boolean endObject() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the beginning of a JSON object entry.
@@ -53,41 +53,41 @@ public interface ContentGuide {
 	 * @param key - Key of a JSON object entry. 
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
      * 
      * @see #endObjectEntry
 	 */
-	boolean startObjectEntry(String key) throws ParseFailure, IOException;
+	boolean startObjectEntry(String key) throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of the value of previous object entry.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
      * 
      * @see #startObjectEntry
 	 */
-	boolean endObjectEntry() throws ParseFailure, IOException;
+	boolean endObjectEntry() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the beginning of a JSON array.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
      * 
      * @see #endArray
 	 */
-	boolean startArray() throws ParseFailure, IOException;
+	boolean startArray() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the end of a JSON array.
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
      * 
      * @see #startArray
 	 */
-	boolean endArray() throws ParseFailure, IOException;
+	boolean endArray() throws ParseDeviation, IOException;
 	
 	/**
 	 * Receive notification of the JSON primitive values:
@@ -96,15 +96,15 @@ public interface ContentGuide {
 	 * 	java.lang.Boolean
 	 * 	null
 	 * 
-	 * @param value - Instance of the following:
+	 * @param detail - Instance of the following:
 	 * 			java.lang.String,
 	 * 			java.lang.Number,
 	 * 			java.lang.Boolean
 	 * 			null
 	 * 
 	 * @return false if the handler wants to stop parsing after return.
-	 * @throws ParseFailure
+	 * @throws ParseDeviation
 	 */
-	boolean primitive(Object value) throws ParseFailure, IOException;
+	boolean primitive(Object detail) throws ParseDeviation, IOException;
 		
 }

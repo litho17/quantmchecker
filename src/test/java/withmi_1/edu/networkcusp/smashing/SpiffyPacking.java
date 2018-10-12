@@ -424,10 +424,10 @@ public class SpiffyPacking {
     }
 
     private String readFile(String file) throws IOException{
-        @Bound("+ 1 (* 2 file)") int i;
+        @Bound("+ 2 (* 2 file)") int i;
         @Iter("<= reader file") BufferedReader reader = new BufferedReader(new FileReader(file));
         String line = null;
-        @Inv("= (- stringBuilder reader reader) (- (+ c434 c435) c436 c436 c433)") StringBuilder  stringBuilder = new StringBuilder();
+        @Inv("= (- stringBuilder reader reader) (- (+ c434 c435) c436 c436 c433 c433)") StringBuilder  stringBuilder = new StringBuilder();
         String ls = System.getProperty("line.separator");
 
         c433: line = reader.readLine();

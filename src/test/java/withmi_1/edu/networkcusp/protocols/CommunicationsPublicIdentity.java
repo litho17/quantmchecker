@@ -6,10 +6,11 @@ import plv.colorado.edu.quantmchecker.qual.Iter;
 import withmi_1.edu.networkcusp.chatbox.Chat;
 import withmi_1.edu.networkcusp.chatbox.WithMiChat;
 import withmi_1.edu.networkcusp.chatbox.WithMiUser;
+import withmi_1.edu.networkcusp.direct.PLUGINObject;
+import withmi_1.edu.networkcusp.direct.reader.ContainerFactory;
+import withmi_1.edu.networkcusp.direct.reader.PLUGINGrabber;
+import withmi_1.edu.networkcusp.direct.reader.ParseDeviation;
 import withmi_1.edu.networkcusp.math.CryptoPublicKey;
-import withmi_1.edu.networkcusp.jackson.simple.JACKSONObject;
-import withmi_1.edu.networkcusp.jackson.simple.reader.JACKSONParser;
-import withmi_1.edu.networkcusp.jackson.simple.reader.ParseFailure;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,14 +34,14 @@ public final class CommunicationsPublicIdentity implements Comparable<Communicat
         this.callbackAddress = callbackAddress;
     }
 
-    public static CommunicationsPublicIdentity fromJackson(String jacksonString) throws CommunicationsFailure {
-        @InvUnk("Complex loop") JACKSONParser parser = new JACKSONParser();
+    /*public static CommunicationsPublicIdentity fromJackson(String jacksonString) throws CommunicationsFailure {
+        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
         try {
-            return ((JACKSONObject)parser.parse(jacksonString)).fromJackson();
-        } catch (@InvUnk("Extend library class") ParseFailure e) {
+            return ((PLUGINObject)parser.parse(jacksonString, (ContainerFactory) null)).fromPlugin();
+        } catch (@InvUnk("Extend library class") ParseDeviation e) {
             throw new CommunicationsFailure(e);
         }
-    }
+    }*/
 
     public Comms.Identity serializeIdentity() {
         Comms.Identity.Builder serializedIdBuilder = Comms.Identity.newBuilder()
@@ -122,11 +123,11 @@ public final class CommunicationsPublicIdentity implements Comparable<Communicat
     }
 
     public String toJackson() {
-        return toJACKSONObject().toJACKSONString();
+        return toJACKSONObject().toPLUGINString();
     }
 
-    public JACKSONObject toJACKSONObject() {
-        @InvUnk("Extend library class") JACKSONObject jackson = new JACKSONObject();
+    public PLUGINObject toJACKSONObject() {
+        @InvUnk("Extend library class") PLUGINObject jackson = new PLUGINObject();
         jackson.put("id", id);
         jackson.put("callbackHost", callbackAddress.getHost());
         jackson.put("callbackPort", callbackAddress.pullPort());

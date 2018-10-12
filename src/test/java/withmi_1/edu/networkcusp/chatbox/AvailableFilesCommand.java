@@ -1,10 +1,15 @@
 package withmi_1.edu.networkcusp.chatbox;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 import withmi_1.edu.networkcusp.terminal.Command;
 import org.apache.commons.cli.CommandLine;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -27,10 +32,23 @@ public class AvailableFilesCommand extends Command {
             executeExecutor(out);
         } else {
             int fileNum = 0;
-            List<File> obtainFiles = withMi.obtainFiles();
-            for (int a = 0; a < obtainFiles.size(); ) {
-                for (; (a < obtainFiles.size()) && (Math.random() < 0.4); a++) {
-                    File file = obtainFiles.get(a);
+            // List<File> obtainFiles = withMi.obtainFiles();
+
+            File[] files = withMi.dataDir.listFiles();
+            if (files == null) {
+                files = new File[0];
+            }
+            @Bound("dataDir") int j;
+            @Inv("= (- sortedFiles i) (- c479 c480)") List<File> sortedFiles = new ArrayList<>();
+            for (@Iter("<= i dataDir") int i = 0; i < files.length;) {
+                c479: sortedFiles.add(files[i]);
+                c480: i = i + 1;
+            }
+            Collections.sort(sortedFiles);
+
+            for (int a = 0; a < sortedFiles.size(); ) {
+                for (; (a < sortedFiles.size()) && (Math.random() < 0.4); a++) {
+                    File file = sortedFiles.get(a);
                     out.println(fileNum + ". " + file.getName());
                     fileNum++;
                 }

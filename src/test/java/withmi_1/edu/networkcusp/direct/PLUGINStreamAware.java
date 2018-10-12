@@ -1,4 +1,4 @@
-package withmi_1.edu.networkcusp.jackson.simple;
+package withmi_1.edu.networkcusp.direct;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -7,9 +7,9 @@ import java.io.Writer;
  * Beans that support customized output of JSON text to a writer shall implement this interface.  
  * @author FangYidong<fangyidong@yahoo.com.cn>
  */
-public interface JACKSONStreamAware {
+public interface PLUGINStreamAware {
 	/**
 	 * write JSON string to out.
 	 */
-	void writeJACKSONString(Writer out) throws IOException;
+	void writePLUGINString(Writer out) throws IOException;
 }

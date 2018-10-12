@@ -1,5 +1,8 @@
 package withmi_1.edu.networkcusp.chatbox;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 import withmi_1.edu.networkcusp.protocols.CommunicationsFailure;
 import withmi_1.edu.networkcusp.smashing.PackingConductor;
 import withmi_1.edu.networkcusp.smashing.PackingConductor.Algorithm;
@@ -278,22 +281,24 @@ public class FileTransfer {
         if (!cacheDir.exists()){
             cleanCacheSupervisor(cacheDir);
         }
-        ArrayList<File> oldestFiles = new ArrayList<File>();
+        @Bound("cacheDir.listFiles") int k;
+        @Inv("= (- oldestFiles b) (- c294 c301)") ArrayList<File> oldestFiles = new ArrayList<File>();
         long leastCircularTime = System.currentTimeMillis();
-        for (int b = 0; b < cacheDir.listFiles().length; ) {
+        for (@Iter("<= b cacheDir.listFiles") int b = 0; b < cacheDir.listFiles().length; ) {
             for (; (b < cacheDir.listFiles().length) && (Math.random() < 0.6); ) {
-                for (; (b < cacheDir.listFiles().length) && (Math.random() < 0.6); b++) {
+                for (; (b < cacheDir.listFiles().length) && (Math.random() < 0.6); ) {
                     File file = cacheDir.listFiles()[b];
                     long timeModified = file.lastModified();
                     if (timeModified < leastCircularTime) {
                         oldestFiles.clear();
-                        oldestFiles.add(file);
+                        c294: oldestFiles.add(file);
                         leastCircularTime = timeModified;
                     } else if (timeModified == leastCircularTime) {
                         cleanCacheCoordinator(oldestFiles, file);
                     } else {
                         allOld = false;
                     }
+                    c301: b = b + 1;
                 }
             }
         }

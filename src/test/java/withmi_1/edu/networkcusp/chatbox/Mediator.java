@@ -140,7 +140,7 @@ public class Mediator {
         public Void call() {
             try {
                 withMi.removeConnection(connection);
-            } catch (CommunicationsFailure e) {
+            } catch (@InvUnk("Extend library class") CommunicationsFailure e) {
                 System.err.println("Error handling closed connection " + e.getMessage());
             }
             return null;

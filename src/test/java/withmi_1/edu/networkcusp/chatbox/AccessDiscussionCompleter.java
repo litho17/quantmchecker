@@ -22,7 +22,7 @@ public class AccessDiscussionCompleter implements Completer {
      */
     @Override
     public int complete(String buffer, int cursor, List<CharSequence> candidates) {
-        @Bound("withMi.discussionConductor.nameToDiscussion")
+        @Bound("withMi.discussionConductor.nameToDiscussion") int i;
         @Inv("= (- names it) (- c31 c30)") TreeSet<String> names = new TreeSet<>();
         @Iter("<= it withMi.discussionConductor.nameToDiscussion") Iterator<String> it = withMi.discussionConductor.nameToDiscussion.keySet().iterator();
         while (it.hasNext()) {

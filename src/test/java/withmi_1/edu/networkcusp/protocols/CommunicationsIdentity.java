@@ -1,10 +1,11 @@
 package withmi_1.edu.networkcusp.protocols;
 
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import withmi_1.edu.networkcusp.direct.PLUGINObject;
+import withmi_1.edu.networkcusp.direct.reader.ContainerFactory;
+import withmi_1.edu.networkcusp.direct.reader.PLUGINGrabber;
 import withmi_1.edu.networkcusp.math.CryptoPrivateKey;
 import withmi_1.edu.networkcusp.math.CryptoPublicKey;
-import withmi_1.edu.networkcusp.jackson.simple.JACKSONObject;
-import withmi_1.edu.networkcusp.jackson.simple.reader.JACKSONParser;
 
 import java.io.File;
 import java.io.FileReader;
@@ -27,10 +28,10 @@ public class CommunicationsIdentity {
     }
 
     public static CommunicationsIdentity loadFromFile(File identityFile) throws CommunicationsFailure {
-        @InvUnk("Complex loop") JACKSONParser parser = new JACKSONParser();
+        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
         try {
-            @InvUnk("Extend library class") JACKSONObject jackson = (JACKSONObject) parser.parse(new FileReader(identityFile));
-            JACKSONObject privateKeyJackson = (JACKSONObject) jackson.get("privateKey");
+            @InvUnk("Extend library class") PLUGINObject jackson = (PLUGINObject) parser.parse(new FileReader(identityFile), (ContainerFactory) null);
+            PLUGINObject privateKeyJackson = (PLUGINObject) jackson.get("privateKey");
             CryptoPrivateKey privateKey = CryptoPrivateKey.createKeyFromJackson(privateKeyJackson);
             String id = (String) jackson.get("id");
             String callbackHost = (String) jackson.get("callbackHost");
@@ -43,12 +44,12 @@ public class CommunicationsIdentity {
     }
 
     public String toJackson() {
-        @InvUnk("Extend library class") JACKSONObject jackson = new JACKSONObject();
+        @InvUnk("Extend library class") PLUGINObject jackson = new PLUGINObject();
         jackson.put("id", id);
         jackson.put("callbackHost", callbackAddress.getHost());
         jackson.put("callbackPort", callbackAddress.pullPort());
-        jackson.put("privateKey", key.toJACKSONObject());
-        return jackson.toJACKSONString();
+        jackson.put("privateKey", key.toJACKSONString());
+        return jackson.toPLUGINString();
     }
 
     public String obtainId() { return id; }

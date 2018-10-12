@@ -1,9 +1,10 @@
 package withmi_1.edu.networkcusp.math;
 
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import withmi_1.edu.networkcusp.jackson.simple.JACKSONObject;
-import withmi_1.edu.networkcusp.jackson.simple.reader.JACKSONParser;
-import withmi_1.edu.networkcusp.jackson.simple.reader.ParseFailure;
+import withmi_1.edu.networkcusp.direct.PLUGINObject;
+import withmi_1.edu.networkcusp.direct.reader.ContainerFactory;
+import withmi_1.edu.networkcusp.direct.reader.PLUGINGrabber;
+import withmi_1.edu.networkcusp.direct.reader.ParseDeviation;
 
 import java.math.BigInteger;
 
@@ -71,19 +72,19 @@ public class CryptoPublicKey {
         return result;
     }
 
-    public JACKSONObject toJACKSONObject() {
-        @InvUnk("Extend library class") JACKSONObject jackson = new JACKSONObject();
+    public PLUGINObject toJACKSONObject() {
+        @InvUnk("Extend library class") PLUGINObject jackson = new PLUGINObject();
         jackson.put("modulus", floormod.toString());
         jackson.put("exponent", e.toString());
         return jackson;
     }
 
-    public static CryptoPublicKey fromJackson(String jacksonString) throws ParseFailure {
-        JACKSONParser parser = new JACKSONParser();
-        return fromJackson((JACKSONObject) parser.parse(jacksonString));
+    public static CryptoPublicKey fromJackson(String jacksonString) throws ParseDeviation {
+        PLUGINGrabber parser = new PLUGINGrabber();
+        return fromJackson((PLUGINObject) parser.parse(jacksonString, (ContainerFactory) null));
     }
 
-    public static CryptoPublicKey fromJackson(JACKSONObject publicKeyJackson) {
+    public static CryptoPublicKey fromJackson(PLUGINObject publicKeyJackson) {
         BigInteger floormod = new BigInteger((String) publicKeyJackson.get("modulus"));
         BigInteger exponent = new BigInteger((String) publicKeyJackson.get("exponent"));
         return new CryptoPublicKey(floormod, exponent);

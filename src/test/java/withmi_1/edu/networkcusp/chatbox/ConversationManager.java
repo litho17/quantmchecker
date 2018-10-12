@@ -39,7 +39,7 @@ public class ConversationManager {
     /**
      * the current chat
      */
-    private WithMiChat currentDiscussion;
+    public WithMiChat currentDiscussion;
 
     public ConversationManager(HangIn withMi) {
         this.withMi = withMi;

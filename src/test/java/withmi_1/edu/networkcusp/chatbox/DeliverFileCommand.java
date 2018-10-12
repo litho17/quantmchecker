@@ -1,5 +1,8 @@
 package withmi_1.edu.networkcusp.chatbox;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 import withmi_1.edu.networkcusp.terminal.Command;
 import jline.console.completer.AggregateCompleter;
 import jline.console.completer.ArgumentCompleter;
@@ -8,6 +11,8 @@ import org.apache.commons.cli.CommandLine;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -53,13 +58,26 @@ public class DeliverFileCommand extends Command {
                 return;
             }
 
-            List<File> files = withMi.obtainFiles();
-            if ((fileToDeliverNumber < 0) || (fileToDeliverNumber >= files.size())) {
+            // List<File> files = withMi.obtainFiles();
+
+            File[] files = withMi.dataDir.listFiles();
+            if (files == null) {
+                files = new File[0];
+            }
+            @Bound("dataDir") int j;
+            @Inv("= (- sortedFiles i) (- c479 c480)") List<File> sortedFiles = new ArrayList<>();
+            for (@Iter("<= i dataDir") int i = 0; i < files.length;) {
+                c479: sortedFiles.add(files[i]);
+                c480: i = i + 1;
+            }
+            Collections.sort(sortedFiles);
+
+            if ((fileToDeliverNumber < 0) || (fileToDeliverNumber >= sortedFiles.size())) {
                 executeFunction(out, fileToDeliverNumber);
                 return;
             }
 
-            File fileToDeliver = files.get(fileToDeliverNumber);
+            File fileToDeliver = sortedFiles.get(fileToDeliverNumber);
 
             try {
                 FileTransfer sender = new FileTransferBuilder().setWithMi(withMi).createFileTransfer();
