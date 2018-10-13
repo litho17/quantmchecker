@@ -43,9 +43,8 @@ public class LayShipCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if ((stage != Stage.LAY_SHIPS) && (stage != Stage.LAY_SHIPS_AND_FINISH)) {
-            warShips.printUsrMsg("Command " + grabName() + " is illegal from " + stage);
+        if ((warShips.pullStage() != Stage.LAY_SHIPS) && (warShips.pullStage() != Stage.LAY_SHIPS_AND_FINISH)) {
+            warShips.printUsrMsg("Command " + grabName() + " is illegal from " + warShips.pullStage());
         } else {
             try {
                 List<String> argList = cmdLine.getArgList();

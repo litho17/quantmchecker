@@ -30,15 +30,14 @@ public class RandomlyDefineBoardCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if ((stage != Stage.LAY_SHIPS) && (stage != Stage.LAY_SHIPS_AND_FINISH)) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+
+        if ((warShips.pullStage() != Stage.LAY_SHIPS) && (warShips.pullStage() != Stage.LAY_SHIPS_AND_FINISH)) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
-            List<String> argList = cmdLine.getArgList();
-            if (argList.size() != 1) {
+            if (cmdLine.getArgList().size() != 1) {
                 warShips.printUsrMsg(USAGE);
             } else {
-                executeService(argList);
+                executeService(cmdLine.getArgList());
             }
         }
     }

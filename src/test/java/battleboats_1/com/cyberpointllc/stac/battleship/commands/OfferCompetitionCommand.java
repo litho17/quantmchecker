@@ -25,9 +25,9 @@ public class OfferCompetitionCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.CONNECTED) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal from " + stage + ".  Try to connect first.");
+
+        if (warShips.pullStage() != Stage.CONNECTED) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal from " + warShips.pullStage() + ".  Try to connect first.");
         } else {
             executeAid(cmdLine);
         }

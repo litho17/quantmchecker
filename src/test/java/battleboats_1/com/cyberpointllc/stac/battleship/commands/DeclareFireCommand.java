@@ -25,19 +25,17 @@ public class DeclareFireCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.DECLARE_FIRE) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+        if (warShips.pullStage() != Stage.DECLARE_FIRE) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 4) {
+                if (cmdLine.getArgList().size() != 4) {
                     warShips.printUsrMsg(USAGE);
                 } else {
-                    String height = argList.get(0);
-                    String speed = argList.get(1);
-                    String elevationAngle = argList.get(2); // degrees
-                    String boardAngle = argList.get(3); // degrees
+                    String height = cmdLine.getArgList().get(0);
+                    String speed = cmdLine.getArgList().get(1);
+                    String elevationAngle = cmdLine.getArgList().get(2); // degrees
+                    String boardAngle = cmdLine.getArgList().get(3); // degrees
 
                     ShotMadeMessage message = ShotMadeMessage.newBuilder()
                             .setHeight(height)

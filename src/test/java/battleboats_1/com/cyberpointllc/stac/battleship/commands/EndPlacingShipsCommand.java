@@ -24,13 +24,12 @@ public class EndPlacingShipsCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.LAY_SHIPS_AND_FINISH) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal from " + stage + ".  Try to connect first.");
+
+        if (warShips.pullStage() != Stage.LAY_SHIPS_AND_FINISH) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal from " + warShips.pullStage() + ".  Try to connect first.");
         } else {
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 0) {
+                if (cmdLine.getArgList().size() != 0) {
                     warShips.printUsrMsg(USAGE);
                 } else {
                     executeEntity();

@@ -21,9 +21,8 @@ public class LayCannonCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if ((stage != Stage.LAY_SHIPS) && (stage != Stage.LAY_SHIPS_AND_FINISH)) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+        if ((warShips.pullStage() != Stage.LAY_SHIPS) && (warShips.pullStage() != Stage.LAY_SHIPS_AND_FINISH)) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
             executeExecutor(cmdLine);
         }

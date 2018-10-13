@@ -23,9 +23,9 @@ public class AcceptCompetitionCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.OFFER_RECEIVED) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+
+        if (warShips.pullStage() != Stage.OFFER_RECEIVED) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
             executeSupervisor(cmdLine);
         }

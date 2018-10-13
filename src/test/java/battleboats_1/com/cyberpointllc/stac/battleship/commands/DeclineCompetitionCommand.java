@@ -24,13 +24,11 @@ public class DeclineCompetitionCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.OFFER_RECEIVED) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+        if (warShips.pullStage() != Stage.OFFER_RECEIVED) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
             try {
-                List<String> argList = cmdLine.getArgList();
-                if (argList.size() != 0) {
+                if (cmdLine.getArgList().size() != 0) {
                     warShips.printUsrMsg(USAGE);
                 } else {
                     executeSupervisor();

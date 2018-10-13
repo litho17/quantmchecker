@@ -210,7 +210,7 @@ public class OceanBoard {
      */
     public Map<Square, Pin> getStrikeSquares(BigDecimal xGap, BigDecimal yGap) {
         // @Bound("+ 4 strikesToUpdate (* 4 numberOfPixelsOnSide ships)") int i;
-        @Inv("= (- strikes it) (- (+ (* 4 c233) c252) c251)") Map<Square, Pin> strikes = new HashMap<>();
+        @Inv("= (- strikes it) (- (+ (* 4 c233) c263) c262)") Map<Square, Pin> strikes = new HashMap<>();
         // Ocean x and y are where on the board (square length
         // considered) that the shot will hit.  Note that x and y
         // distance are also in ocean values (meters).
@@ -234,7 +234,7 @@ public class OceanBoard {
 
         // All hits have been found, now check if each square is sunk
 
-        @Inv("= strikesToUpdate c245") Map<Square, Pin> strikesToUpdate = new HashMap<>();
+        @Inv("= strikesToUpdate c254") Map<Square, Pin> strikesToUpdate = new HashMap<>();
 
         int highest = 2 * numberOfPixelsOnSide;
         int smallest = -2 * numberOfPixelsOnSide;
@@ -251,7 +251,7 @@ public class OceanBoard {
                 @InvUnk("Nested lists") Ship ship;
                 c252: ship = it1.next();
                 if (ship.contains(sq) && ship.isSunk()) {
-                    c245: strikesToUpdate.put(sq, Pin.fromName(ship.obtainName()));
+                    c254: strikesToUpdate.put(sq, Pin.fromName(ship.obtainName()));
                 }
             }
         }
@@ -259,8 +259,8 @@ public class OceanBoard {
         @Iter("<= it strikesToUpdate") Iterator<Square> it = strikesToUpdate.keySet().iterator();
         Square sq;
         while (it.hasNext()) {
-            c251: sq = it.next();
-            c252: strikes.put(sq, strikesToUpdate.get(sq));
+            c262: sq = it.next();
+            c263: strikes.put(sq, strikesToUpdate.get(sq));
         }
 
         return oceanToRadar(strikes);

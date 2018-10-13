@@ -21,9 +21,8 @@ public class ConnectCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.IDLE) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+        if (warShips.pullStage() != Stage.IDLE) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
             executeHerder(out, cmdLine);
         }

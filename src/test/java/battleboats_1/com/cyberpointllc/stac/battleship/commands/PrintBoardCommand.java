@@ -22,9 +22,9 @@ public class PrintBoardCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (isStageInvalid(stage)) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+
+        if (isStageInvalid(warShips.pullStage())) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
             executeSupervisor(out, cmdLine);
         }

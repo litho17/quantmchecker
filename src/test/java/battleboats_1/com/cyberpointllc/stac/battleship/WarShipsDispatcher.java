@@ -31,10 +31,9 @@ public class WarShipsDispatcher extends Dispatcher {
     protected void handleReceivedMessage(byte[] data, TalkersConnection conn) {
         try {
             BattleBoatsMessage message = BattleBoatsMessage.parseFrom(data);
-            Stage currentStage = warShips.pullStage();
 
-            if (!isMessageTypeValidForCurrentStage(message.getType(), currentStage)) {
-                warShips.printUsrMsg("Ignoring " + message.getType() + " message received in state " + currentStage);
+            if (!isMessageTypeValidForCurrentStage(message.getType(), warShips.pullStage())) {
+                warShips.printUsrMsg("Ignoring " + message.getType() + " message received in state " + warShips.pullStage());
                 sendErrorMessage(message, "Message type unexpected in current state");
                 return;
             }
@@ -77,9 +76,9 @@ public class WarShipsDispatcher extends Dispatcher {
 
                         break;
                     case BOATS_PLACED:
-                        if (currentStage == Stage.WAIT_FOR_OPPONENT_READY) { // for player 2
+                        if (warShips.pullStage() == Stage.WAIT_FOR_OPPONENT_READY) { // for player 2
                             handleReceivedMessageAssist();
-                        } else if (currentStage == Stage.IM_READY) { // for player 1
+                        } else if (warShips.pullStage() == Stage.IM_READY) { // for player 1
                             warShips.printUsrMsg("Opponent has placed their boats; begin by declaring your first shot.");
                             warShips.assignStage(Stage.DECLARE_FIRE);
                         }

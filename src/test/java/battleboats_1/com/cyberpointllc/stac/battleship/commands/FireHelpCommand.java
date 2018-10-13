@@ -22,17 +22,15 @@ public class FireHelpCommand extends Command {
 
     @Override
     public void execute(PrintStream out, CommandLine cmdLine) {
-        Stage stage = warShips.pullStage();
-        if (stage != Stage.DECLARE_FIRE) {
-            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + stage);
+        if (warShips.pullStage() != Stage.DECLARE_FIRE) {
+            warShips.printUsrMsg("Command " + COMMAND + " is illegal in state " + warShips.pullStage());
         } else {
-            List<String> argList = cmdLine.getArgList();
-            if (argList.size() != 2) {
+            if (cmdLine.getArgList().size() != 2) {
                 warShips.printUsrMsg(USAGE);
             } else {
                 try {
-                    double x = Double.parseDouble(argList.get(0));
-                    double y = Double.parseDouble(argList.get(1));
+                    double x = Double.parseDouble(cmdLine.getArgList().get(0));
+                    double y = Double.parseDouble(cmdLine.getArgList().get(1));
                     warShips.printUsrMsg(calculateParametersToStrike(x, y));
                 } catch (Exception e) {
                     warShips.printUsrMsg("Problem processing command: " + e.getMessage());
