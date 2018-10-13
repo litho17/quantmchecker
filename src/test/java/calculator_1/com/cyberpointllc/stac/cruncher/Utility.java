@@ -27,25 +27,22 @@ public class Utility {
     }
 
     public static String parseFields(Map<String, List<String>> fields, String feetField, String inchesField, String sixteenthsField) throws InvalidEquationDeviation {
-        @InvUnk("Nested lists") List<String> feetList = fields.get(feetField);
-        @InvUnk("Nested lists") List<String> inchesList = fields.get(inchesField);
-        @InvUnk("Nested lists") List<String> sixteenthsList = fields.get(sixteenthsField);
         String feetStr = "";
         String inchesStr = "";
         String sixteenthsStr = "0";
 
-        if(feetList != null && feetList.size() == 1 && feetList.get(0).trim().length() > 0) {
-            feetStr = feetList.get(0).trim();
+        if(fields.get(feetField) != null && fields.get(feetField).size() == 1 && fields.get(feetField).get(0).trim().length() > 0) {
+            feetStr = fields.get(feetField).get(0).trim();
             feetStr = integrateDelimiter(feetStr, Unit.FEET);
         }
 
-        if (inchesList != null && inchesList.size() == 1 && inchesList.get(0).trim().length() > 0) {
-            inchesStr = inchesList.get(0).trim();
+        if (fields.get(inchesField) != null && fields.get(inchesField).size() == 1 && fields.get(inchesField).get(0).trim().length() > 0) {
+            inchesStr = fields.get(inchesField).get(0).trim();
             inchesStr = integrateDelimiter(inchesStr, Unit.INCHES);
         }
 
-        if (sixteenthsList != null && sixteenthsList.size() == 1 && sixteenthsList.get(0).trim().length() > 0) {
-            sixteenthsStr = sixteenthsList.get(0).trim();
+        if (fields.get(sixteenthsField) != null && fields.get(sixteenthsField).size() == 1 && fields.get(sixteenthsField).get(0).trim().length() > 0) {
+            sixteenthsStr = fields.get(sixteenthsField).get(0).trim();
         }
 
         sixteenthsStr = integrateDelimiter(sixteenthsStr, Unit.SIXTEENTHS);
@@ -96,13 +93,12 @@ public class Utility {
     }
 
     public static String parseField(Map<String, List<String>> fields, String field) throws InvalidEquationDeviation {
-        @InvUnk("Nested lists") List<String> fieldList = fields.get(field);
 
-        if (fieldList == null || fieldList.size() != 1 || fieldList.get(0).trim().length() == 0) {
+        if (fields.get(field) == null || fields.get(field).size() != 1 || fields.get(field).get(0).trim().length() == 0) {
             throw new InvalidEquationDeviation("An expression must be provided");
         }
 
-        return fieldList.get(0).trim();
+        return fields.get(field).get(0).trim();
     }
 
     public static String measurementToNumber(String measurement) throws InvalidEquationDeviation {

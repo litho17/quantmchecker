@@ -10,6 +10,7 @@ import org.apache.commons.fileupload.RequestContext;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Iter;
@@ -96,17 +97,19 @@ public class MultipartAssistant {
 
         String report = null;
 
-        Map<String, String> parcelFields = new HashMap<>();
+        @Bound("context") int i;
+        @Inv("= (- parcelFields iterator) (- c112 c109)") Map<String, String> parcelFields = new HashMap<>();
 
         try {
             FileUpload fileUpload = new FileUpload();
-            FileItemIterator iterator = fileUpload.getItemIterator(context);
+            @Iter("<= iterator context") FileItemIterator iterator = fileUpload.getItemIterator(context);
 
             while (iterator.hasNext()) {
-                FileItemStream fileItemStream = iterator.next();
+                FileItemStream fileItemStream;
+                c109: fileItemStream = iterator.next();
                 String name = fileItemStream.getFieldName();
                 String value = IOUtils.toString(fileItemStream.openStream(), "UTF-8");
-                parcelFields.put(name, value);
+                c112: parcelFields.put(name, value);
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Error parsing multipart message: " + e.getMessage(), e);
@@ -262,6 +265,7 @@ public class MultipartAssistant {
         FileItemFactory fileItemFactory = new DiskFileItemFactory();
         fileUpload.setFileItemFactory(fileItemFactory);
 
+        @Bound("+ 1 allFieldNames allFieldNames allFieldNames") int i;
         @Inv("= (- fieldNameItems it it) (- (+ c292 c296) c281 c281)") Map<String, String> fieldNameItems = new HashMap<>();
         InputStream fileIn = null;
 
@@ -356,16 +360,17 @@ public class MultipartAssistant {
         FileUpload fileUpload = new FileUpload();
         FileItemFactory fileItemFactory = new DiskFileItemFactory();
         fileUpload.setFileItemFactory(fileItemFactory);
-        List<String> itemStrings = new ArrayList<>();
+        @Bound("fieldName") int i;
+        @Inv("= (- itemStrings k) (- c372 c373)") List<String> itemStrings = new ArrayList<>();
 
         try {
             // get items associated with the field name
-            List<FileItem> items = fileUpload.parseParameterMap(context).get(fieldName);
 
-            if (items != null && !items.isEmpty()) {
-                for (int k = 0; k < items.size(); k++) {
-                    FileItem item = items.get(k);
-                    itemStrings.add(item.getString());
+            if (fileUpload.parseParameterMap(context).get(fieldName) != null && !fileUpload.parseParameterMap(context).get(fieldName).isEmpty()) {
+                for (@Iter("<= k fieldName") int k = 0; k < fileUpload.parseParameterMap(context).get(fieldName).size(); ) {
+                    FileItem item = fileUpload.parseParameterMap(context).get(fieldName).get(k);
+                    c372: itemStrings.add(item.getString());
+                    c373: k = k + 1;
                 }
             }
         } catch (Exception e) {

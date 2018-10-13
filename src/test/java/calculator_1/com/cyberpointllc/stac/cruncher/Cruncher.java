@@ -30,7 +30,7 @@ public class Cruncher {
             int index = 0;
             int lastIndex = 0;
             boolean first = true;
-            LinkedList<Object> outcome = new LinkedList<>();
+            @InvUnk("Complex loop") LinkedList<Object> outcome = new LinkedList<>();
 
             while ((index = takeNextProcedure(equation, lastIndex)) != -1) {
                 lastIndex = index;
@@ -99,7 +99,7 @@ public class Cruncher {
             int index = 0;
             int lastIndex = 0;
             boolean first = true;
-            LinkedList<Object> outcome = new LinkedList<>();
+            @InvUnk("Complex loop") LinkedList<Object> outcome = new LinkedList<>();
 
             while ((index = takeNextProcedure(equation, lastIndex)) != -1) {
                 lastIndex = index;
@@ -234,7 +234,7 @@ public class Cruncher {
 
     // this method processes the postfix stack to compute the answer
     private GreatNumber processOutcome(Queue<?> queue){
-        @InvUnk("Bug!") Stack<GreatNumber> operandStack = new Stack<>();
+        @InvUnk("Bug") Stack<GreatNumber> operandStack = new Stack<>();
 
         while (queue.size() > 0) {
             Object next = queue.remove();
@@ -243,7 +243,7 @@ public class Cruncher {
                 Procedure procedure = (Procedure) next;
 
                 if (procedure.equals(Procedure.LEFT_PAREN)) {
-                    @InvUnk("Bug!") LinkedList<Object> tempQueue = new LinkedList<>();
+                    @InvUnk("Bug") LinkedList<Object> tempQueue = new LinkedList<>();
                     int count = 1;
 
                     while (!queue.isEmpty() && count > 0) {
