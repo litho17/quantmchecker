@@ -58,7 +58,8 @@ object Utils {
     ("java.util.Vector", "add"),
     ("java.util.Vector", "addElement"),
     ("java.util.Hashtable", "add"),
-    ("java.util.ByteBuffer", "put")
+    ("java.util.ByteBuffer", "put"),
+    ("java.util.SortedSet", "add")
   )
 
   val COLLECTION_REMOVE: HashSet[(String, String)] = HashSet(
@@ -87,7 +88,8 @@ object Utils {
     ("java.util.Deque", "poll"),
     ("java.util.Stack", "pop"),
     ("java.util.Vector", "remove"),
-    ("java.util.Hashtable", "remove")
+    ("java.util.Hashtable", "remove"),
+    ("java.util.SortedSet", "remove")
   )
 
   val ITER_METHOD: HashSet[(String, String)] = HashSet(
@@ -130,7 +132,8 @@ object Utils {
     ("java.io.BufferedReader", "readLine"),
     ("java.io.InputStreamReader", "read"),
     ("org.htmlparser.lexer.Lexer", "nextNode"),
-    ("java.io.Reader", "read")
+    ("java.io.Reader", "read"),
+    ("org.apache.commons.fileupload.FileItemIterator", "next")
     // ("java.util.Queue", "poll")
   )
 
@@ -378,7 +381,10 @@ object Utils {
                   else p.path.last.typeMirror == accessPath.path.last.typeMirror
               } > 1
             }
-            if (existAlias) acc + INFINITY // If may alias
+            if (existAlias) {
+              // println(accessPath.toString)
+              acc + INFINITY
+            } // If may alias
             else acc + accessPath.toString
           } else acc // Do not count size of non list-typed variable
       }
