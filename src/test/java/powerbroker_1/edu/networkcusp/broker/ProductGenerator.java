@@ -1,6 +1,6 @@
 package powerbroker_1.edu.networkcusp.broker;
 
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
+import org.json.simple.JSONObject;
 
 public class ProductGenerator {
     private final String id;
@@ -36,7 +36,7 @@ public class ProductGenerator {
      * @param map
      * @return
      */
-    public static ProductGenerator fromJack(PLUGINObject map) {
+    public static ProductGenerator fromJack(JSONObject map) {
         String id = (String) map.get("id");
         ProductStatus status = ProductStatus.valueOf(((String) map.get("status")).toUpperCase());
         int capacity = Integer.valueOf((String) map.get("capacity"));

@@ -1,9 +1,8 @@
 package withmi_1.edu.networkcusp.protocols;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import withmi_1.edu.networkcusp.direct.PLUGINObject;
-import withmi_1.edu.networkcusp.direct.reader.ContainerFactory;
-import withmi_1.edu.networkcusp.direct.reader.PLUGINGrabber;
 import withmi_1.edu.networkcusp.math.CryptoPrivateKey;
 import withmi_1.edu.networkcusp.math.CryptoPublicKey;
 
@@ -28,10 +27,10 @@ public class CommunicationsIdentity {
     }
 
     public static CommunicationsIdentity loadFromFile(File identityFile) throws CommunicationsFailure {
-        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
+        @InvUnk("Unknown API") JSONParser parser = new JSONParser();
         try {
-            @InvUnk("Extend library class") PLUGINObject jackson = (PLUGINObject) parser.parse(new FileReader(identityFile), (ContainerFactory) null);
-            PLUGINObject privateKeyJackson = (PLUGINObject) jackson.get("privateKey");
+            @InvUnk("Extend library class") JSONObject jackson = (JSONObject) parser.parse(new FileReader(identityFile));
+            JSONObject privateKeyJackson = (JSONObject) jackson.get("privateKey");
             CryptoPrivateKey privateKey = CryptoPrivateKey.createKeyFromJackson(privateKeyJackson);
             String id = (String) jackson.get("id");
             String callbackHost = (String) jackson.get("callbackHost");
@@ -44,12 +43,12 @@ public class CommunicationsIdentity {
     }
 
     public String toJackson() {
-        @InvUnk("Extend library class") PLUGINObject jackson = new PLUGINObject();
+        @InvUnk("Extend library class") JSONObject jackson = new JSONObject();
         jackson.put("id", id);
         jackson.put("callbackHost", callbackAddress.getHost());
         jackson.put("callbackPort", callbackAddress.pullPort());
         jackson.put("privateKey", key.toJACKSONString());
-        return jackson.toPLUGINString();
+        return jackson.toJSONString();
     }
 
     public String obtainId() { return id; }

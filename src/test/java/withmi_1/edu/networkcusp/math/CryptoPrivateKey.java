@@ -1,7 +1,7 @@
 package withmi_1.edu.networkcusp.math;
 
+import org.json.simple.JSONObject;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import withmi_1.edu.networkcusp.direct.PLUGINObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -110,21 +110,21 @@ public class CryptoPrivateKey {
         return new CryptoPrivateKey(p, q);
     }
 
-    public static CryptoPrivateKey createKeyFromJackson(PLUGINObject privateKeyJackson) {
+    public static CryptoPrivateKey createKeyFromJackson(JSONObject privateKeyJackson) {
         BigInteger p = stringToBigInt((String) privateKeyJackson.get("p"));
         BigInteger q = stringToBigInt((String) privateKeyJackson.get("q"));
         return new CryptoPrivateKey(p, q);
     }
 
-    public PLUGINObject toJACKSONObject() {
-        @InvUnk("Extend library class") PLUGINObject jackson = new PLUGINObject();
+    public JSONObject toJACKSONObject() {
+        @InvUnk("Extend library class") JSONObject jackson = new JSONObject();
         jackson.put("p", this.p.toString());
         jackson.put("q", this.q.toString());
         return jackson;
     }
 
     public String toJACKSONString() {
-        return toJACKSONObject().toPLUGINString();
+        return toJACKSONObject().toJSONString();
     }
 
     private static BigInteger stringToBigInt(String str) {

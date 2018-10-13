@@ -49,8 +49,7 @@ public class RomanNumCruncherHandler extends AbstractCruncherHandler {
         String equation = grabEquationMessage();
 
         try {
-            Map<String, List<String>> fields = MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES);
-            equation = Utility.parseField(fields, EQUATION_FIELD);
+            equation = Utility.parseField(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), EQUATION_FIELD);
             report = takeCruncher().processEquation(equation);
         } catch (@InvUnk("Extend library class") InvalidEquationDeviation iee) {
             report = fetchInvalidEquationMessage();

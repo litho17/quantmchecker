@@ -1,10 +1,9 @@
 package braidit_1.com.cyberpointllc.stac.communications;
 
-import braidit_1.com.cyberpointllc.stac.direct.PLUGINObject;
-import braidit_1.com.cyberpointllc.stac.direct.reader.ContainerFactory;
-import braidit_1.com.cyberpointllc.stac.direct.reader.PLUGINGrabber;
 import braidit_1.com.cyberpointllc.stac.mathematic.CryptoSystemPrivateKey;
 import braidit_1.com.cyberpointllc.stac.mathematic.CryptoSystemPublicKey;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.File;
@@ -28,10 +27,10 @@ public class CommunicationsEmpty {
     }
 
     public static CommunicationsEmpty loadFromFile(File emptyFile) throws CommunicationsException {
-        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
+        JSONParser parser = new JSONParser();
         try {
-            @InvUnk("Extend library class") PLUGINObject objnote = (PLUGINObject) parser.parse(new FileReader(emptyFile), (ContainerFactory) null);
-            PLUGINObject privateKeyObjnote = (PLUGINObject) objnote.get("privateKey");
+            @InvUnk("Extend library class") JSONObject objnote = (JSONObject) parser.parse(new FileReader(emptyFile));
+            JSONObject privateKeyObjnote = (JSONObject) objnote.get("privateKey");
             CryptoSystemPrivateKey privateKey = CryptoSystemPrivateKey.composeKeyFromObjnote(privateKeyObjnote);
             String id = (String) objnote.get("id");
             String callbackStart = (String) objnote.get("callbackHost");
@@ -44,12 +43,12 @@ public class CommunicationsEmpty {
     }
 
     public String toObjnote() {
-        @InvUnk("Extend library class") PLUGINObject objnote = new PLUGINObject();
+        @InvUnk("Extend library class") JSONObject objnote = new JSONObject();
         objnote.put("id", id);
         objnote.put("callbackHost", callbackAddress.takeStart());
         objnote.put("callbackPort", callbackAddress.pullPort());
         objnote.put("privateKey", key.toOBJNOTEObject());
-        return objnote.toPLUGINString();
+        return objnote.toJSONString();
     }
 
     public String fetchId() { return id; }

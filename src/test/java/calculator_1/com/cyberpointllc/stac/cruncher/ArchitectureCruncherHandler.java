@@ -67,10 +67,9 @@ public class ArchitectureCruncherHandler extends AbstractCruncherHandler {
         String zeroValues = "0|16 0'0|16 0\"0|16 0'0\"0|16";
 
         try {
-            Map<String, List<String>> fields = MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES);
-            String procedure = Utility.parseField(fields, "operator");
-            String firstOperand = Utility.parseFields(fields, "leftFeet", "leftInches", "leftSixteenths");
-            String secondaryOperand = Utility.parseFields(fields, "rightFeet", "rightInches", "rightSixteenths");
+            String procedure = Utility.parseField(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "operator");
+            String firstOperand = Utility.parseFields(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "leftFeet", "leftInches", "leftSixteenths");
+            String secondaryOperand = Utility.parseFields(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "rightFeet", "rightInches", "rightSixteenths");
             String equation = firstOperand + procedure + secondaryOperand;
             displayEquation = Utility.formatMeasurement(firstOperand, 0, false) + " " + procedure + " " + Utility.formatMeasurement(secondaryOperand, 0, false);
             int dimension = 1;

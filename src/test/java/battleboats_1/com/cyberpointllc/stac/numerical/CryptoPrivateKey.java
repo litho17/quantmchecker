@@ -1,6 +1,6 @@
 package battleboats_1.com.cyberpointllc.stac.numerical;
 
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.PLUGINObject;
+import org.json.simple.JSONObject;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.File;
@@ -100,21 +100,21 @@ public class CryptoPrivateKey {
         return new CryptoPrivateKeyProducer().setP(p).fixQ(q).makeCryptoPrivateKey();
     }
 
-    public static CryptoPrivateKey makeKeyFromPlugin(PLUGINObject privateKeyPlugin) {
+    public static CryptoPrivateKey makeKeyFromPlugin(JSONObject privateKeyPlugin) {
         BigInteger p = stringToBigInt((String) privateKeyPlugin.get("p"));
         BigInteger q = stringToBigInt((String) privateKeyPlugin.get("q"));
         return new CryptoPrivateKeyProducer().setP(p).fixQ(q).makeCryptoPrivateKey();
     }
 
-    public PLUGINObject toPLUGINObject() {
-        @InvUnk("Extend library class") PLUGINObject plugin = new PLUGINObject();
+    public JSONObject toPLUGINObject() {
+        @InvUnk("Extend library class") JSONObject plugin = new JSONObject();
         plugin.put("p", this.p.toString());
         plugin.put("q", this.q.toString());
         return plugin;
     }
 
     public String toPLUGINString() {
-        return toPLUGINObject().toPLUGINString();
+        return toPLUGINObject().toJSONString();
     }
 
     private static BigInteger stringToBigInt(String str) {

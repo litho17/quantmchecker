@@ -1,11 +1,10 @@
 package braidit_1.com.cyberpointllc.stac.communications;
 
-import braidit_1.com.cyberpointllc.stac.direct.PLUGINObject;
-import braidit_1.com.cyberpointllc.stac.direct.reader.ContainerFactory;
-import braidit_1.com.cyberpointllc.stac.direct.reader.PLUGINGrabber;
-import braidit_1.com.cyberpointllc.stac.direct.reader.ParseDeviation;
 import braidit_1.com.cyberpointllc.stac.mathematic.CryptoSystemPublicKey;
 import braidit_1.com.cyberpointllc.stac.proto.Comms;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 public final class CommunicationsPublicEmpty implements Comparable<CommunicationsPublicEmpty>{
@@ -26,19 +25,19 @@ public final class CommunicationsPublicEmpty implements Comparable<Communication
     }
 
     public static CommunicationsPublicEmpty fromObjnote(String objnoteString) throws CommunicationsException {
-        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
+        JSONParser parser = new JSONParser();
         try {
-            return fromObjnote((PLUGINObject)parser.parse(objnoteString, (ContainerFactory) null));
-        } catch (@InvUnk("Extend library class") ParseDeviation e) {
+            return fromObjnote((JSONObject)parser.parse(objnoteString));
+        } catch (@InvUnk("Extend library class") ParseException e) {
             throw new CommunicationsException(e);
         }
     }
 
-    public static CommunicationsPublicEmpty fromObjnote(PLUGINObject objnote) {
+    public static CommunicationsPublicEmpty fromObjnote(JSONObject objnote) {
         String id = (String) objnote.get("id");
         String callbackStart = (String) objnote.get("callbackHost");
         long callbackPort = (long) objnote.get("callbackPort");
-        CryptoSystemPublicKey publicKey = CryptoSystemPublicKey.fromObjnote((PLUGINObject) objnote.get("publicKey"));
+        CryptoSystemPublicKey publicKey = CryptoSystemPublicKey.fromObjnote((JSONObject) objnote.get("publicKey"));
 
         return new CommunicationsPublicEmpty(id, publicKey, new CommunicationsNetworkAddressBuilder().defineStart(callbackStart).assignPort((int) callbackPort).composeCommunicationsNetworkAddress());
     }
@@ -79,11 +78,11 @@ public final class CommunicationsPublicEmpty implements Comparable<Communication
     }
 
     public String toObjnote() {
-        return toOBJNOTEObject().toPLUGINString();
+        return toOBJNOTEObject().toJSONString();
     }
 
-    public PLUGINObject toOBJNOTEObject() {
-        @InvUnk("Extend library class") PLUGINObject objnote = new PLUGINObject();
+    public JSONObject toOBJNOTEObject() {
+        @InvUnk("Extend library class") JSONObject objnote = new JSONObject();
         objnote.put("id", id);
         objnote.put("callbackHost", callbackAddress.takeStart());
         objnote.put("callbackPort", callbackAddress.pullPort());

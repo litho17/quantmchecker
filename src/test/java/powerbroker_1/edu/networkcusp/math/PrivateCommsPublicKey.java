@@ -1,7 +1,7 @@
 package powerbroker_1.edu.networkcusp.math;
 
 import com.google.protobuf.ByteString;
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
+import org.json.simple.JSONObject;
 import powerbroker_1.edu.networkcusp.senderReceivers.Comms;
 
 import java.math.BigInteger;
@@ -87,7 +87,7 @@ public class PrivateCommsPublicKey {
         return result;
     }
 
-    public static PrivateCommsPublicKey fromJack(PLUGINObject publicKeyJack) {
+    public static PrivateCommsPublicKey fromJack(JSONObject publicKeyJack) {
         BigInteger modulo = new BigInteger((String) publicKeyJack.get("modulus"));
         BigInteger exponent = new BigInteger((String) publicKeyJack.get("exponent"));
         return new PrivateCommsPublicKey(modulo, exponent);

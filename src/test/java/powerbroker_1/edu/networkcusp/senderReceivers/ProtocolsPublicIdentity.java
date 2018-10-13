@@ -1,7 +1,6 @@
 package powerbroker_1.edu.networkcusp.senderReceivers;
 
-import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
+import org.json.simple.JSONObject;
 import powerbroker_1.edu.networkcusp.math.PrivateCommsPublicKey;
 
 public final class ProtocolsPublicIdentity implements Comparable<ProtocolsPublicIdentity>{
@@ -21,11 +20,11 @@ public final class ProtocolsPublicIdentity implements Comparable<ProtocolsPublic
         this.callbackAddress = callbackAddress;
     }
 
-    public static ProtocolsPublicIdentity fromJack(PLUGINObject jack) {
+    public static ProtocolsPublicIdentity fromJack(JSONObject jack) {
         String id = (String) jack.get("id");
         String callbackPlace = (String) jack.get("callbackHost");
         long callbackPort = (long) jack.get("callbackPort");
-        PrivateCommsPublicKey publicKey = PrivateCommsPublicKey.fromJack((PLUGINObject) jack.get("publicKey"));
+        PrivateCommsPublicKey publicKey = PrivateCommsPublicKey.fromJack((JSONObject) jack.get("publicKey"));
 
         return new ProtocolsPublicIdentity(id, publicKey, new ProtocolsNetworkAddressBuilder().setPlace(callbackPlace).definePort((int) callbackPort).formProtocolsNetworkAddress());
     }

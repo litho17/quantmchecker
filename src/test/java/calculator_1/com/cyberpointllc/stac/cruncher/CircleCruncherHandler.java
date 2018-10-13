@@ -65,9 +65,8 @@ public class CircleCruncherHandler extends AbstractCruncherHandler {
         String displayEquation = grabEquationMessage();
 
         try {
-            Map<String, List<String>> fields = MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES);
-            String radius = Utility.parseFields(fields, "feet", "inches", "sixteenths");
-            String inputFormula = Utility.parseField(fields, "operation");
+            String radius = Utility.parseFields(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "feet", "inches", "sixteenths");
+            String inputFormula = Utility.parseField(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "operation");
             Utility.Formula formula;
             displayEquation = "Operation: " + inputFormula + " Radius: " + Utility.formatMeasurement(radius, 1, false);
 

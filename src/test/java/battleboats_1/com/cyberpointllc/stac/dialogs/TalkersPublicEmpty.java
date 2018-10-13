@@ -1,11 +1,11 @@
 package battleboats_1.com.cyberpointllc.stac.dialogs;
 
 import battleboats_1.com.cyberpointllc.stac.numerical.CryptoPublicKey;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.PLUGINObject;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.ContainerFactory;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.PLUGINGrabber;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.ParseDeviation;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import java.math.BigInteger;
 
 public final class TalkersPublicEmpty implements Comparable<TalkersPublicEmpty>{
 
@@ -25,19 +25,24 @@ public final class TalkersPublicEmpty implements Comparable<TalkersPublicEmpty>{
     }
 
     public static TalkersPublicEmpty fromPlugin(String pluginString) throws TalkersDeviation {
-        PLUGINGrabber grabber = new PLUGINGrabber();
+        JSONParser grabber = new JSONParser();
         try {
-            return fromPlugin((PLUGINObject) grabber.parse(pluginString, (ContainerFactory)null));
-        } catch (@InvUnk("Extend library class") ParseDeviation e) {
+            return fromPlugin((JSONObject) grabber.parse(pluginString));
+        } catch (@InvUnk("Extend library class") ParseException e) {
             throw new TalkersDeviation(e);
         }
     }
 
-    public static TalkersPublicEmpty fromPlugin(PLUGINObject plugin) {
+    public static TalkersPublicEmpty fromPlugin(JSONObject plugin) {
         String id = (String) plugin.get("id");
         String callbackHome = (String) plugin.get("callbackHost");
         long callbackPort = (long) plugin.get("callbackPort");
-        CryptoPublicKey publicKey = ((PLUGINObject) plugin.get("publicKey")).fromPlugin();
+
+        BigInteger modulo = new BigInteger((String) plugin.get("modulus"));
+        BigInteger exponent = new BigInteger((String) plugin.get("exponent"));
+
+        CryptoPublicKey publicKey = new CryptoPublicKey(modulo, exponent);
+        // ((JSONObject) plugin.get("publicKey")).toJSONString();
 
         return new TalkersPublicEmpty(id, publicKey, new TalkersNetworkAddress(callbackHome, (int)callbackPort));
     }
@@ -66,11 +71,11 @@ public final class TalkersPublicEmpty implements Comparable<TalkersPublicEmpty>{
     }
 
     public String toPlugin() {
-        return toPLUGINObject().toPLUGINString();
+        return toPLUGINObject().toJSONString();
     }
 
-    public PLUGINObject toPLUGINObject() {
-        @InvUnk("Extend library class") PLUGINObject plugin = new PLUGINObject();
+    public JSONObject toPLUGINObject() {
+        @InvUnk("Extend library class") JSONObject plugin = new JSONObject();
         plugin.put("id", id);
         plugin.put("callbackHost", callbackAddress.pullHome());
         plugin.put("callbackPort", callbackAddress.fetchPort());

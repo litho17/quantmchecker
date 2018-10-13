@@ -1,9 +1,7 @@
 package powerbroker_1.edu.networkcusp.senderReceivers;
 
-import plv.colorado.edu.quantmchecker.qual.InvUnk;
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
-import powerbroker_1.edu.networkcusp.direct.reader.ContainerFactory;
-import powerbroker_1.edu.networkcusp.direct.reader.PLUGINGrabber;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import powerbroker_1.edu.networkcusp.math.PrivateCommsPrivateKey;
 import powerbroker_1.edu.networkcusp.math.PrivateCommsPublicKey;
 
@@ -29,10 +27,10 @@ public class ProtocolsIdentity {
     }
 
     public static ProtocolsIdentity loadFromFile(File identityFile) throws ProtocolsRaiser {
-        PLUGINGrabber parser = new PLUGINGrabber();
+        JSONParser parser = new JSONParser();
         try {
-            @InvUnk("Complex loop") PLUGINObject jack = (PLUGINObject) parser.parse(new FileReader(identityFile), (ContainerFactory) null);
-            PrivateCommsPrivateKey privateKey = PrivateCommsPrivateKey.formKeyFromJack((PLUGINObject) jack.get("privateKey"));
+            JSONObject jack = (JSONObject) parser.parse(new FileReader(identityFile));
+            PrivateCommsPrivateKey privateKey = PrivateCommsPrivateKey.formKeyFromJack((JSONObject) jack.get("privateKey"));
             String id = (String) jack.get("id");
             String callbackPlace = (String) jack.get("callbackHost");
             long callbackPort = (long) jack.get("callbackPort");

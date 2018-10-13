@@ -1,11 +1,11 @@
 package powerbroker_1.edu.networkcusp.broker;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.Iter;
 import plv.colorado.edu.quantmchecker.qual.Summary;
-import powerbroker_1.edu.networkcusp.direct.PLUGINArray;
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
 
 
 import java.util.*;
@@ -21,21 +21,29 @@ public class ProductOutline {
         this.budget = budget;
     }
 
-    public static ProductOutline fromJack(PLUGINObject jack) throws ProductIntermediaryRaiser {
+    public static ProductOutline fromJack(JSONObject jack) throws ProductIntermediaryRaiser {
         long budgetLong = (long) jack.get("budget");
 
         ProductOutline state = new ProductOutline((int) budgetLong);
 
-        for (int b = 0; b < ((PLUGINArray) jack.get("users")).size(); b++) {
-            Object oJackCustomer = ((PLUGINArray) jack.get("users")).get(b);
-            PLUGINObject jackCustomer = (PLUGINObject) oJackCustomer;
-            ProductCustomer customer = null; // jackCustomer.fromPlugin().fromJack();
+        for (int b = 0; b < ((JSONArray) jack.get("users")).size(); b++) {
+            Object oJackCustomer = ((JSONArray) jack.get("users")).get(b);
+            JSONObject jackCustomer = (JSONObject) oJackCustomer;
+
+            String id = (String) jackCustomer.get("id");
+            int usage = Integer.valueOf((String) jackCustomer.get("usage"));
+            if (usage < 0) {
+                throw new ProductIntermediaryRaiser("Usage cannot be less than 0, but is: " + usage);
+            }
+            ProductUnit unit = ProductUnit.valueOf((String) jackCustomer.get("units"));
+            ProductCustomer customer = new ProductCustomer(id, usage, unit);
+
             state.addCustomer(customer);
         }
-        for (int q = 0; q < ((PLUGINArray) jack.get("generators")).size(); ) {
-            for (; (q < ((PLUGINArray) jack.get("generators")).size()) && (Math.random() < 0.5); q++) {
-                Object oJackGenerator = ((PLUGINArray) jack.get("generators")).get(q);
-                PLUGINObject jackGenerator = (PLUGINObject) oJackGenerator;
+        for (int q = 0; q < ((JSONArray) jack.get("generators")).size(); ) {
+            for (; (q < ((JSONArray) jack.get("generators")).size()) && (Math.random() < 0.5); q++) {
+                Object oJackGenerator = ((JSONArray) jack.get("generators")).get(q);
+                JSONObject jackGenerator = (JSONObject) oJackGenerator;
                 ProductGenerator generator = ProductGenerator.fromJack(jackGenerator);
                 state.addGenerator(generator);
             }

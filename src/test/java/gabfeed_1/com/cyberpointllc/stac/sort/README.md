@@ -1,0 +1,1 @@
+This is an explicit stack implementation of changingSort. Using the jinjatransformer, choose a runtime (bad or good), choose an index k, and choose a variation of changingSort (halvingSort, unevenSort, or combineSort).

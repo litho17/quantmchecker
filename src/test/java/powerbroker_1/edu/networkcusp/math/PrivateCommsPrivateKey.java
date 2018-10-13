@@ -1,6 +1,6 @@
 package powerbroker_1.edu.networkcusp.math;
 
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
+import org.json.simple.JSONObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -105,7 +105,7 @@ public class PrivateCommsPrivateKey {
         return new PrivateProtocolsPrivateKeyBuilder().setP(p).setQ(q).formPrivateProtocolsPrivateKey();
     }
 
-    public static PrivateCommsPrivateKey formKeyFromJack(PLUGINObject privateKeyJack) {
+    public static PrivateCommsPrivateKey formKeyFromJack(JSONObject privateKeyJack) {
         BigInteger p = stringToBigInt((String) privateKeyJack.get("p"));
         BigInteger q = stringToBigInt((String) privateKeyJack.get("q"));
         return new PrivateProtocolsPrivateKeyBuilder().setP(p).setQ(q).formPrivateProtocolsPrivateKey();

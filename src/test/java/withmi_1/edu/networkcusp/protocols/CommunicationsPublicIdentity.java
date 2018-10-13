@@ -1,15 +1,12 @@
 package withmi_1.edu.networkcusp.protocols;
 
+import org.json.simple.JSONObject;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Iter;
 import withmi_1.edu.networkcusp.chatbox.Chat;
 import withmi_1.edu.networkcusp.chatbox.WithMiChat;
 import withmi_1.edu.networkcusp.chatbox.WithMiUser;
-import withmi_1.edu.networkcusp.direct.PLUGINObject;
-import withmi_1.edu.networkcusp.direct.reader.ContainerFactory;
-import withmi_1.edu.networkcusp.direct.reader.PLUGINGrabber;
-import withmi_1.edu.networkcusp.direct.reader.ParseDeviation;
 import withmi_1.edu.networkcusp.math.CryptoPublicKey;
 
 import java.util.ArrayList;
@@ -114,11 +111,11 @@ public final class CommunicationsPublicIdentity implements Comparable<Communicat
     }
 
     public String toJackson() {
-        return toJACKSONObject().toPLUGINString();
+        return toJACKSONObject().toJSONString();
     }
 
-    public PLUGINObject toJACKSONObject() {
-        @InvUnk("Extend library class") PLUGINObject jackson = new PLUGINObject();
+    public JSONObject toJACKSONObject() {
+        @InvUnk("Extend library class") JSONObject jackson = new JSONObject();
         jackson.put("id", id);
         jackson.put("callbackHost", callbackAddress.getHost());
         jackson.put("callbackPort", callbackAddress.pullPort());

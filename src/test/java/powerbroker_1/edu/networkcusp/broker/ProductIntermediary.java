@@ -1,14 +1,13 @@
 package powerbroker_1.edu.networkcusp.broker;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import plv.colorado.edu.quantmchecker.qual.Bound;
 import plv.colorado.edu.quantmchecker.qual.Inv;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 import plv.colorado.edu.quantmchecker.qual.Iter;
-import powerbroker_1.edu.networkcusp.direct.PLUGINArray;
-import powerbroker_1.edu.networkcusp.direct.PLUGINObject;
-import powerbroker_1.edu.networkcusp.direct.reader.ContainerFactory;
-import powerbroker_1.edu.networkcusp.direct.reader.PLUGINGrabber;
-import powerbroker_1.edu.networkcusp.direct.reader.ParseDeviation;
 import powerbroker_1.edu.networkcusp.senderReceivers.ProtocolsIdentity;
 import powerbroker_1.edu.networkcusp.senderReceivers.ProtocolsNetworkAddress;
 import powerbroker_1.edu.networkcusp.broker.step.StageOverseer;
@@ -85,26 +84,32 @@ public class ProductIntermediary {
     private PurchasePlan processFromFile(File file) throws ProductIntermediaryRaiser {
         try {
             // @Bound("+ jack.users jack.generators") int k;
-            @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
-            @InvUnk("Extend library class") PLUGINObject jack = (PLUGINObject) parser.parse(new FileReader(file), (ContainerFactory) null);
-            ProductOutline outline = ProductOutline.fromJack(jack);
+            JSONParser parser = new JSONParser();
+            @InvUnk("Extend library class") JSONObject jack = (JSONObject) parser.parse(new FileReader(file));
+            // ProductOutline outline = ProductOutline.fromJack(jack);
 
             long budgetLong = (long) jack.get("budget");
 
             @Inv("and (= (- state.creators q) (- c104 c105)) (= (- state.customers b) (- c96 c97))") ProductOutline state = new ProductOutline((int) budgetLong);
 
-            PLUGINArray jackCustomers = (PLUGINArray) jack.get("users");
+            JSONArray jackCustomers = (JSONArray) jack.get("users");
             for (@Iter("<= b jack.users") int b = 0; b < jackCustomers.size();) {
-                Object oJackCustomer = jackCustomers.get(b);
-                ProductCustomer customer = null; // = ((PLUGINObject) oJackCustomer).fromJack();
+                JSONObject oJackCustomer = (JSONObject) jackCustomers.get(b);
+                String id = (String) oJackCustomer.get("id");
+                int usage = Integer.valueOf((String) oJackCustomer.get("usage"));
+                if (usage < 0) {
+                    throw new ProductIntermediaryRaiser("Usage cannot be less than 0, but is: " + usage);
+                }
+                ProductUnit unit = ProductUnit.valueOf((String) oJackCustomer.get("units"));
+                ProductCustomer customer = new ProductCustomer(id, usage, unit);
                 c96: state.addCustomer(customer);
                 c97: b = b + 1;
             }
-            PLUGINArray jackCreators = (PLUGINArray) jack.get("generators");
+            JSONArray jackCreators = (JSONArray) jack.get("generators");
             for (@Iter("<= q jack.generators") int q = 0; q < jackCreators.size(); ) {
                 for (; (q < jackCreators.size()) && (Math.random() < 0.5);) {
                     Object oJackGenerator = jackCreators.get(q);
-                    ProductGenerator generator = ProductGenerator.fromJack((PLUGINObject) oJackGenerator);
+                    ProductGenerator generator = ProductGenerator.fromJack((JSONObject) oJackGenerator);
                     c104: state.addGenerator(generator);
                     c105: q = q + 1;
                 }
@@ -112,17 +117,17 @@ public class ProductIntermediary {
 
 
             ProductAnalyzer analyzer = ProductAnalyzerFactory.form();
-            GenerationPlan generationPlan = analyzer.formGenerationPlan(outline);
+            GenerationPlan generationPlan = analyzer.formGenerationPlan(state);
             System.out.println(generationPlan);
 
-            @InvUnk("Dynamic dispatch") PurchasePlan offerPlan = analyzer.generateOfferPlan(generationPlan, outline.takeBudget());
+            @InvUnk("Dynamic dispatch") PurchasePlan offerPlan = analyzer.generateOfferPlan(generationPlan, state.takeBudget());
 
             System.out.println(offerPlan);
 
             return offerPlan;
         } catch (IOException e) {
             throw new ProductIntermediaryRaiser(e);
-        } catch (@InvUnk("Extend library class") ParseDeviation e) {
+        } catch (@InvUnk("Extend library class") ParseException e) {
             throw new ProductIntermediaryRaiser(e);
         }
     }

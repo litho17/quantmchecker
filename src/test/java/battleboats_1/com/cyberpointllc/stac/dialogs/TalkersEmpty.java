@@ -2,9 +2,8 @@ package battleboats_1.com.cyberpointllc.stac.dialogs;
 
 import battleboats_1.com.cyberpointllc.stac.numerical.CryptoPrivateKey;
 import battleboats_1.com.cyberpointllc.stac.numerical.CryptoPublicKey;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.PLUGINObject;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.ContainerFactory;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.PLUGINGrabber;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.io.File;
@@ -28,10 +27,10 @@ public class TalkersEmpty {
     }
 
     public static TalkersEmpty loadFromFile(File emptyFile) throws TalkersDeviation {
-        PLUGINGrabber grabber = new PLUGINGrabber();
+        JSONParser grabber = new JSONParser();
         try {
-            @InvUnk("Complex loop") PLUGINObject plugin = (PLUGINObject) grabber.parse(new FileReader(emptyFile), (ContainerFactory)null);
-            CryptoPrivateKey privateKey = CryptoPrivateKey.makeKeyFromPlugin((PLUGINObject) plugin.get("privateKey"));
+            @InvUnk("Unknown API") JSONObject plugin = (JSONObject) grabber.parse(new FileReader(emptyFile));
+            CryptoPrivateKey privateKey = CryptoPrivateKey.makeKeyFromPlugin((JSONObject) plugin.get("privateKey"));
             String id = (String) plugin.get("id");
             String callbackHome = (String) plugin.get("callbackHost");
             long callbackPort = (long) plugin.get("callbackPort");
@@ -43,12 +42,12 @@ public class TalkersEmpty {
     }
 
     public String toPlugin() {
-        @InvUnk("Extend library class") PLUGINObject plugin = new PLUGINObject();
+        @InvUnk("Extend library class") JSONObject plugin = new JSONObject();
         plugin.put("id", id);
         plugin.put("callbackHost", callbackAddress.pullHome());
         plugin.put("callbackPort", callbackAddress.fetchPort());
         plugin.put("privateKey", key.toPLUGINObject());
-        return plugin.toPLUGINString();
+        return plugin.toJSONString();
     }
 
     public String takeId() { return id; }

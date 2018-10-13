@@ -64,9 +64,8 @@ public class RiseAndRunCruncherHandler extends AbstractCruncherHandler {
         String displayEquation = grabEquationMessage();
 
         try {
-            Map<String, List<String>> fields = MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES);
-            String rise = Utility.parseFields(fields, "riseFeet", "riseInches", "riseSixteenths");
-            String run = Utility.parseFields(fields, "runFeet", "runInches", "runSixteenths");
+            String rise = Utility.parseFields(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "riseFeet", "riseInches", "riseSixteenths");
+            String run = Utility.parseFields(MultipartAssistant.fetchMultipartValues(httpExchange, FIELD_NAMES), "runFeet", "runInches", "runSixteenths");
 
             displayEquation = "Rise: " + Utility.formatMeasurement(rise, 1, false) + " Run: " + Utility.formatMeasurement(run, 1, false);
             equation = "((" + rise + "^ 2|16) + (" + run + "^ 2|16))r 2|16";

@@ -1,8 +1,6 @@
 package battleboats_1.com.cyberpointllc.stac.numerical;
 
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.PLUGINObject;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.PLUGINGrabber;
-import battleboats_1.com.cyberpointllc.stac.objnote.direct.reader.ParseDeviation;
+import org.json.simple.JSONObject;
 import plv.colorado.edu.quantmchecker.qual.InvUnk;
 
 import java.math.BigInteger;
@@ -81,8 +79,8 @@ public class CryptoPublicKey {
         return report;
     }
 
-    public PLUGINObject toPLUGINObject() {
-        @InvUnk("Extend library class") PLUGINObject plugin = new PLUGINObject();
+    public JSONObject toPLUGINObject() {
+        @InvUnk("Extend library class") JSONObject plugin = new JSONObject();
         plugin.put("modulus", modulo.toString());
         plugin.put("exponent", e.toString());
         return plugin;

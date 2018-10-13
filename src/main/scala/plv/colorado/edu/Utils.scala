@@ -218,7 +218,7 @@ object Utils {
     logger.close()
   }
 
-  def hashCode(o: Object): String = "h" + o.hashCode().toString
+  def hashCode(o: Object): String = "h" + Integer.toUnsignedLong(o.hashCode()).toString
 
   def isValidId(str: String): Boolean = {
     val pattern = "(?:\\b[_a-zA-Z]|\\B\\$)[_$a-zA-Z0-9]*+"
