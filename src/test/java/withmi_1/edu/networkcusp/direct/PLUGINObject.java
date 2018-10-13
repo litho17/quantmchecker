@@ -100,7 +100,7 @@ public class PLUGINObject extends HashMap implements Map, PLUGINAware, PLUGINStr
 		if(map == null)
 			return "null";
         // @Inv("= (- sb it it it it it c c) (- (+ c106 c111 c115 c117 c123 c126 c129 c132 c135 c138 c141 c144 c150 c152 c154 c157 c160 c163 c164 c166 c169) c114 c114 c114 c114 c114 c160 c160)")
-		@InvUnk("Nested lists") StringBuffer sb = new StringBuffer();
+		@InvUnk("Complex loop") StringBuffer sb = new StringBuffer();
         boolean first = true;
 		@Iter("<= iter map") Iterator iter=map.entrySet().iterator();
 

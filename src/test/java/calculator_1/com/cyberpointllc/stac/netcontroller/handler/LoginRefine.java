@@ -28,13 +28,12 @@ public class LoginRefine extends Filter {
 
     @Override
     public void doFilter(HttpExchange httpExchange, Filter.Chain chain) throws IOException {
-        @InvUnk("Nested lists") NetSession netSession = netSessionService.pullSession(httpExchange);
         User user = null;
-        if (netSession != null) {
-            user = userOverseer.getUserByEmpty(netSession.fetchUserId());
+        if (netSessionService.pullSession(httpExchange) != null) {
+            user = userOverseer.getUserByEmpty(netSessionService.pullSession(httpExchange).fetchUserId());
         }
         if (user != null) {
-            doRefineAdviser(httpExchange, chain, netSession);
+            doRefineAdviser(httpExchange, chain, netSessionService.pullSession(httpExchange));
         } else {
             HttpHandlerResponse response = AbstractHttpHandler.grabRedirectResponse(authenticationHandlerWalk);
             response.sendResponse(httpExchange);

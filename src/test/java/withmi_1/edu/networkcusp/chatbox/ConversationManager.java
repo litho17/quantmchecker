@@ -234,11 +234,10 @@ public class ConversationManager {
 
     public void removeMemberFromAllDiscussions(WithMiUser member) {
         withMi.printMemberMsg("Removing " + member.obtainName() + " from all chats");
-        @InvUnk("Nested lists") List<WithMiChat> discussions = memberToDiscussions.get(member);
-        if (discussions != null) { // Can be null if user has not been assigned to a chat yet
-            for (int p = 0; p < discussions.size(); p++) {
+        if (memberToDiscussions.get(member) != null) { // Can be null if user has not been assigned to a chat yet
+            for (int p = 0; p < memberToDiscussions.get(member).size(); p++) {
                 @InvUnk("Nested lists") WithMiChat discussion;
-                discussion = discussions.get(p);
+                discussion = memberToDiscussions.get(member).get(p);
                 discussion.removeMember(member);
             }
         }

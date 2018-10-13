@@ -26,18 +26,16 @@ public class NoLoginRefine extends Filter {
 
     @Override
     public void doFilter(HttpExchange httpExchange, Filter.Chain chain) throws IOException {
-        @InvUnk("Nested lists") NetSession netSession = netSessionService.pullSession(httpExchange);
         User user;
-        if (netSession == null) {
+        if (netSessionService.pullSession(httpExchange) == null) {
             user = userOverseer.getUserByEmpty(userId);
-            netSession = new NetSession(userId);
-            netSessionService.integrateSession(httpExchange, netSession);
+            netSessionService.integrateSession(httpExchange, new NetSession(userId));
             HttpHandlerResponse response = AbstractHttpHandler.grabRedirectResponse(httpExchange.getRequestURI().toString());
             response.sendResponse(httpExchange);
         } else {
-            user = userOverseer.getUserByEmpty(netSession.fetchUserId());
+            user = userOverseer.getUserByEmpty(netSessionService.pullSession(httpExchange).fetchUserId());
             if (user != null) {
-                httpExchange.setAttribute("userId", netSession.fetchUserId());
+                httpExchange.setAttribute("userId", netSessionService.pullSession(httpExchange).fetchUserId());
                 chain.doFilter(httpExchange);
             } else {
                 throw new IllegalArgumentException("No user associated with " + userId);

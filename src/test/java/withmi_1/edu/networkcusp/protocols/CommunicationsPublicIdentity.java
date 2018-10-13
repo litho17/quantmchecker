@@ -34,15 +34,6 @@ public final class CommunicationsPublicIdentity implements Comparable<Communicat
         this.callbackAddress = callbackAddress;
     }
 
-    /*public static CommunicationsPublicIdentity fromJackson(String jacksonString) throws CommunicationsFailure {
-        @InvUnk("Complex loop") PLUGINGrabber parser = new PLUGINGrabber();
-        try {
-            return ((PLUGINObject)parser.parse(jacksonString, (ContainerFactory) null)).fromPlugin();
-        } catch (@InvUnk("Extend library class") ParseDeviation e) {
-            throw new CommunicationsFailure(e);
-        }
-    }*/
-
     public Comms.Identity serializeIdentity() {
         Comms.Identity.Builder serializedIdBuilder = Comms.Identity.newBuilder()
                 .setId(pullId())

@@ -41,11 +41,10 @@ public class TextMeterProcessor extends Processor {
         // set up textmeter
         TextMeter textMeter = new TextMeter();
         textMeter.createTextLanguage("en");
-        @InvUnk("Nested lists") TextLanguage en = textMeter.get("en");
         long mark = System.currentTimeMillis();
         String message;
         try {
-            c42: en.getNgram(NgramType.UNIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_UNIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_UNIGRAMS_EXCNT);
+            c42: textMeter.get("en").getNgram(NgramType.UNIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_UNIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_UNIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.BIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_BIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_BIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.TRIGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_TRIGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_TRIGRAMS_EXCNT);
             //        	en.getNgram(NgramType.QUADGRAM, TestUtils.loadResource(this.getClass(), TestUtils.EN_QUADGRAMS), NgramStorageStrategy.TREEMAP, TestUtils.EN_QUADGRAMS_EXCNT);
@@ -54,7 +53,7 @@ public class TextMeterProcessor extends Processor {
             // score text
             @Inv("= (- textScore.ngramScores it) (- c54 c52)") TextScore textScore = new TextScore();
             @InvUnk("Nested lists") Ngram ngram;
-            @Iter("<= it en.ngrams") Iterator<Map.Entry<NgramType, Ngram>> it = en.ngrams.entrySet().iterator();
+            @Iter("<= it en.ngrams") Iterator<Map.Entry<NgramType, Ngram>> it = textMeter.get("en").ngrams.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<NgramType, Ngram> entry;
                 c52: entry = it.next();
