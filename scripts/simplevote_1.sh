@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./run.sh $HOME/Documents/workspace/quantmchecker/src/test/lib/ src/test/java/simplevote_1/com
+./run.sh $HOME/Documents/workspace/quantmchecker/src/lib/test/ src/test/java/simplevote_1/com

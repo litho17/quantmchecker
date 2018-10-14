@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./run.sh $HOME/Documents/workspace/quantmchecker/src/test/lib/tomcat src/test/java/tomcat
+./run.sh $HOME/Documents/workspace/quantmchecker/src/lib/test/tomcat src/test/java/tomcat
