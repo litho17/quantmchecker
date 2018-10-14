@@ -61,7 +61,7 @@ public class CaptionHandler extends AbstractTemplateSnapBuddyHandler {
     }
 
     @Override
-    protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
+    public HttpHandlerResponse handlePost(HttpExchange httpExchange) {
         String path = httpExchange.getRequestURI().getPath();
         Person person = getPerson(httpExchange);
         if (path.startsWith(getPath())) {

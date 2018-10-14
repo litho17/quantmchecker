@@ -37,7 +37,7 @@ public class FriendsPhotosHandler extends AbstractTemplateSnapBuddyHandler {
     }
 
     @Override
-    protected String getContents(SnapContext context) {
+    public String getContents(SnapContext context) {
         assert (context != null) : "Context may not be null";
         @InvUnk("Nested lists") Map<String, String> map = new  HashMap();
         @InvUnk("Nested lists") StringBuilder sb = new  StringBuilder();

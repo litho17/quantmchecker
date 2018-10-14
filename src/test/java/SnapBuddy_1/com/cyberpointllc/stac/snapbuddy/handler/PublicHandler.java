@@ -68,7 +68,7 @@ public class PublicHandler extends AbstractTemplateSnapBuddyHandler {
     }
 
     @Override
-    protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
+    public HttpHandlerResponse handlePost(HttpExchange httpExchange) {
         Person person = getPerson(httpExchange);
         String path = httpExchange.getRequestURI().getPath();
         if (path.startsWith(getPath())) {

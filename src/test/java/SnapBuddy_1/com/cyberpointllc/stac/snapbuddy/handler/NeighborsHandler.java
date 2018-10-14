@@ -38,7 +38,7 @@ public class NeighborsHandler extends AbstractTemplateSnapBuddyHandler {
     }
 
     @Override
-    protected String getContents(SnapContext context) {
+    public String getContents(SnapContext context) {
         assert (context != null) : "Context may not be null";
         Person person = context.getActivePerson();
         @Bound("+ 2 (* 3 snapService.getNeighbors)") int j;

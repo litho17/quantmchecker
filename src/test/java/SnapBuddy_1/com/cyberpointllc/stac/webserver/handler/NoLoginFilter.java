@@ -6,6 +6,8 @@ import SnapBuddy_1.com.cyberpointllc.stac.webserver.WebSession;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.io.IOException;
 
 /**
@@ -26,6 +28,7 @@ public class NoLoginFilter extends Filter {
     }
 
     @Override
+    @Summary({"this.webSessionService.sessions", "1", "this.webSessionService.times", "1"})
     public void doFilter(HttpExchange httpExchange, Filter.Chain chain) throws IOException {
         User user;
         if (webSessionService.getSession(httpExchange) == null) {

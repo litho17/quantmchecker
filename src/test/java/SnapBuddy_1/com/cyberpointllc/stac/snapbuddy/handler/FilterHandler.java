@@ -136,7 +136,7 @@ public class FilterHandler extends AbstractTemplateSnapBuddyHandler {
     }
 
     @Override
-    protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
+    public HttpHandlerResponse handlePost(HttpExchange httpExchange) {
         SnapService snapService = getSnapService();
         String path = httpExchange.getRequestURI().getPath();
         if (path.startsWith(getPath())) {
