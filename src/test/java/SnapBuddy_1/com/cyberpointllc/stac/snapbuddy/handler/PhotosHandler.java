@@ -7,6 +7,11 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
+import java.util.Iterator;
 import java.util.Map;
 
 public class PhotosHandler extends AbstractTemplateSnapBuddyHandler {
@@ -34,21 +39,24 @@ public class PhotosHandler extends AbstractTemplateSnapBuddyHandler {
     @Override
     protected String getContents(SnapContext context) {
         assert (context != null) : "Context may not be null";
-        Person person = context.getActivePerson();
-        Map<String, String> map = new  HashMap();
-        StringBuilder sb = new  StringBuilder();
-        sb.append("<ul class=\"photos\">");
-        for (String photoIdentity : person.getPhotos()) {
+        @Bound("+ (* 4 context.activePerson) 2") int i;
+        @Inv("= (- map it it it) (- (+ c52 c53 c54) c48 c48 c48)") Map<String, String> map = new  HashMap();
+        @Inv("= (- sb it) (- (+ c42 c55 c58) c48)") StringBuilder sb = new  StringBuilder();
+        c42: sb.append("<ul class=\"photos\">");
+        @Iter("<= it context.activePerson") Iterator<String> it = context.activePerson.photos.iterator();
+        while (it.hasNext()) {
+            String photoIdentity;
+            c48: photoIdentity = it.next();
             Photo photo = getSnapService().getPhoto(photoIdentity);
             if (photo != null) {
                 map.clear();
-                map.put("pid", photo.getIdentity());
-                map.put("photoURL", getThumbPhotoUrl(photo));
-                map.put("caption", StringUtils.isBlank(photo.getCaption()) ? "" : photo.getCaption());
-                sb.append(TEMPLATE.replaceTags(map));
+                c52: map.put("pid", photo.getIdentity());
+                c53: map.put("photoURL", getThumbPhotoUrl(photo));
+                c54: map.put("caption", StringUtils.isBlank(photo.getCaption()) ? "" : photo.getCaption());
+                c55: sb.append(TEMPLATE.replaceTags(map));
             }
         }
-        sb.append("</ul>");
+        c58: sb.append("</ul>");
         return sb.toString();
     }
 }

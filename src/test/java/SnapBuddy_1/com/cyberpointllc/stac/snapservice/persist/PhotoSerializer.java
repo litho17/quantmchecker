@@ -6,6 +6,10 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.FilterFactory;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Location;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import org.mapdb.Serializer;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -42,14 +46,15 @@ public class PhotoSerializer extends Serializer<Photo> {
         String caption = in.readUTF();
         String locationIdentity = in.readUTF();
         Location location = locationService.getLocation(locationIdentity);
-        List<Filter> filters = new  ArrayList();
-        int numberOfFilters = in.readInt();
-        int conditionObj0 = 0;
-        while (numberOfFilters-- > conditionObj0) {
+        @Bound("in.numberOfFilters") int i;
+        @Inv("= (+ filters numberOfFilters) (- c55 c57)") List<Filter> filters = new  ArrayList();
+        @Iter("<= in.numberOfFilters") int numberOfFilters = in.readInt();
+        while (numberOfFilters > 0) {
             Filter filter = FilterFactory.getFilter(in.readUTF());
             if (filter != null) {
-                filters.add(filter);
+                c55: filters.add(filter);
             }
+            c57: numberOfFilters = numberOfFilters - 1;
         }
         Photo photo;
         try {

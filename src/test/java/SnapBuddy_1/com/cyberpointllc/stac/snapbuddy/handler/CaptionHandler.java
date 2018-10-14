@@ -10,6 +10,8 @@ import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 public class CaptionHandler extends AbstractTemplateSnapBuddyHandler {
 
@@ -41,11 +43,12 @@ public class CaptionHandler extends AbstractTemplateSnapBuddyHandler {
         }
         Person activePerson = context.getActivePerson();
         Photo photo = getSnapService().getPhoto(path);
-        Map<String, String> map = new  HashMap();
+        @Bound("3") int i;
+        @Inv("= map (+ c49 c50 c51)") Map<String, String> map = new  HashMap();
         if (activePerson.getPhotos().contains(path)) {
-            map.put("pid", photo.getIdentity());
-            map.put("photoPath", getPhotoUrl(photo));
-            map.put("currentCaption", photo.getCaption());
+            c49: map.put("pid", photo.getIdentity());
+            c50: map.put("photoPath", getPhotoUrl(photo));
+            c51: map.put("currentCaption", photo.getCaption());
         } else {
             throw new  IllegalArgumentException("This is not your photo.");
         }

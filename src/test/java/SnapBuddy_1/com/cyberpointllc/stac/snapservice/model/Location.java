@@ -1,7 +1,12 @@
 package SnapBuddy_1.com.cyberpointllc.stac.snapservice.model;
 
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -13,7 +18,7 @@ public class Location {
 
     private final String city;
 
-    private final Set<AccessPoint> accessPoints;
+    public final Set<AccessPoint> accessPoints;
 
     public Location(String identity, String city, Set<AccessPoint> accessPoints) {
         if (StringUtils.isBlank(identity)) {
@@ -83,9 +88,13 @@ public class Location {
      */
     public Set<String> getAccessPointBssids() {
         // LinkedHashSet is vulnerable
-        Set<String> set = new  LinkedHashSet();
-        for (AccessPoint accessPoint : accessPoints) {
-            getAccessPointBssidsHelper(set, accessPoint);
+        @Bound("accessPoints") int i;
+        @Inv("= (- set it) (- c97 c96)") Set<String> set = new  LinkedHashSet();
+        @Iter("<= it accessPoints") Iterator<AccessPoint> it = accessPoints.iterator();
+        while (it.hasNext()) {
+            AccessPoint accessPoint;
+            c96: accessPoint = it.next();
+            c97: set.add(accessPoint.getBssid());
         }
         return set;
     }
@@ -99,9 +108,13 @@ public class Location {
      */
     public Set<String> getAccessPointNames() {
         // LinkedHashSet is vulnerable
-        Set<String> set = new  LinkedHashSet();
-        for (AccessPoint accessPoint : accessPoints) {
-            getAccessPointNamesHelper(set, accessPoint);
+        @Bound("accessPoints") int i;
+        @Inv("= (- set it) (- c117 c116)") Set<String> set = new  LinkedHashSet();
+        @Iter("<= it accessPoints") Iterator<AccessPoint> it = accessPoints.iterator();
+        while (it.hasNext()) {
+            AccessPoint accessPoint;
+            c116: accessPoint = it.next();
+            c117: set.add(accessPoint.getName());
         }
         return set;
     }
@@ -121,13 +134,5 @@ public class Location {
     @Override
     public int hashCode() {
         return identity.hashCode();
-    }
-
-    private void getAccessPointBssidsHelper(Set<String> set, AccessPoint accessPoint) {
-        set.add(accessPoint.getBssid());
-    }
-
-    private void getAccessPointNamesHelper(Set<String> set, AccessPoint accessPoint) {
-        set.add(accessPoint.getName());
     }
 }

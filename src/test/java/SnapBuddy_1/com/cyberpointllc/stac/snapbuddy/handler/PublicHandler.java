@@ -10,6 +10,8 @@ import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 public class PublicHandler extends AbstractTemplateSnapBuddyHandler {
 
@@ -47,12 +49,13 @@ public class PublicHandler extends AbstractTemplateSnapBuddyHandler {
             isCurrentlyPublic = "checked";
         }
         Person activePerson = context.getActivePerson();
-        Map<String, String> map = new  HashMap();
+        @Bound("4") int i;
+        @Inv("= map (+ c55 c56 c57 c58)") Map<String, String> map = new  HashMap();
         if (activePerson.getPhotos().contains(path)) {
-            map.put("pid", photo.getIdentity());
-            map.put("photoPath", getPhotoUrl(photo));
-            map.put("currentCaption", photo.getCaption());
-            map.put("isPublic", isCurrentlyPublic);
+            c55: map.put("pid", photo.getIdentity());
+            c56: map.put("photoPath", getPhotoUrl(photo));
+            c57: map.put("currentCaption", photo.getCaption());
+            c58: map.put("isPublic", isCurrentlyPublic);
         } else {
             throw new  IllegalArgumentException("This is not your photo.");
         }

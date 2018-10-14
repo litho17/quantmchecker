@@ -1,6 +1,7 @@
 package SnapBuddy_1.com.cyberpointllc.stac.snapbuddy.handler;
 
-import java.util.HashMap;
+import java.util.*;
+
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.SnapContext;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.SnapService;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
@@ -8,9 +9,10 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import SnapBuddy_1.com.cyberpointllc.stac.sort.Sorter;
 import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
 import org.apache.commons.lang3.StringUtils;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 public class FriendsPhotosHandler extends AbstractTemplateSnapBuddyHandler {
 
@@ -37,37 +39,34 @@ public class FriendsPhotosHandler extends AbstractTemplateSnapBuddyHandler {
     @Override
     protected String getContents(SnapContext context) {
         assert (context != null) : "Context may not be null";
-        Person person = context.getActivePerson();
-        Map<String, String> map = new  HashMap();
-        StringBuilder sb = new  StringBuilder();
-        sb.append("<ul class=\"photos\">");
-        List<Person> friends = new  ArrayList();
-        SnapService snapService = getSnapService();
-        for (String identity : person.getFriends()) {
-            friends.add(snapService.getPerson(identity));
+        @InvUnk("Nested lists") Map<String, String> map = new  HashMap();
+        @InvUnk("Nested lists") StringBuilder sb = new  StringBuilder();
+        c44: sb.append("<ul class=\"photos\">");
+        @Inv("= (- friends it1) (- c50 c49)") List<Person> friends = new  ArrayList();
+        @Iter("<= it context.activePerson") Iterator<String> it1 = context.activePerson.getFriends().iterator();
+        while (it1.hasNext()) {
+            String identity;
+            c49: identity = it1.next();
+            c50: friends.add(snapService.getPerson(identity));
         }
         Sorter sorter = new  Sorter(Person.ASCENDING_COMPARATOR);
         friends = sorter.sort(friends);
         for (int i = 0; i < friends.size(); i++) {
             Person friend = friends.get(i);
             if (friend != null) {
-                for (String photoId : friend.getPhotos()) {
+                for (String photoId : friend.photos) {
                     Photo photo = getSnapService().getPhoto(photoId);
                     if (photo != null) {
-                        getContentsHelper(photo, sb, map);
+                        map.clear();
+                        c61: map.put("pid", photo.getIdentity());
+                        c62: map.put("photoURL", getThumbPhotoUrl(photo));
+                        c63: map.put("caption", StringUtils.isBlank(photo.getCaption()) ? "" : photo.getCaption());
+                        c64: sb.append(TEMPLATE.replaceTags(map));
                     }
                 }
             }
         }
-        sb.append("</ul>");
+        c69: sb.append("</ul>");
         return sb.toString();
-    }
-
-    private void getContentsHelper(Photo photo, StringBuilder sb, Map<String, String> map) {
-        map.clear();
-        map.put("pid", photo.getIdentity());
-        map.put("photoURL", getThumbPhotoUrl(photo));
-        map.put("caption", StringUtils.isBlank(photo.getCaption()) ? "" : photo.getCaption());
-        sb.append(TEMPLATE.replaceTags(map));
     }
 }

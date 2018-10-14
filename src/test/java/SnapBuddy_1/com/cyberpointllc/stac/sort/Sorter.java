@@ -1,11 +1,11 @@
 package SnapBuddy_1.com.cyberpointllc.stac.sort;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Stack;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
+import java.util.*;
 
 public class Sorter<T> {
 
@@ -19,7 +19,14 @@ public class Sorter<T> {
 	 * returns a List containing the elements of stuff, ordered by class T's natural ordering
 	 */
     public List<T> sort(Collection<T> stuff) {
-        List<T> stuffList = new  ArrayList<T>(stuff);
+        @Bound("stuff") int i;
+        @Inv("= (- stuffList it) (- c27 c26)") List<T> stuffList = new  ArrayList<T>();
+        @Iter("<= it stuff") Iterator<T> it = stuff.iterator();
+        while (it.hasNext()) {
+            T t;
+            c26: t = it.next();
+            c27: stuffList.add(t);
+        }
         changingSort(stuffList, 0, stuffList.size() - 1);
         return stuffList;
     }
@@ -44,7 +51,7 @@ public class Sorter<T> {
 
     private void changingSortHelper(int initEnd, List<T> list, int initStart) {
         ArrayIndex initial = ArrayIndex.partition(initStart, initEnd);
-        Stack<ArrayIndex> indexStack = new  Stack<ArrayIndex>();
+        @InvUnk("Bug") Stack<ArrayIndex> indexStack = new  Stack<ArrayIndex>();
         indexStack.push(initial);
         while (!indexStack.empty()) {
             ArrayIndex index = indexStack.pop();
@@ -77,22 +84,25 @@ public class Sorter<T> {
     }
 
     private void mergeHelper(int initEnd, int q, List<T> list, int initStart) {
-        List<T> left = new  ArrayList<T>(q - initStart + 1);
-        List<T> right = new  ArrayList<T>(initEnd - q);
-        for (int i = 0; i < (q - initStart + 1); ++i) {
-            left.add(list.get(initStart + i));
+        @Bound("+ (- (+ q 1) initStart) (- initEnd q)") int k;
+        @Inv("= (- left i) (- c91 c92)") List<T> left = new  ArrayList<T>(q - initStart + 1);
+        @Inv("= (- right j) (- c95 c96)") List<T> right = new  ArrayList<T>(initEnd - q);
+        for (@Iter("<= i (- (+ q 1) initStart)") int i = 0; i < (q - initStart + 1); ) {
+            c91: left.add(list.get(initStart + i));
+            c92: i = i + 1;
         }
-        for (int j = 0; j < (initEnd - q); ++j) {
-            right.add(list.get(q + 1 + j));
+        for (@Iter("<= j (- initEnd q)") int j = 0; j < (initEnd - q); ) {
+            c95: right.add(list.get(q + 1 + j));
+            c96: j = j + 1;
         }
-        int i = 0;
-        int j = 0;
+        int i_ = 0;
+        int j_ = 0;
         int conditionObj0 = 0;
         for (int m = initStart; m < (initEnd + 1); ++m) {
-            if (i < left.size() && (j >= right.size() || comparator.compare(left.get(i), right.get(j)) < conditionObj0)) {
-                list.set(m, left.get(i++));
-            } else if (j < right.size()) {
-                list.set(m, right.get(j++));
+            if (i_ < left.size() && (j_ >= right.size() || comparator.compare(left.get(i_), right.get(j_)) < conditionObj0)) {
+                list.set(m, left.get(i_++));
+            } else if (j_ < right.size()) {
+                list.set(m, right.get(j_++));
             }
         }
     }

@@ -10,6 +10,8 @@ import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Input;
+
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.net.HttpURLConnection;
@@ -70,7 +72,7 @@ public class AddPhotoHandler extends AbstractTemplateSnapBuddyHandler {
     protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
         Person person = getPerson(httpExchange);
         Path destination = Paths.get(imageService.getBasePhotosPath().toString(), person.getIdentity());
-        Map<String, String> fieldNameInputs = MultipartHelper.getMultipartPhoto(httpExchange, ALL_FIELDS, PHOTO_FIELD_NAME, destination, null);
+        @Input("") Map<String, String> fieldNameInputs = MultipartHelper.getMultipartPhoto(httpExchange, ALL_FIELDS, PHOTO_FIELD_NAME, destination, null);
         // take the map and create a new photo
         String photoName = fieldNameInputs.get(PHOTO_FIELD_NAME);
         if (StringUtils.isBlank(photoName)) {

@@ -7,6 +7,8 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.SnapService;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 public class EditPhotoHandler extends AbstractTemplateSnapBuddyHandler {
 
@@ -35,25 +37,26 @@ public class EditPhotoHandler extends AbstractTemplateSnapBuddyHandler {
         }
         Photo photo = getSnapService().getPhoto(path);
         Person activePerson = context.getActivePerson();
-        Map<String, String> imageMap = new  HashMap();
-        StringBuilder sb = new  StringBuilder();
+        @Bound("11") int i;
+        @Inv("= imageMap (+ c44 c45)") Map<String, String> imageMap = new  HashMap();
+        @Inv("= sb (+ c46 c47 c48 c49 c53 c56 c57 c59)") StringBuilder sb = new  StringBuilder();
         if (activePerson.getPhotos().contains(path)) {
-            imageMap.put("photoPath", getPhotoUrl(photo));
-            imageMap.put("currentCaption", photo.getCaption());
-            sb.append(IMAGE_TEMPLATE.replaceTags(imageMap));
-            sb.append("<center><form action=\"");
-            sb.append(PATH);
-            sb.append("\" method=\"post\" encytype=\"multipart/form-data\">");
-            Map<String, String> buttonMap = new  HashMap();
-            buttonMap.put("pid", photo.getIdentity());
+            c44: imageMap.put("photoPath", getPhotoUrl(photo));
+            c45: imageMap.put("currentCaption", photo.getCaption());
+            c46: sb.append(IMAGE_TEMPLATE.replaceTags(imageMap));
+            c47: sb.append("<center><form action=\"");
+            c48: sb.append(PATH);
+            c49: sb.append("\" method=\"post\" encytype=\"multipart/form-data\">");
+            @Inv("= buttonMap c51") Map<String, String> buttonMap = new  HashMap();
+            c51: buttonMap.put("pid", photo.getIdentity());
             // add the filter button
-            sb.append(FILTER_TEMPLATE.replaceTags(buttonMap));
+            c53: sb.append(FILTER_TEMPLATE.replaceTags(buttonMap));
             // so it doesn't get these buttons.
             if (!photo.getIdentity().equals(getProfilePhotoIdentity(person))) {
-                sb.append(PUBLIC_TEMPLATE.replaceTags(buttonMap));
-                sb.append(CAPTION_TEMPLATE.replaceTags(buttonMap));
+                c56: sb.append(PUBLIC_TEMPLATE.replaceTags(buttonMap));
+                c57: sb.append(CAPTION_TEMPLATE.replaceTags(buttonMap));
             }
-            sb.append("</form></center>");
+            c59: sb.append("</form></center>");
         } else {
             throw new  IllegalArgumentException("This is not your photo.");
         }

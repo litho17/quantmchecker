@@ -15,7 +15,7 @@ public class Photo {
 
     private final Location location;
 
-    private final List<Filter> filters;
+    public final List<Filter> filters;
 
     public Photo(String path, boolean isPublicPhoto, String caption, Location location, List<Filter> filters) {
         if (StringUtils.isBlank(path)) {

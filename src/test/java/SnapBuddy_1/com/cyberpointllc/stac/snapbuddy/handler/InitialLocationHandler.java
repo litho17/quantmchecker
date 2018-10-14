@@ -11,6 +11,10 @@ import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -70,11 +74,12 @@ public class InitialLocationHandler extends AbstractTemplateSnapBuddyHandler {
 
     @Override
     protected String getContents(SnapContext context) {
-        Map<String, String> map = new  HashMap();
-        map.put("path", getPath());
-        map.put("required", "");
+        @Bound("3") int i;
+        @Inv("= map (+ c78 c79 c81)") Map<String, String> map = new  HashMap();
+        c78: map.put("path", getPath());
+        c79: map.put("required", "");
         if (Location.UNKNOWN.equals(context.getActivePerson().getLocation())) {
-            map.put("required", "required");
+            c81: map.put("required", "required");
         }
         return TEMPLATE.replaceTags(map);
     }
@@ -89,29 +94,25 @@ public class InitialLocationHandler extends AbstractTemplateSnapBuddyHandler {
                 location = person.getLocation();
             }
         } else {
-            Set<String> accessPoints = parseAccessPoints(content);
-            location = locationService.getLocation(accessPoints);
+            // Set<String> accessPoints = parseAccessPoints(content);
+
+            if (StringUtils.isBlank(content)) {
+                throw new  IllegalArgumentException("Location setting requires list of BSSIDs");
+            }
+            String[] parts = content.split("\\s*[\\s,]\\s*");
+            @Bound("content") int j;
+            @Inv("= (- bssids i) (- c106 c107)") Set<String> bssids = new  HashSet();
+            for (@Iter("<= i content") int i = 0; i < parts.length; ) {
+                c106: bssids.add(parts[i]);
+                c107: i = i + 1;
+            }
+
+            location = locationService.getLocation(bssids);
         }
         if (location == null) {
             throw new  IllegalArgumentException("List of Access Points is either malformed or else does not match a valid location");
         }
         String destination = destinationPath + "?lid=" + location.getIdentity();
         return getRedirectResponse(destination);
-    }
-
-    /**
-     * Parses the client provided access point info (just BSSIDs)
-     *
-     * @param content from the form: a collection of BSSIDs
-     * @return Set of provided BSSIDs
-     */
-    private static Set<String> parseAccessPoints(String content) {
-        if (StringUtils.isBlank(content)) {
-            throw new  IllegalArgumentException("Location setting requires list of BSSIDs");
-        }
-        String[] parts = content.split("\\s*[\\s,]\\s*");
-        Set<String> bssids = new  HashSet();
-        Collections.addAll(bssids, parts);
-        return bssids;
     }
 }

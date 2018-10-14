@@ -13,7 +13,7 @@ public class SnapContext {
 
     private final List<NameValuePair> urlParams;
 
-    private Person activePerson;
+    public Person activePerson;
 
     private HttpExchange httpExchange;
 

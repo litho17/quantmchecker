@@ -1,19 +1,17 @@
 package SnapBuddy_1.com.cyberpointllc.stac.snapservice;
 
-import java.util.HashMap;
+import java.util.*;
+
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Filter;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Invitation;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Location;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import org.apache.commons.lang3.StringUtils;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.util.concurrent.TimeUnit;
 
 public class SnapServiceImpl implements SnapService {
@@ -55,9 +53,18 @@ public class SnapServiceImpl implements SnapService {
         if (person == null) {
             throw new  IllegalArgumentException("Person may not be null");
         }
-        Set<Person> neighbors = new  HashSet();
+        @Bound("storageService.getPeople") int i;
+        @Inv("= (- neighbors it) (- c65 c62)") Set<Person> neighbors = new  HashSet();
         if (!Location.UNKNOWN.equals(person.getLocation())) {
-            getNeighborsHelper(person, neighbors);
+            @Iter("<= it storageService.getPeople") Iterator<String> it = storageService.getPeople().iterator();
+            while (it.hasNext()) {
+                String identity;
+                c62: identity = it.next();
+                Person neighbor = getPerson(identity);
+                if (!person.equals(neighbor) && person.getLocation().equals(neighbor.getLocation())) {
+                    c65: neighbors.add(neighbor);
+                }
+            }
         }
         return neighbors;
     }
@@ -127,18 +134,22 @@ public class SnapServiceImpl implements SnapService {
         }
         // Adding friends is bi-directional so first gather
         // up all of the friend identities to be added.
-        Set<String> identities = new  HashSet();
-        for (Person friend : friends) {
-            identities.add(friend.getIdentity());
+        @Bound("+ 1 friends") int i;
+        @Inv("= (- identities it) (- (+ c151 c142) c145 c141)") Set<String> identities = new  HashSet();
+        @Iter("<= it friends") Iterator<Person> it = friends.iterator();
+        while (it.hasNext()) {
+            Person friend;
+            c141: friend = it.next();
+            c142: identities.add(friend.getIdentity());
         }
         // Make sure this Person doesn't add their own identity as a friend
-        identities.remove(person.getIdentity());
+        c145: identities.remove(person.getIdentity());
         // Modify this person by adding these identities as friends
         boolean modified = modifyFriends(person, identities, true);
         // For the other direction, reset the set of identities
         // to now only hold this Person's identity
         identities.clear();
-        identities.add(person.getIdentity());
+        c151: identities.add(person.getIdentity());
         // this Person to their collection of friends.
         for (Person friend : friends) {
             modified |= modifyFriends(friend, identities, true);
@@ -159,16 +170,20 @@ public class SnapServiceImpl implements SnapService {
         }
         // Removing friends is bi-directional so first gather
         // up all of the friend identities to be removed.
-        Set<String> identities = new  HashSet();
-        for (Person friend : friends) {
-            removeFriendsHelper(identities, friend);
+        @Bound("+ 1 friends")
+        @Inv("= (- identities it) (- (+ c179 c186) c178)") Set<String> identities = new  HashSet();
+        @Iter("<= it friends") Iterator<Person> it = friends.iterator();
+        while (it.hasNext()) {
+            Person friend;
+            c178: friend = it.next();
+            c179: identities.add(friend.getIdentity());
         }
         // Modify this person by removing these identities as friends
         boolean modified = modifyFriends(person, identities, false);
         // For the other direction, reset the set of identities
         // to now only hold this Person's identity
         identities.clear();
-        identities.add(person.getIdentity());
+        c186: identities.add(person.getIdentity());
         // this Person from their collection of friends.
         for (Person friend : friends) {
             modified |= modifyFriends(friend, identities, false);
@@ -268,7 +283,14 @@ public class SnapServiceImpl implements SnapService {
 
     private boolean modifyFriends(Person person, Set<String> identities, boolean isAdding) {
         boolean modified;
-        Set<String> friends = new  HashSet(person.getFriends());
+        @Bound("person.getFriends")
+        @Inv("= (- friends it) (- c292 c291)") Set<String> friends = new  HashSet();
+        @Iter("<= it person.getFriends") Iterator<String> it = person.getFriends().iterator();
+        while (it.hasNext()) {
+            String p;
+            c291: p = it.next();
+            c292: friends.add(p);
+        }
         if (isAdding) {
             modified = friends.addAll(identities);
         } else {
@@ -295,11 +317,18 @@ public class SnapServiceImpl implements SnapService {
             modified = storageService.deletePhoto(photo.getIdentity());
         }
         if (modified) {
-            Set<String> photos = new  HashSet(person.getPhotos());
+            @Bound("+ 1 person.getPhotos") int i;
+            @Inv("= (- photos it) (- (+ c325 c328) c324 c331)") Set<String> photos = new  HashSet();
+            @Iter("<= it person.getPhotos") Iterator<String> it = person.getPhotos().iterator();
+            while (it.hasNext()) {
+                String p;
+                c324: p = it.next();
+                c325: photos.add(p);
+            }
             if (isAdding) {
-                modified = photos.add(photo.getIdentity());
+                c328: modified = photos.add(photo.getIdentity());
             } else {
-                modified = photos.remove(photo.getIdentity());
+                c331: modified = photos.remove(photo.getIdentity());
             }
             if (modified) {
                 Person newPerson = new  Person(person.getIdentity(), person.getName(), person.getLocation(), person.getFriends(), photos);
@@ -315,11 +344,18 @@ public class SnapServiceImpl implements SnapService {
         }
         boolean modified = false;
         if (filter != null) {
-            List<Filter> filters = new  ArrayList(photo.getFilters());
+            @Bound("+ 1 photo.getFilters") int i;
+            @Inv("= (- filters it) (- (+ c352 c355) c351 c357)") List<Filter> filters = new  ArrayList();
+            @Iter("<= it photo.getFilters") Iterator<Filter> it = photo.getFilters().iterator();
+            while (it.hasNext()) {
+                Filter f;
+                c351: f = it.next();
+                c352: filters.add(f);
+            }
             if (isAdding) {
-                modified = filters.add(filter);
+                c355: modified = filters.add(filter);
             } else {
-                modified = filters.remove(filter);
+                c357: modified = filters.remove(filter);
             }
             if (modified) {
                 Photo newPhoto = new  Photo(photo.getPath(), photo.isPublicPhoto(), photo.getCaption(), photo.getLocation(), filters);
@@ -334,10 +370,14 @@ public class SnapServiceImpl implements SnapService {
         if (person == null) {
             throw new  IllegalArgumentException("Person may not be null");
         }
-        Set<Person> people = new  HashSet();
-        for (Invitation invitation : storageService.getInvitations()) {
+        @Bound("storageService.getInvitations") int i;
+        @Inv("= (- people it) (- c379 c377)") Set<Person> people = new  HashSet();
+        @Iter("<= it storageService.getInvitations") Iterator<Invitation> it = storageService.getInvitations().iterator();
+        while (it.hasNext()) {
+            Invitation invitation;
+            c377: invitation = it.next();
             if (person.getIdentity().equals(invitation.getInviteFromIdentity())) {
-                people.add(getPerson(invitation.getInviteToIdentity()));
+                c379: people.add(getPerson(invitation.getInviteToIdentity()));
             } else if (person.getIdentity().equals(invitation.getInviteToIdentity())) {
                 getInvitationsHelper(invitation, people);
             }
@@ -350,9 +390,15 @@ public class SnapServiceImpl implements SnapService {
         if (person == null) {
             throw new  IllegalArgumentException("Person may not be null");
         }
-        Set<Person> people = new  HashSet();
-        for (Invitation invitation : storageService.getInvitations()) {
-            getInvitationsToHelper(person, invitation, people);
+        @Bound("storageService.getInvitations") int i;
+        @Inv("= (- people it) (- c401 c399)") Set<Person> people = new  HashSet();
+        @Iter("<= it storageService.getInvitations") Iterator<Invitation> it = storageService.getInvitations().iterator();
+        while (it.hasNext()) {
+            Invitation invitation;
+            c399: invitation = it.next();
+            if (person.getIdentity().equals(invitation.getInviteToIdentity())) {
+                c401: people.add(getPerson(invitation.getInviteFromIdentity()));
+            }
         }
         return people;
     }
@@ -383,12 +429,11 @@ public class SnapServiceImpl implements SnapService {
         if (receiver == null) {
             throw new  IllegalArgumentException("Receiving Person may not be null");
         }
-        Set<Invitation> invitations = storageService.getInvitations();
         Invitation matchingInvitation = new  Invitation(sender.getIdentity(), receiver.getIdentity());
-        if (!invitations.contains(matchingInvitation)) {
+        if (!storageService.getInvitations().contains(matchingInvitation)) {
             // No match; try the reverse invitation
             matchingInvitation = new  Invitation(receiver.getIdentity(), sender.getIdentity());
-            if (!invitations.contains(matchingInvitation)) {
+            if (!storageService.getInvitations().contains(matchingInvitation)) {
                 // No match either; no invitation to accept
                 matchingInvitation = null;
             }
@@ -409,12 +454,11 @@ public class SnapServiceImpl implements SnapService {
         if (receiver == null) {
             throw new  IllegalArgumentException("Receiving Person may not be null");
         }
-        Set<Invitation> invitations = storageService.getInvitations();
         Invitation matchingInvitation = new  Invitation(sender.getIdentity(), receiver.getIdentity());
-        if (!invitations.contains(matchingInvitation)) {
+        if (!storageService.getInvitations().contains(matchingInvitation)) {
             // No match; try the reverse invitation
             matchingInvitation = new  Invitation(receiver.getIdentity(), sender.getIdentity());
-            if (!invitations.contains(matchingInvitation)) {
+            if (!storageService.getInvitations().contains(matchingInvitation)) {
                 // No match either; no invitation to accept
                 matchingInvitation = null;
             }
@@ -426,26 +470,7 @@ public class SnapServiceImpl implements SnapService {
         return response;
     }
 
-    private void getNeighborsHelper(Person person, Set<Person> neighbors) {
-        for (String identity : getPeople()) {
-            Person neighbor = getPerson(identity);
-            if (!person.equals(neighbor) && person.getLocation().equals(neighbor.getLocation())) {
-                neighbors.add(neighbor);
-            }
-        }
-    }
-
-    private void removeFriendsHelper(Set<String> identities, Person friend) {
-        identities.add(friend.getIdentity());
-    }
-
     private void getInvitationsHelper(Invitation invitation, Set<Person> people) {
         people.add(getPerson(invitation.getInviteFromIdentity()));
-    }
-
-    private void getInvitationsToHelper(Person person, Invitation invitation, Set<Person> people) {
-        if (person.getIdentity().equals(invitation.getInviteToIdentity())) {
-            people.add(getPerson(invitation.getInviteFromIdentity()));
-        }
     }
 }

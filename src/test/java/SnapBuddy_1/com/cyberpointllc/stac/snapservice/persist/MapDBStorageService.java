@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.Map;
@@ -76,13 +78,13 @@ public class MapDBStorageService implements StorageService {
     }
 
     private static String createIdentity(int size) {
-        StringBuilder sb = new  StringBuilder();
+        @InvUnk("Complex loop") StringBuilder sb = new  StringBuilder();
         while (sb.length() < size) {
             String value = Integer.toHexString(RANDOM.nextInt()).toUpperCase();
             if (value.length() > size) {
-                createIdentityHelper(sb, value, size);
+                sb.append(value.substring(RANDOM.nextInt(value.length() - size)));
             } else {
-                createIdentityHelper1(sb, value);
+                sb.append(value);
             }
         }
         return sb.substring(0, size);
@@ -237,13 +239,5 @@ public class MapDBStorageService implements StorageService {
         }
         boolean result = getInvitationSet().remove(invitation);
         return result;
-    }
-
-    private static void createIdentityHelper(StringBuilder sb, String value, int size) {
-        sb.append(value.substring(RANDOM.nextInt(value.length() - size)));
-    }
-
-    private static void createIdentityHelper1(StringBuilder sb, String value) {
-        sb.append(value);
     }
 }

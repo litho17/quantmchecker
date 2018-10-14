@@ -13,6 +13,8 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
 
 public class ProfilePhotoHandler extends AbstractTemplateSnapBuddyHandler {
 
@@ -51,8 +53,9 @@ public class ProfilePhotoHandler extends AbstractTemplateSnapBuddyHandler {
         Person person = getPerson(httpExchange);
         String id = person.getIdentity();
         SnapService snapService = getSnapService();
-        Set<String> allFieldNames = new  HashSet<String>();
-        allFieldNames.add(FIELD_NAME);
+        @Bound("1") int i;
+        @Inv("= allFieldNames c58") Set<String> allFieldNames = new  HashSet<String>();
+        c58: allFieldNames.add(FIELD_NAME);
         Path destDir = Paths.get(imageService.getBasePhotosPath().toString(), id);
         MultipartHelper.getMultipartPhoto(httpExchange, allFieldNames, FIELD_NAME, destDir, getProfilePhotoName());
         // make profile photo

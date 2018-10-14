@@ -6,6 +6,11 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.SnapService;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
 import SnapBuddy_1.com.cyberpointllc.stac.sort.Sorter;
 import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,24 +41,22 @@ public class NeighborsHandler extends AbstractTemplateSnapBuddyHandler {
     protected String getContents(SnapContext context) {
         assert (context != null) : "Context may not be null";
         Person person = context.getActivePerson();
-        Map<String, String> map = new  HashMap();
-        StringBuilder sb = new  StringBuilder();
-        sb.append("<table>");
+        @Bound("+ 2 (* 3 snapService.getNeighbors)") int j;
+        @Inv("= (- map i i) (- (+ c53 c54) c56 c56)") Map<String, String> map = new  HashMap();
+        @Inv("= (- sb i) (- (+ c46 c59 c55) c56)") StringBuilder sb = new  StringBuilder();
+        c46: sb.append("<table>");
         Sorter sorter = new  Sorter(Person.ASCENDING_COMPARATOR);
-        List<Person> neighbors = new  ArrayList(getSnapService().getNeighbors(person));
+        @InvUnk("Unknown API") List<Person> neighbors = new  ArrayList(snapService.getNeighbors(person));
         neighbors = sorter.sort(neighbors);
-        for (int i = 0; i < neighbors.size(); i++) {
-            getContentsHelper(neighbors, sb, map, i);
+        for (@Iter("<= i snapService.getNeighbors") int i = 0; i < neighbors.size(); ) {
+            Person neighbor = neighbors.get(i);
+            map.clear();
+            c53: map.put("photoURL", getProfilePhotoUrl(neighbor));
+            c54: map.put("name", neighbor.getName());
+            c55:  sb.append(TEMPLATE.replaceTags(map));
+            c56: i = i + 1;
         }
-        sb.append("</table>");
+        c59: sb.append("</table>");
         return sb.toString();
-    }
-
-    private void getContentsHelper(List<Person> neighbors, StringBuilder sb, Map<String, String> map, int i) {
-        Person neighbor = neighbors.get(i);
-        map.clear();
-        map.put("photoURL", getProfilePhotoUrl(neighbor));
-        map.put("name", neighbor.getName());
-        sb.append(TEMPLATE.replaceTags(map));
     }
 }

@@ -2,6 +2,9 @@ package SnapBuddy_1.com.cyberpointllc.stac.webserver;
 
 import java.util.HashMap;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Summary;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,8 +33,14 @@ public class WebSessionService {
      * @param httpExchange
      * @param session containing the userId of the current user
      */
+    @Summary({"this.sessions", "1", "this.times", "1"})
     public void addSession(HttpExchange httpExchange, WebSession session) {
-        addSessionHelper(session, httpExchange);
+        // create session id
+        String sessionId = UUID.randomUUID().toString();
+        sessions.put(sessionId, session);
+        times.put(sessionId, System.nanoTime());
+        // add cookies
+        setCookie(httpExchange, sessionId, COOKIE_EXPIRATION);
     }
 
     /**
@@ -64,7 +73,7 @@ public class WebSessionService {
      * If no sessionId exists, this returns null;
      */
     private String getSessionIdFromCookie(HttpExchange httpExchange) {
-        List<String> cookies = httpExchange.getRequestHeaders().get("Cookie");
+        @InvUnk("Unknown API") List<String> cookies = httpExchange.getRequestHeaders().get("Cookie");
         if (cookies != null) {
             for (String cookie : cookies) {
                 String[] cookiePieces = cookie.split(";");
@@ -91,14 +100,5 @@ public class WebSessionService {
             //set the cookie's max-age to 0
             setCookie(httpExchange, sessionId, "0");
         }
-    }
-
-    private void addSessionHelper(WebSession session, HttpExchange httpExchange) {
-        // create session id
-        String sessionId = UUID.randomUUID().toString();
-        sessions.put(sessionId, session);
-        times.put(sessionId, System.nanoTime());
-        // add cookies
-        setCookie(httpExchange, sessionId, COOKIE_EXPIRATION);
     }
 }

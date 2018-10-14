@@ -1,6 +1,7 @@
 package SnapBuddy_1.com.cyberpointllc.stac.webserver.handler;
 
-import java.util.HashMap;
+import java.util.*;
+
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileItemFactory;
@@ -11,6 +12,11 @@ import org.apache.commons.fileupload.RequestContext;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,11 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Provides ability to parse multipart/form-data content from a POST.
@@ -80,15 +81,17 @@ public class MultipartHelper {
         }
         HttpExchangeRequestContext context = new  HttpExchangeRequestContext(httpExchange);
         String result = null;
-        Map<String, String> postFields = new  HashMap();
+        @Inv("= (- postFields iterator) (- c97 c94)") Map<String, String> postFields = new  HashMap();
         try {
             FileUpload fileUpload = new  FileUpload();
-            FileItemIterator iterator = fileUpload.getItemIterator(context);
+            @Bound("httpExchange.context") int i;
+            @Iter("<= iterator httpExchange.context") FileItemIterator iterator = fileUpload.getItemIterator(context);
             while (iterator.hasNext()) {
-                FileItemStream fileItemStream = iterator.next();
+                FileItemStream fileItemStream;
+                c94: fileItemStream = iterator.next();
                 String name = fileItemStream.getFieldName();
                 String value = IOUtils.toString(fileItemStream.openStream(), "UTF-8");
-                postFields.put(name, value);
+                c97: postFields.put(name, value);
             }
         } catch (Exception e) {
             throw new  IllegalArgumentException("Error parsing multipart message: " + e.getMessage(), e);
@@ -118,12 +121,24 @@ public class MultipartHelper {
         FileUpload fileUpload = new  FileUpload();
         FileItemFactory fileItemFactory = new  DiskFileItemFactory();
         fileUpload.setFileItemFactory(fileItemFactory);
-        Map<String, List<String>> fieldNameValues = new  HashMap();
+        @Inv("= (- fieldNameValues it) (- (+ c136 c139) c130)") Map<String, List<String>> fieldNameValues = new  HashMap();
         try {
             // create map of all given field names and their associated item as a string
-            Map<String, List<FileItem>> parameterMap = fileUpload.parseParameterMap(context);
-            for (String fieldName : fieldNames) {
-                getMultipartValuesHelper(parameterMap, fieldNameValues, fieldName);
+            @Iter("<= it fieldNames") Iterator<String> it = fieldNames.iterator();
+            while (it.hasNext()) {
+                String fieldName;
+                c130: fieldName = it.next();
+                @InvUnk("Unknown API") List<FileItem> items = fileUpload.parseParameterMap(context).get(fieldName);
+                if ((items != null) && !items.isEmpty()) {
+                    @InvUnk("Nested lists") List<String> values = fieldNameValues.get(fieldName);
+                    if (values == null) {
+                        values = new  ArrayList();
+                        c136: fieldNameValues.put(fieldName, values);
+                    }
+                    for (FileItem item : items) {
+                        c139: values.add(item.getString());
+                    }
+                }
             }
         } catch (Exception e) {
             throw new  IllegalArgumentException("Error parsing multipart message: " + e.getMessage(), e);
@@ -162,26 +177,28 @@ public class MultipartHelper {
         FileUpload fileUpload = new  FileUpload();
         FileItemFactory fileItemFactory = new  DiskFileItemFactory();
         fileUpload.setFileItemFactory(fileItemFactory);
-        Map<String, String> fieldNameItems = new  HashMap();
+        @Bound("+ 1 allFieldNames") int i;
+        @Inv("= (- fieldNameItems it) (- c208 c194)") Map<String, String> fieldNameItems = new  HashMap();
         InputStream fileIn = null;
         // Make sure imageFieldName is part of allFieldNames
         if (!allFieldNames.contains(imageFieldName)) {
-            Set<String> newFieldNames = new  HashSet(allFieldNames);
-            newFieldNames.add(imageFieldName);
+            @Inv("= newFieldNames c185") Set<String> newFieldNames = new  HashSet(allFieldNames);
+            c185: newFieldNames.add(imageFieldName);
             allFieldNames = newFieldNames;
         }
         int conditionObj0 = 1;
         try {
             // create map of all given field names and their associated item as a string
-            Map<String, List<FileItem>> parameterMap = fileUpload.parseParameterMap(context);
-            for (String fieldName : allFieldNames) {
-                List<FileItem> items = parameterMap.get(fieldName);
-                if (items != null) {
-                    if (items.size() == conditionObj0) {
+            @Iter("<= it allFieldNames") Iterator<String> it = allFieldNames.iterator();
+            while (it.hasNext()) {
+                String fieldName;
+                c194: fieldName = it.next();
+                if (fileUpload.parseParameterMap(context).get(fieldName) != null) {
+                    if (fileUpload.parseParameterMap(context).get(fieldName).size() == conditionObj0) {
                         // there should only be one FileItem per fieldName
                         // if we have the image field name, we need to capture
                         // the input stream containing the image and the image name
-                        FileItem item = items.get(0);
+                        FileItem item = fileUpload.parseParameterMap(context).get(fieldName).get(0);
                         String fileItem;
                         if (fieldName.equals(imageFieldName)) {
                             fileIn = item.getInputStream();
@@ -189,7 +206,7 @@ public class MultipartHelper {
                         } else {
                             fileItem = item.getString();
                         }
-                        fieldNameItems.put(fieldName, fileItem);
+                        c208: fieldNameItems.put(fieldName, fileItem);
                     } else {
                         throw new  IllegalArgumentException("Cannot handle more than one File Item for each Field Name");
                     }
@@ -239,12 +256,17 @@ public class MultipartHelper {
         FileUpload fileUpload = new  FileUpload();
         FileItemFactory fileItemFactory = new  DiskFileItemFactory();
         fileUpload.setFileItemFactory(fileItemFactory);
-        List<String> itemStrings = new  ArrayList();
+        @Bound("httpExchange.context.fieldName") int i;
+        @Inv("= (- itemStrings it) (- c268 c267)") List<String> itemStrings = new  ArrayList();
         try {
             // get items associated with the field name
-            List<FileItem> items = fileUpload.parseParameterMap(context).get(fieldName);
-            if (items != null && !items.isEmpty()) {
-                getMultipartFieldItemsHelper(itemStrings, items);
+            if (fileUpload.parseParameterMap(context).get(fieldName) != null && !fileUpload.parseParameterMap(context).get(fieldName).isEmpty()) {
+                @Iter("<= it httpExchange.context.fieldName") Iterator<FileItem> it = fileUpload.parseParameterMap(context).get(fieldName).iterator();
+                while (it.hasNext()) {
+                    FileItem item;
+                    c267: item = it.next();
+                    c268: itemStrings.add(item.getString());
+                }
             }
         } catch (Exception e) {
             throw new  IllegalArgumentException("Error parsing multipart message: " + e.getMessage(), e);
@@ -252,7 +274,7 @@ public class MultipartHelper {
         return itemStrings;
     }
 
-    private static class HttpExchangeRequestContext implements RequestContext {
+    public static class HttpExchangeRequestContext implements RequestContext {
 
         private static final String CONTENT_TYPE = "Content-Type";
 
@@ -319,26 +341,6 @@ public class MultipartHelper {
         @Override
         public InputStream getInputStream() throws IOException {
             return inputStream;
-        }
-    }
-
-    private static void getMultipartValuesHelper(Map<String, List<FileItem>> parameterMap, Map<String, List<String>> fieldNameValues, String fieldName) throws Exception {
-        List<FileItem> items = parameterMap.get(fieldName);
-        if ((items != null) && !items.isEmpty()) {
-            List<String> values = fieldNameValues.get(fieldName);
-            if (values == null) {
-                values = new  ArrayList();
-                fieldNameValues.put(fieldName, values);
-            }
-            for (FileItem item : items) {
-                values.add(item.getString());
-            }
-        }
-    }
-
-    private static void getMultipartFieldItemsHelper(List<String> itemStrings, List<FileItem> items) throws Exception {
-        for (FileItem item : items) {
-            itemStrings.add(item.getString());
         }
     }
 }

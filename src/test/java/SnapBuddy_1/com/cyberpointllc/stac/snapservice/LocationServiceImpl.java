@@ -2,14 +2,15 @@ package SnapBuddy_1.com.cyberpointllc.stac.snapservice;
 
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.AccessPoint;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Location;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 public class LocationServiceImpl implements LocationService {
 
@@ -47,15 +48,17 @@ public class LocationServiceImpl implements LocationService {
                     if ((parts.length % 4) != conditionObj0) {
                         throw new  IllegalArgumentException("Location datastore contains a malformed line: " + line);
                     }
-                    Set<AccessPoint> accessPoints = new  HashSet();
+                    @Bound("parts") int j;
+                    @Inv("= (- accessPoints i) (- c63 (* 4 c64))") Set<AccessPoint> accessPoints = new  HashSet();
                     String identity = parts[0];
                     String cityName = parts[1];
-                    for (int i = 2; i < parts.length; i += 4) {
+                    for (@Iter("<= i parts") int i = 2; i < parts.length; ) {
                         double latitude = Double.valueOf(parts[i]);
                         double longitude = Double.valueOf(parts[i + 1]);
                         String name = parts[i + 2];
                         String bssid = parts[i + 3].toLowerCase();
-                        accessPoints.add(new  AccessPoint(latitude, longitude, name, bssid));
+                        c63: accessPoints.add(new  AccessPoint(latitude, longitude, name, bssid));
+                        c64: i = i + 4;
                     }
                     Location location = new  Location(identity, cityName, accessPoints);
                     locationByIdentity.put(location.getIdentity(), location);
@@ -81,9 +84,13 @@ public class LocationServiceImpl implements LocationService {
         if ((bssids == null) || bssids.isEmpty()) {
             return null;
         }
-        Set<String> copy = new  HashSet(bssids.size());
-        for (String bssid : bssids) {
-            getLocationHelper(bssid, copy);
+        @Bound("bssids") int i;
+        @Inv("= (- copy it) (- c93 c92)") Set<String> copy = new  HashSet(bssids.size());
+        @Iter("<= it bssids") Iterator<String> it = bssids.iterator();
+        while (it.hasNext()) {
+            String bssid;
+            c92: bssid = it.next();
+            c93: copy.add(bssid.toLowerCase());
         }
         return USE_SUBSET_BSSIDS ? getLocationUsingSubset(copy) : getLocationExactly(copy);
     }
@@ -104,9 +111,5 @@ public class LocationServiceImpl implements LocationService {
             }
         }
         return null;
-    }
-
-    private void getLocationHelper(String bssid, Set<String> copy) {
-        copy.add(bssid.toLowerCase());
     }
 }

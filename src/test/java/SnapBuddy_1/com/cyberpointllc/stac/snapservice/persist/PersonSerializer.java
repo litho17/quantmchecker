@@ -4,10 +4,15 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.LocationService;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Location;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
 import org.mapdb.Serializer;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class PersonSerializer extends Serializer<Person> {
@@ -26,12 +31,25 @@ public class PersonSerializer extends Serializer<Person> {
         out.writeUTF(person.getIdentity());
         out.writeUTF(person.getName());
         out.writeUTF(person.getLocation().getIdentity());
-        Set<String> friendIdentities = person.getFriends();
+        @Bound("+ person.photos person.friends") int i;
+        @Inv("= (- friendIdentities it1) (- c40 c39)") Set<String> friendIdentities = new HashSet<>();
+        @Iter("<= it1 person.friends") Iterator<String> it1 = person.friends.iterator();
+        while (it1.hasNext()) {
+            String s1;
+            c39: s1 = it1.next();
+            c40: friendIdentities.add(s1);
+        }
         out.writeInt(friendIdentities.size());
         for (String friendIdentity : friendIdentities) {
             out.writeUTF(friendIdentity);
         }
-        Set<String> photoIdentities = person.getPhotos();
+        @Inv("= (- photoIdentities it2) (- c51 c50)") Set<String> photoIdentities = new HashSet<>();
+        @Iter("<= it2 person.photos") Iterator<String> it2 = person.photos.iterator();
+        while (it2.hasNext()) {
+            String s2;
+            c50: s2 = it2.next();
+            c51: photoIdentities.add(s2);
+        }
         out.writeInt(photoIdentities.size());
         for (String photoIdentity : photoIdentities) {
             out.writeUTF(photoIdentity);
@@ -44,17 +62,18 @@ public class PersonSerializer extends Serializer<Person> {
         String name = in.readUTF();
         String locationIdentity = in.readUTF();
         Location location = locationService.getLocation(locationIdentity);
-        Set<String> friends = new  HashSet();
-        int numberOfFriends = in.readInt();
-        int conditionObj0 = 0;
-        while (numberOfFriends-- > conditionObj0) {
-            friends.add(in.readUTF());
+        @Bound("+ in.numberOfFriends in.numberOfPhotos") int i;
+        @Inv("= (+ friends numberOfFriends) (- c68 c69)") Set<String> friends = new  HashSet();
+        @Iter("<= numberOfFriends in.numberOfFriends") int numberOfFriends = in.readInt();
+        while (numberOfFriends > 0) {
+            c68: friends.add(in.readUTF());
+            c69: numberOfFriends = numberOfFriends - 1;
         }
-        Set<String> photos = new  HashSet();
-        int numberOfPhotos = in.readInt();
-        int conditionObj1 = 0;
-        while (numberOfPhotos-- > conditionObj1) {
-            photos.add(in.readUTF());
+        @Inv("= (+ photos numberOfPhotos) (- c74 c75)") Set<String> photos = new  HashSet();
+        @Iter("<= numberOfPhotos in.numberOfPhotos") int numberOfPhotos = in.readInt();
+        while (numberOfPhotos > 0) {
+            c74: photos.add(in.readUTF());
+            c75: numberOfPhotos = numberOfPhotos - 1;
         }
         return new  Person(identity, name, location, friends, photos);
     }

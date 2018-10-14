@@ -24,9 +24,9 @@ public class Console {
 
     private final ConsoleReader reader;
 
-    private List<String> history = new  ArrayList<String>();
+    public List<String> history = new  ArrayList<String>();
 
-    private final Map<String, Command> commands = new  TreeMap(String.CASE_INSENSITIVE_ORDER);
+    public final Map<String, Command> commands = new  TreeMap(String.CASE_INSENSITIVE_ORDER);
 
     private final CommandLineParser commandLineParser = new  DefaultParser();
 

@@ -11,6 +11,10 @@ import SnapBuddy_1.com.cyberpointllc.stac.webserver.WebSessionService;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import com.sun.net.httpserver.HttpExchange;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.HashSet;
@@ -65,9 +69,10 @@ public class LoginHandler extends AbstractHttpHandler {
             }
         }
         TemplateEngine templateEngine = template.getEngine();
-        Map<String, String> templateMap = new  HashMap();
-        templateMap.put("title", TITLE);
-        templateMap.put("path", getPath());
+        @Bound("5") int i;
+        @Inv("= templateMap (+ c74 c75 c91 c93 c97 c98)") Map<String, String> templateMap = new  HashMap();
+        c74: templateMap.put("title", TITLE);
+        c75: templateMap.put("path", getPath());
         int conditionObj0 = 0;
         int conditionObj1 = 10000;
         // was specified
@@ -83,35 +88,33 @@ public class LoginHandler extends AbstractHttpHandler {
                 throw new  IllegalArgumentException("Error: key must be hexadecimal or decimal");
             }
             BigInteger masterSecret = keyExchangeServer.generateMasterSecret(usersPublicKey);
-            templateMap.put("masterSecret", masterSecret.toString());
+            c91: templateMap.put("masterSecret", masterSecret.toString());
         } else {
-            templateMap.put("masterSecret", "Null");
+            c93: templateMap.put("masterSecret", "Null");
         }
         String suppressTimeStamp = getUrlParam(httpExchange, "suppressTimestamp");
         if (StringUtils.isBlank(suppressTimeStamp) || !suppressTimeStamp.equalsIgnoreCase("true")) {
-            templateMap.put("duration", String.valueOf(getDuration(httpExchange)));
-            templateMap.put("timestamp", (new  Date()).toString());
+            c97: templateMap.put("duration", String.valueOf(getDuration(httpExchange)));
+            c98: templateMap.put("timestamp", (new  Date()).toString());
         }
         return getResponse(templateEngine.replaceTags(templateMap));
     }
 
     @Override
     protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
-        Set<String> fieldNames = new  HashSet();
-        fieldNames.add(USERNAME_FIELD);
-        fieldNames.add(PASSWORD_FIELD);
-        Map<String, List<String>> loginCredentials = MultipartHelper.getMultipartValues(httpExchange, fieldNames);
-        List<String> usernames = loginCredentials.get(USERNAME_FIELD);
-        List<String> passwords = loginCredentials.get(PASSWORD_FIELD);
+        @Inv("= fieldNames (+ c106 c107)") Set<String> fieldNames = new  HashSet();
+        c106: fieldNames.add(USERNAME_FIELD);
+        c107: fieldNames.add(PASSWORD_FIELD);
+        @InvUnk("Nested lists") Map<String, List<String>> loginCredentials = MultipartHelper.getMultipartValues(httpExchange, fieldNames);
         int conditionObj2 = 1;
-        if ((usernames != null) && (usernames.size() == conditionObj2) && (passwords != null) && (passwords.size() == 1)) {
-            String username = usernames.get(0);
-            String password = passwords.get(0);
+        if ((loginCredentials.get(USERNAME_FIELD) != null) && (loginCredentials.get(USERNAME_FIELD).size() == conditionObj2) && (loginCredentials.get(PASSWORD_FIELD) != null) && (loginCredentials.get(PASSWORD_FIELD).size() == 1)) {
+            String username = loginCredentials.get(USERNAME_FIELD).get(0);
+            String password = loginCredentials.get(PASSWORD_FIELD).get(0);
             // password is stored encrypted, so we should encrypt this before comparing...
             String encryptedPw = DESHelper.getEncryptedString(password, passwordKey);
             User currentUser = userManager.getUserByUsername(username);
             if (currentUser != null && currentUser.matches(username, encryptedPw)) {
-                WebSession webSession = new  WebSession(currentUser.getIdentity());
+                @Inv("= webSession.propertyMap 0") WebSession webSession = new  WebSession(currentUser.getIdentity());
                 webSessionService.addSession(httpExchange, webSession);
                 if (destinationPath == null) {
                     return getDefaultRedirectResponse();

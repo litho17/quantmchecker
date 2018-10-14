@@ -16,9 +16,9 @@ public class Person {
 
     private final Location location;
 
-    private final Set<String> friends;
+    public final Set<String> friends;
 
-    private final Set<String> photos;
+    public final Set<String> photos;
 
     public Person(String identity, String name, Location location, Set<String> friends, Set<String> photos) {
         if (StringUtils.isBlank(identity)) {

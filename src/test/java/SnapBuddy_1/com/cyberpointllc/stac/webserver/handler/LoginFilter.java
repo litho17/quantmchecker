@@ -29,13 +29,12 @@ public class LoginFilter extends Filter {
 
     @Override
     public void doFilter(HttpExchange httpExchange, Filter.Chain chain) throws IOException {
-        WebSession webSession = webSessionService.getSession(httpExchange);
         User user = null;
-        if (webSession != null) {
-            user = userManager.getUserByIdentity(webSession.getUserId());
+        if (webSessionService.getSession(httpExchange) != null) {
+            user = userManager.getUserByIdentity(webSessionService.getSession(httpExchange).getUserId());
         }
         if (user != null) {
-            httpExchange.setAttribute("userId", webSession.getUserId());
+            httpExchange.setAttribute("userId", webSessionService.getSession(httpExchange).getUserId());
             chain.doFilter(httpExchange);
         } else {
             HttpHandlerResponse response = AbstractHttpHandler.getRedirectResponse(authenticationHandlerPath);

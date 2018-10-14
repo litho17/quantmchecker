@@ -1,6 +1,7 @@
 package SnapBuddy_1.com.cyberpointllc.stac.snapbuddy.handler;
 
-import java.util.HashMap;
+import java.util.*;
+
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.SnapContext;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.SnapService;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
@@ -8,9 +9,14 @@ import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.MultipartHelper;
 import com.sun.net.httpserver.HttpExchange;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.FileUpload;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
 
 public class InviteHandler extends AbstractTemplateSnapBuddyHandler {
 
@@ -42,26 +48,29 @@ public class InviteHandler extends AbstractTemplateSnapBuddyHandler {
             throw new  IllegalArgumentException("Context may not be null");
         }
         Person activePerson = context.getActivePerson();
-        Map<String, String> map = new  HashMap();
-        StringBuilder sb = new  StringBuilder();
-        sb.append("<form action=\"");
-        sb.append(PATH);
-        sb.append("\" method=\"post\" enctype=\"multipart/form-data\">");
-        sb.append("<table>");
-        Set<Person> invited = getSnapService().getInvitations(activePerson);
-        for (String identity : getSnapService().getPeople()) {
+        @Bound("+ 7 (* 4 snapService.getPeople)") int i;
+        @Inv("= (- map it it it) (- (+ c60 c61 c62) c56 c56 c56)") Map<String, String> map = new  HashMap();
+        @Inv("= (- sb it) (- (+ c49 c50 c51 c52 c63 c66 c67 c68) c56)") StringBuilder sb = new  StringBuilder();
+        c49: sb.append("<form action=\"");
+        c50: sb.append(PATH);
+        c51: sb.append("\" method=\"post\" enctype=\"multipart/form-data\">");
+        c52: sb.append("<table>");
+        @Iter("<= it snapService.getPeople") Iterator<String> it = snapService.getPeople().iterator();
+        while (it.hasNext()) {
+            String identity;
+            c56: identity = it.next();
             Person somebody = getSnapService().getPerson(identity);
-            if (canInvite(activePerson, invited, somebody)) {
+            if (canInvite(activePerson, snapService.getInvitations(activePerson), somebody)) {
                 map.clear();
-                map.put("identity", somebody.getIdentity());
-                map.put("photoURL", getProfilePhotoUrl(somebody));
-                map.put("name", somebody.getName());
-                sb.append(TEMPLATE.replaceTags(map));
+                c60: map.put("identity", somebody.getIdentity());
+                c61: map.put("photoURL", getProfilePhotoUrl(somebody));
+                c62: map.put("name", somebody.getName());
+                c63: sb.append(TEMPLATE.replaceTags(map));
             }
         }
-        sb.append("</table>");
-        sb.append("<input type=\"submit\" value=\"Invite\" name=\"submit\" >");
-        sb.append("</form>");
+        c66: sb.append("</table>");
+        c67: sb.append("<input type=\"submit\" value=\"Invite\" name=\"submit\" >");
+        c68: sb.append("</form>");
         return sb.toString();
     }
 
@@ -86,8 +95,36 @@ public class InviteHandler extends AbstractTemplateSnapBuddyHandler {
     @Override
     protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
         Person activePerson = getPerson(httpExchange);
-        List<String> identities = MultipartHelper.getMultipartFieldItems(httpExchange, FIELD_NAME);
-        for (String identity : identities) {
+        // List<String> identities = MultipartHelper.getMultipartFieldItems(httpExchange, FIELD_NAME);
+
+        if (httpExchange == null) {
+            throw new  IllegalArgumentException("HttpExchange may not be null");
+        }
+        if (StringUtils.isBlank(FIELD_NAME)) {
+            throw new  IllegalArgumentException("Field name may not be blank or null");
+        }
+        MultipartHelper.HttpExchangeRequestContext context = new MultipartHelper.HttpExchangeRequestContext(httpExchange);
+        FileUpload fileUpload = new  FileUpload();
+        FileItemFactory fileItemFactory = new DiskFileItemFactory();
+        fileUpload.setFileItemFactory(fileItemFactory);
+        @Bound("httpExchange.context.fieldName") int i;
+        @Inv("= (- itemStrings it) (- c268 c267)") List<String> itemStrings = new  ArrayList();
+        try {
+            // get items associated with the field name
+            if (fileUpload.parseParameterMap(context).get(FIELD_NAME) != null && !fileUpload.parseParameterMap(context).get(FIELD_NAME).isEmpty()) {
+                @Iter("<= it httpExchange.context.fieldName") Iterator<FileItem> it = fileUpload.parseParameterMap(context).get(FIELD_NAME).iterator();
+                while (it.hasNext()) {
+                    FileItem item;
+                    c267: item = it.next();
+                    c268: itemStrings.add(item.getString());
+                }
+            }
+        } catch (Exception e) {
+            throw new  IllegalArgumentException("Error parsing multipart message: " + e.getMessage(), e);
+        }
+
+
+        for (String identity : itemStrings) {
             Person invitedPerson = getSnapService().getPerson(identity);
             if (invitedPerson != null) {
                 getSnapService().sendInvitation(activePerson, invitedPerson);

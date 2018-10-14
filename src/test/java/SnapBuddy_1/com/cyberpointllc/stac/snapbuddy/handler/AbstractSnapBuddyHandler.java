@@ -17,7 +17,7 @@ public abstract class AbstractSnapBuddyHandler extends AbstractHttpHandler {
 
     private static final Photo DEFAULT_PHOTO = new  Photo("snapbuddy.jpg", true, null, null, null);
 
-    private final SnapService snapService;
+    public final SnapService snapService;
 
     protected AbstractSnapBuddyHandler(SnapService snapService) {
         if (snapService == null) {

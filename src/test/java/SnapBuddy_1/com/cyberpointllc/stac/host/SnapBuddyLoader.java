@@ -90,7 +90,7 @@ public class SnapBuddyLoader {
 
     private static Map<String, Person> getPeople(InputStream inputStream, LocationService locationService) {
         @Bound("+ line.parts_3 line.parts_4 inputStream") int k;
-        @Inv("= (- people reader) (-c115 c117 c96)") Map<String, Person> people = new  HashMap();
+        @Inv("= (- people reader) (- c115 c117 c96)") Map<String, Person> people = new  HashMap();
         try (@Iter("<= reader inputStream") BufferedReader reader = new  BufferedReader(new  InputStreamReader(inputStream))) {
             String line;
             c96: line = reader.readLine();

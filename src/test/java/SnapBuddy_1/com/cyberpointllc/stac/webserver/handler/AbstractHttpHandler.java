@@ -5,10 +5,17 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public abstract class AbstractHttpHandler implements HttpHandler {
@@ -111,7 +118,15 @@ public abstract class AbstractHttpHandler implements HttpHandler {
 
     public static String getUrlParam(HttpExchange httpExchange, String name) {
         URI uri = httpExchange.getRequestURI();
-        List<NameValuePair> urlParams = Collections.unmodifiableList(URLEncodedUtils.parse(uri, "UTF-8"));
+        @Bound("uri") int i;
+        @InvUnk("Unknown API") List<NameValuePair> pairs = URLEncodedUtils.parse(uri, "UTF-8");
+        @Inv("= (- urlParams it) (- c128 c127)") List<NameValuePair> urlParams = new ArrayList<>();
+        @Iter("<= it uri") Iterator<NameValuePair> it = pairs.iterator();
+        while (it.hasNext()) {
+            NameValuePair n;
+            c127: n = it.next();
+            c128: urlParams.add(n);
+        }
         for (NameValuePair pair : urlParams) {
             if (pair.getName().equals(name)) {
                 return pair.getValue();

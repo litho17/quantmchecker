@@ -7,6 +7,9 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Person;
 import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Photo;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.util.Map;
 
 public class ShowPhotoHandler extends AbstractTemplateSnapBuddyHandler {
@@ -47,11 +50,12 @@ public class ShowPhotoHandler extends AbstractTemplateSnapBuddyHandler {
         Person person = context.getActivePerson();
         if (getSnapService().isPhotoVisible(person, photo)) {
             // good to go
-            Map<String, String> map = new  HashMap();
+            @Bound("3") int i;
+            @Inv("= map (+ c56 c57 c58)") Map<String, String> map = new  HashMap();
             map.clear();
-            map.put("pid", photo.getIdentity());
-            map.put("photoURL", getPhotoUrl(photo));
-            map.put("caption", StringUtils.isBlank(photo.getCaption()) ? "" : photo.getCaption());
+            c56: map.put("pid", photo.getIdentity());
+            c57: map.put("photoURL", getPhotoUrl(photo));
+            c58: map.put("caption", StringUtils.isBlank(photo.getCaption()) ? "" : photo.getCaption());
             return TEMPLATE.getEngine().replaceTags(map);
         }
         return "You're not allowed to see this photo: " + path;

@@ -5,6 +5,9 @@ import SnapBuddy_1.com.cyberpointllc.stac.snapservice.model.Location;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.AbstractHttpHandler;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.handler.HttpHandlerResponse;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+
+import java.util.Iterator;
 
 public class CitiesHandler extends AbstractHttpHandler {
 
@@ -26,10 +29,13 @@ public class CitiesHandler extends AbstractHttpHandler {
 
     @Override
     protected HttpHandlerResponse handleGet(HttpExchange httpExchange) {
-        StringBuilder sb = new  StringBuilder();
+        @InvUnk("Nested lists") StringBuilder sb = new  StringBuilder();
         // Add a header line
         sb.append("City,BSSIDs\r\n");
-        for (Location location : locationService.getLocations()) {
+        Iterator<Location> it1 = locationService.getLocations().iterator();
+        while (it1.hasNext()) {
+            Location location;
+            location = it1.next();
             sb.append('"');
             sb.append(location.getCity());
             sb.append('"');

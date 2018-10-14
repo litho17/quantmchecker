@@ -1,5 +1,9 @@
 package SnapBuddy_1.com.cyberpointllc.stac.common;
 
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.Iter;
+
 import java.util.Arrays;
 
 /**
@@ -427,9 +431,11 @@ public class DES {
     }
 
     private static String hex(byte[] bytes) {
-        StringBuilder sb = new  StringBuilder();
-        for (int i = 0; i < bytes.length; i++) {
-            sb.append(String.format("%02X ", bytes[i]));
+        @Bound("bytes") int j;
+        @Inv("= (- sb i) (- c437 c438)") StringBuilder sb = new  StringBuilder();
+        for (@Iter("<= i bytes") int i = 0; i < bytes.length; ) {
+            c437: sb.append(String.format("%02X ", bytes[i]));
+            c438: i = i + 1;
         }
         return sb.toString();
     }

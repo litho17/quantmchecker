@@ -4,6 +4,10 @@ import java.util.HashMap;
 import SnapBuddy_1.com.cyberpointllc.stac.template.TemplateEngine;
 import SnapBuddy_1.com.cyberpointllc.stac.webserver.WebTemplate;
 import com.sun.net.httpserver.HttpExchange;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+import plv.colorado.edu.quantmchecker.qual.InvUnk;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -39,34 +43,37 @@ public class AuthenticationHandler extends AbstractHttpHandler {
 
     @Override
     protected HttpHandlerResponse handleGet(HttpExchange httpExchange) {
-        Map<String, String> contentsTemplateMap = new  HashMap();
-        Map<String, String> templateMap = new  HashMap();
+        @Bound("5") int i;
+        @Inv("= contentsTemplateMap (+ c48 c52)") Map<String, String> contentsTemplateMap = new  HashMap();
+        @Inv("= templateMap (+ c49 c50 c54 c55)") Map<String, String> templateMap = new  HashMap();
         String suppressTimestamp = getUrlParam(httpExchange, "suppressTimestamp");
         if (suppressTimestamp == null || !suppressTimestamp.equals("true")) {
-            handleGetHelper(templateMap, httpExchange, contentsTemplateMap);
+            c48: contentsTemplateMap.put("includeTimestamp", "true");
+            c49: templateMap.put("timestamp", (new  Date()).toString());
+            c50: templateMap.put("duration", String.valueOf(getDuration(httpExchange)));
         } else {
-            handleGetHelper1(contentsTemplateMap);
+            c52: contentsTemplateMap.put("includeTimestamp", "false");
         }
-        templateMap.put("contents", TEMPLATE_ENGINE.replaceTags(contentsTemplateMap));
-        templateMap.put("title", TITLE);
+        c54: templateMap.put("contents", TEMPLATE_ENGINE.replaceTags(contentsTemplateMap));
+        c55: templateMap.put("title", TITLE);
         return getResponse(template.getEngine().replaceTags(templateMap));
     }
 
     @Override
     protected HttpHandlerResponse handlePost(HttpExchange httpExchange) {
-        Set<String> fieldNames = new  HashSet(Arrays.asList(KEY_FIELD, TIMESTAMP_FIELD));
-        Map<String, List<String>> fieldNameItems = MultipartHelper.getMultipartValues(httpExchange, fieldNames);
+        @Inv("= fieldNames (+ c65 c66)") Set<String> fieldNames = new  HashSet();
+        c65: fieldNames.add(KEY_FIELD);
+        c66: fieldNames.add(TIMESTAMP_FIELD);
+        @InvUnk("Nested lists") Map<String, List<String>> fieldNameItems = MultipartHelper.getMultipartValues(httpExchange, fieldNames);
         String usersPublicKey = "";
         boolean includeTimestamp = true;
-        List<String> usersPublicKeyList = fieldNameItems.get(KEY_FIELD);
         int conditionObj0 = 1;
-        if (usersPublicKeyList != null && usersPublicKeyList.size() == conditionObj0) {
-            usersPublicKey = usersPublicKeyList.get(0);
+        if (fieldNameItems.get(KEY_FIELD) != null && fieldNameItems.get(KEY_FIELD).size() == conditionObj0) {
+            usersPublicKey = fieldNameItems.get(KEY_FIELD).get(0);
         }
-        List<String> includeTimestampList = fieldNameItems.get(TIMESTAMP_FIELD);
         int conditionObj1 = 1;
-        if (includeTimestampList != null && includeTimestampList.size() == conditionObj1) {
-            String timestamp = includeTimestampList.get(0);
+        if (fieldNameItems.get(TIMESTAMP_FIELD) != null && fieldNameItems.get(TIMESTAMP_FIELD).size() == conditionObj1) {
+            String timestamp = fieldNameItems.get(TIMESTAMP_FIELD).get(0);
             if (timestamp.equals("false")) {
                 includeTimestamp = false;
             }
@@ -80,15 +87,5 @@ public class AuthenticationHandler extends AbstractHttpHandler {
             urlEnd += "?suppressTimestamp=true";
         }
         return getRedirectResponse(redirectResponsePath + "/" + urlEnd);
-    }
-
-    private void handleGetHelper(Map<String, String> templateMap, HttpExchange httpExchange, Map<String, String> contentsTemplateMap) {
-        contentsTemplateMap.put("includeTimestamp", "true");
-        templateMap.put("timestamp", (new  Date()).toString());
-        templateMap.put("duration", String.valueOf(getDuration(httpExchange)));
-    }
-
-    private void handleGetHelper1(Map<String, String> contentsTemplateMap) {
-        contentsTemplateMap.put("includeTimestamp", "false");
     }
 }

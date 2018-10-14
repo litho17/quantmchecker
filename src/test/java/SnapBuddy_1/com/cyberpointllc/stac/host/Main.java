@@ -42,6 +42,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import plv.colorado.edu.quantmchecker.qual.Bound;
+import plv.colorado.edu.quantmchecker.qual.Inv;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -208,7 +211,7 @@ public class Main {
             System.err.println("ERROR: specified password key " + passwordKeyFile + " does not exist");
             System.exit(1);
         }
-        final Main main = new  Main(port, dataPath, rebuildDB, serverKeyFile, passwordKeyFile);
+        /*final Main main = new  Main(port, dataPath, rebuildDB, serverKeyFile, passwordKeyFile);
         main.start();
         System.out.println("Server started on port " + port);
         Runtime.getRuntime().addShutdownHook(new  Thread(new  Runnable() {
@@ -218,7 +221,7 @@ public class Main {
                 System.out.println("Stopping the server...");
                 main.stop();
             }
-        }));
+        }));*/
     }
 
     private void startHelper() {
@@ -237,28 +240,29 @@ public class Main {
         AbstractHttpHandler locationHandler = new  LocationHandler(snapService, locationService);
         AbstractHttpHandler rootHandler = new  FriendsHandler(snapService);
         AbstractHttpHandler editPhotoHandler = new  EditPhotoHandler(snapService);
-        List<AbstractHttpHandler> handlers = new  ArrayList();
-        handlers.add(showLocationHandler);
-        handlers.add(initialLocationHandler);
-        handlers.add(locationHandler);
-        handlers.add(rootHandler);
-        handlers.add(editPhotoHandler);
-        handlers.add(new  CaptionHandler(snapService, editPhotoHandler.getPath()));
-        handlers.add(new  FilterHandler(snapService, editPhotoHandler.getPath()));
-        handlers.add(new  PublicHandler(snapService, editPhotoHandler.getPath()));
-        handlers.add(new  FriendsPhotosHandler(snapService));
-        handlers.add(new  NeighborsHandler(snapService));
-        handlers.add(new  PhotosHandler(snapService));
-        handlers.add(new  UnfriendHandler(snapService));
-        handlers.add(new  InviteHandler(snapService));
-        handlers.add(new  ManageInvitationHandler(snapService));
-        handlers.add(new  ShowPhotoHandler(snapService));
-        handlers.add(new  AddPhotoHandler(snapService, imageService));
-        handlers.add(new  PhotoHandler(snapService, imageService));
-        handlers.add(new  ThumbPhotoHandler(snapService, imageService));
-        handlers.add(new  NameHandler(snapService));
-        handlers.add(new  ProfilePhotoHandler(snapService, imageService));
-        handlers.add(new  DefaultHandler(snapService, locationHandler.getPath(), rootHandler.getPath()));
+        @Bound("21") int i;
+        @Inv("= handlers (+ c245 c246 c247 c248 c249 c250 c251 c252 c253 c254 c255 c256 c257 c258 c259 c260 c261 c262 c263 c264 c265)") List<AbstractHttpHandler> handlers = new  ArrayList();
+        c245: handlers.add(showLocationHandler);
+        c246: handlers.add(initialLocationHandler);
+        c247: handlers.add(locationHandler);
+        c248: handlers.add(rootHandler);
+        c249: handlers.add(editPhotoHandler);
+        c250: handlers.add(new  CaptionHandler(snapService, editPhotoHandler.getPath()));
+        c251: handlers.add(new  FilterHandler(snapService, editPhotoHandler.getPath()));
+        c252: handlers.add(new  PublicHandler(snapService, editPhotoHandler.getPath()));
+        c253: handlers.add(new  FriendsPhotosHandler(snapService));
+        c254: handlers.add(new  NeighborsHandler(snapService));
+        c255: handlers.add(new  PhotosHandler(snapService));
+        c256: handlers.add(new  UnfriendHandler(snapService));
+        c257: handlers.add(new  InviteHandler(snapService));
+        c258: handlers.add(new  ManageInvitationHandler(snapService));
+        c259: handlers.add(new  ShowPhotoHandler(snapService));
+        c260: handlers.add(new  AddPhotoHandler(snapService, imageService));
+        c261: handlers.add(new  PhotoHandler(snapService, imageService));
+        c262: handlers.add(new  ThumbPhotoHandler(snapService, imageService));
+        c263: handlers.add(new  NameHandler(snapService));
+        c264: handlers.add(new  ProfilePhotoHandler(snapService, imageService));
+        c265: handlers.add(new  DefaultHandler(snapService, locationHandler.getPath(), rootHandler.getPath()));
         // This MUST happen before any other handlers are added!
         server.addAuthHandlers(userManager, initialLocationHandler.getPath());
         // Next, add the handlers that need to be authenticated
