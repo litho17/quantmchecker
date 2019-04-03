@@ -68,7 +68,6 @@ public class ZipDecompressor {
     /**
      * @param filePath:   the path of the file to decompress
      * @param outDirPath: the path of a target directory in which to put fully decompressed files
-     * @param basePath:   path relative to which paths within target directory should be selected
      * @return whether we completed the decompression process (as opposed to stopping early due
      * to too many files/recursions)
      * @throws IOException if something goes terribly wrong
@@ -94,7 +93,6 @@ public class ZipDecompressor {
     /**
      * @param filePath:   the path of the file to decompress
      * @param outDirPath: the path of a target directory in which to put fully decompressed files
-     * @param basePath:   path relative to which paths within target directory should be selected
      */
     protected void decompress_(Path filePath, Path outDirPath) throws Exception {
         //System.out.println("Decompressing " + filePath + " to " + outDirPath);
@@ -102,7 +100,18 @@ public class ZipDecompressor {
         int i = filePath.toString().lastIndexOf(".");
         if (// if it doesn't have an extension
                 i < 0) {
-            decompress_Helper(filePath, file, outDirPath);
+            try {
+                if (file.isDirectory()) {
+                    // if it's a directory, put its contents in the temp dir for further processing
+                    processDirectory(filePath, outDirPath);
+                } else {
+                    //it's a file: just put it in the target dir
+                    processFlatFile(filePath, outDirPath);
+                }
+            } catch (IOException e) {
+                System.err.println("Unable to copy file");
+                e.printStackTrace();
+            }
         } else {
             try {
                 String ext = filePath.toString().substring(i);
@@ -215,21 +224,6 @@ public class ZipDecompressor {
 
         public int getValue() {
             return conditionRHS;
-        }
-    }
-
-    private void decompress_Helper(Path filePath, File file, Path outDirPath) throws Exception {
-        try {
-            if (file.isDirectory()) {
-                // if it's a directory, put its contents in the temp dir for further processing
-                processDirectory(filePath, outDirPath);
-            } else {
-                //it's a file: just put it in the target dir
-                processFlatFile(filePath, outDirPath);
-            }
-        } catch (IOException e) {
-            System.err.println("Unable to copy file");
-            e.printStackTrace();
         }
     }
 
