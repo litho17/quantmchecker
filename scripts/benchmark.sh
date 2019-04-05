@@ -1,11 +1,5 @@
 #!/bin/sh
 
-echo "Benchmark: textcrunchr_1"
-#./scripts/textcrunchr_1.sh
-
-echo "Benchmark: braidit_1"
-#./scripts/braidit_1.sh
-
 ./scripts/setup.sh
 
 echo "Benchmark: jrecruiter"
