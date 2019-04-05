@@ -161,5 +161,8 @@ To run this tool, you should first compile it. Then depending on how the target 
     ```
 
 # Run the benchmarks
+All source code of benchmark programs reside in `src/test/java`.
+To run this tool on benchmarks and obtain the experiment results as described in the paper, do the following steps:
+
 1. Setup dependencies as described above
 2. Run `./scripts/stac.sh` and `./scripts/benchmark.sh`
