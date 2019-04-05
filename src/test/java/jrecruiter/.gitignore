@@ -1,0 +1,9 @@
+.DS_Store
+.project
+target
+.settings
+.classpath
+.cache
+jrecruiter.home_IS_UNDEFINED/
+jrecruiter_test?MVCC=TRUE.trace.db
+jrecruiter_test?MVCC=TRUE.h2.db

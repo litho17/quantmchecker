@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<backup>
+	<industries>
+		<industry id="2">Aerospace</industry>
+		<industry id="3">Automotive</industry>
+		<industry id="4">Consulting</industry>
+		<industry id="7">Education</industry>
+		<industry id="8">Electronics</industry>
+		<industry id="5">Energy</industry>
+		<industry id="9">Financial</industry>
+		<industry id="10">Government</industry>
+		<industry id="11">Healthcare</industry>
+		<industry id="6">IT</industry>
+		<industry id="12">Manufacturing</industry>
+		<industry id="13">Media</industry>
+		<industry id="1">Other</industry>
+		<industry id="14">Retail</industry>
+		<industry id="15">Telecommunications</industry>
+		<industry id="16">Transportation</industry>
+	</industries>
+	<regions>
+		<region id="2">Alpharetta</region>
+		<region id="3">Buckhead</region>
+		<region id="4">Decatur</region>
+		<region id="5">Downtown</region>
+		<region id="6">Duluth</region>
+		<region id="7">Marietta</region>
+		<region id="8">Midtown</region>
+		<region id="9">Norcross</region>
+		<region id="1">Other</region>
+		<region id="10">Perimeter</region>
+	</regions>
+	<roles>
+		<role name="ADMIN"   id="1">This is the super user of the application</role>
+		<role name="MANAGER" id="2">This role can post new jobs.</role>
+	</roles>
+
+	<users>
+		<user enabled="true" lastLoginDate="2010-07-12T23:45:44.416-04:00"
+			updateDate="2010-07-12T23:45:44.416-04:00" registrationDate="2008-01-10T14:12:00-05:00"
+			id="1">
+			<username>admin</username>
+			<password>aswCoBHvJHtCSyJWRHvch0e4sKflhzkRsP8bUsf1FPTjEkFi3nlQbgtbRx95GluwVr82Ol6WHaLiW/eeoJzXvwjZjEYPgrVYuZmm3Xn0Rek=</password>
+			<firstName>ADMIN</firstName>
+			<lastName>ADMIN</lastName>
+			<company>none</company>
+			<phone />
+			<fax />
+			<email>jobs@jrecruiter.org</email>
+			<roles id="1">
+				<roleName>ADMIN</roleName>
+			</roles>
+			<userAuthenticationType>USERNAME_PASSWORD</userAuthenticationType>
+		</user>
+	</users>
+</backup>

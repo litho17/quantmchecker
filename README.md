@@ -65,16 +65,14 @@ To run this tool, you should first compile it. Then depending on how the target 
 
 ## Maven
 1. Run `scripts/setup.sh` to set up the environment variables. Before running this script, set the values following instruction in Step 1 of Section Javac (when configuring `scripts/run.sh`).
-2. Edit `pom.xml` in the target project
-	1. Add the following content into `<properties></properties>` section
+2. Add the following content into `<properties></properties>` section of `pom.xml`.
 
-		```xml
-		<annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
-		```
-
-	2. Add the following content into `<dependencies></dependencies>` section. Note that you will need to replace
-		1. `path_to_checker_jar` with the absolute path to the jar created in the prepreation step (e.g. `${env.HOME}/Desktop/qc.jar`).
-		2. `path_to_z3_jar` with the absolute path to the jar created in the prepreation step (e.g. `${env.HOME}/Documents/workspace/z3/build/com.microsoft.z3.jar`)
+	```xml
+	<annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
+	```
+3. Add the following content into `<dependencies></dependencies>` section of `pom.xml`. Note that you will need to replace
+	1. `path_to_checker_jar` with the absolute path to the jar created in the prepreation step (e.g. `${env.HOME}/Desktop/qc.jar`).
+	2. `path_to_z3_jar` with the absolute path to the jar created in the prepreation step (e.g. `${env.HOME}/Documents/workspace/z3/build/com.microsoft.z3.jar`)
 
     ```xml
     <!-- Annotations from the Checker Framework: nullness, interning, locking, ... -->
@@ -119,10 +117,9 @@ To run this tool, you should first compile it. Then depending on how the target 
       <systemPath>path_to_z3_jar</systemPath>
     </dependency>
     ```
+3. Add the following in to `<build><plugins></plugins></build>` section of `pom.xml`.
 
-3. Add the following in to `<build><plugins></plugins></build>` section in pom.xml
-
-    Note, please replace `name_of_checker` with name of the checker (e.g. `plv.colorado.edu.quantmchecker.QuantmChecker`).
+	Note, please replace `name_of_checker` with name of the checker (e.g. `plv.colorado.edu.quantmchecker.QuantmChecker`).
     
     ```xml
     <plugin>
@@ -162,3 +159,7 @@ To run this tool, you should first compile it. Then depending on how the target 
       </configuration>
     </plugin>
     ```
+
+# Run the benchmarks
+1. Setup dependencies as described above
+2. Run `./scripts/stac.sh` and `./scripts/benchmark.sh`

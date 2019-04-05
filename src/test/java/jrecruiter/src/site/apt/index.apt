@@ -1,0 +1,61 @@
+ ------
+ jRecruiter
+ ------
+
+jRecruiter - A job posting service
+
+  This project provides a light-weight Java EE based job posting solution.
+
+*---------------+-------------------------------------------------------+
+|  Maven Project Site       |	{{http://www.jrecruiter.org/}}
+*---------------+-------------------------------------------------------+
+|  Google Code              |	{{http://code.google.com/p/jrecruiter/}}
+*---------------+-------------------------------------------------------+
+|  Hudson (CI)              |	{{http://74.207.227.71:9080/hudson/job/jRecruiter/}}
+*---------------+-------------------------------------------------------+
+|  Source Code (SVN)        |	{{http://code.google.com/p/jrecruiter/source/checkout}}
+*---------------+-------------------------------------------------------+
+|  Live Production Site     |	{{http://code.google.com/p/jrecruiter/source/checkout}}
+*---------------+-------------------------------------------------------+
+
+  jRecruiter uses
+  the following frameworks and libraries:
+
+  * Struts 2
+
+  * Spring 2.5
+
+  * Hibernate 3.2
+
+  * Hibernate Search
+
+  * Acegi Security
+
+  * jMesa
+
+  * jQuery
+
+  * JFreeChart
+
+  * Freemarker
+
+  * DWR
+
+[]
+
+  As database backend Postgres is used. However, support other databases out of
+  the box. The maven pom provides profiles for the following databases:
+
+  * PostgreSQL
+  
+  * MySQL
+  
+  * Oracle
+  
+  * Derby
+  
+  * HSQL (Testing)
+  
+  * H2 (Testing)
+
+[]

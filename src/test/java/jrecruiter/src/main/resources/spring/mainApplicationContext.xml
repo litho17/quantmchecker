@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:oxm="http://www.springframework.org/schema/oxm"
+	xmlns:int-twitter="http://www.springframework.org/schema/integration/twitter"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xsi:schemaLocation="http://www.springframework.org/schema/oxm http://www.springframework.org/schema/oxm/spring-oxm.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-4.0.xsd
+		http://www.springframework.org/schema/integration/twitter http://www.springframework.org/schema/integration/twitter/spring-integration-twitter-4.0.xsd">
+
+	<bean class="org.jrecruiter.web.config.WebSecurityConfig" />
+	<import resource="classpath:spring/spring-servlet.xml" />
+
+	<oxm:jaxb2-marshaller id="marshaller">
+		 <oxm:class-to-be-bound name="org.jrecruiter.model.export.Backup"/>
+	</oxm:jaxb2-marshaller>
+
+	<import resource="classpath:org/jrecruiter/core/spring/applicationContext-core-basic.xml"/>
+	<import resource="classpath:org/jrecruiter/core/spring/applicationContext-core-services.xml"/>
+	<import resource="classpath:org/jrecruiter/core/spring/applicationContext-notifications.xml"/>
+
+</beans>

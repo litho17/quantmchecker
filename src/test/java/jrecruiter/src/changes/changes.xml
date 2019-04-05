@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/changes/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/changes/1.0.0 http://maven.apache.org/xsd/changes-1.0.0.xsd">
+<properties>
+      <title>jRecruiter</title>
+      <author email="gunnar at hillert dot com">Gunnar Hillert</author>
+   </properties>
+   <body>
+      <release version="2.1.0" date="TBD" description="New Major Feature Release">
+           <action dev="Gunnar Hillert" type="add">
+               OpenID Integration
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Upgrade to SpringSecurity 3
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Upgrade to Hibernate 3.5/JPA 2.0
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               I18N basic Spanish support
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Demo Mode feature
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Data import/export using JAXB
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Seed data/test data population now done through import/export feature
+           </action>
+      </release>
+      <release version="2.0.1" date="2009-08-23" description="Minor Feature Release">
+           <action dev="Gunnar Hillert" type="add">
+               Accept environment variable (JRECRUITER_HOME) in order to point to home directory
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Better logging
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Jobs can have a phone number extension
+           </action>
+           <action dev="Gunnar Hillert" type="fix">
+                Improve phone number validation
+                http://code.google.com/p/jrecruiter/issues/detail?id=6
+           </action>
+      </release>
+      <release version="2.0" date="2009-08-23" description="New Major Feature Release">
+           <action dev="Gunnar Hillert" type="add">
+               (Almost) No more Struts XML-configuration files. Uses the
+               Struts 2.1 Convention plugin for annotation based
+               configuration.
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Many Spring Beans dependencies are now configured  using annotations
+               (Spring 3.0)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Sophisticated data-grid support using jMesa
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Google Maps integration (web (Javascript), Pdf (Image) and Flex (Flash))
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Hibernate Search support
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               RSS feed for the latest 20 jobs
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Social bookmarks on the job posting list
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Application is now Struts 2.1 based
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Using jasypt for password digesting
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Administrative pages are SSL encrypted
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Improved charting (jFreeCharts)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Using CAPTCHA for the registration page
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Implemented email account verification
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Now job postings and updates are send to Twitter (http://twitter.com/ajug_jobs/)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               PDF Export of Job Posting Details
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Switched from username-based logins to an email-based system (usernames are still supported on the
+               backend (e.g. administrative logins)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Some performance improvements --> CSS and JavaScript files are now merged, minified and GZipped using JAWR)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               XML web services for providing job posting data to Indeed.com (Still need to do the actual integration but the XML feed is there)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Using jQuery for most Javascript needs
+           </action>
+           <action dev="Gunnar Hillert" type="update">
+               Maven project consists of multiple modules now (web, server, flex)
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               I18N: Added partial support for German
+           </action>
+           <action dev="Gunnar Hillert" type="add">
+               Extra bonus: Added a simple Adobe Flex front-end using Spring BlazeDS for server integration
+           </action>
+      </release>
+      <release version="1.2.1" date="2006-07-08" description="Minor fixes and features">
+           <action dev="Gunnar Hillert" type="add">
+               Displaytag is now using partial lists to retrieve paginated and/or sorted data.
+               For this the new class JobsForDisplaytagSorting implements the org.displaytag.pagination.PaginatedList
+               interface.
+           </action>
+           <action dev="Gunnar Hillert" type="fix">
+               Fixed an Unicopde/UTF issue. Implemented a filer (CharsetFilter) in order to provide the expected encoding.
+           </action>
+           <action dev="Gunnar Hillert" type="fix">
+               A field on the settings screen was missing. Added the field.
+           </action>
+      </release>
+   </body>
+</document>
